@@ -1,0 +1,141 @@
+################
+# DETECTOR MAP #
+################
+
+#####################################
+# Detector#  readout   type    name #
+#####################################
+# type is not used currently
+
+########################################################################
+#Plane#  Detector  type  size (mm)  connectors  orientation  direction #
+########################################################################
+# direction determines if the plane coordinate needs to be flipped
+
+DET,  CARTESIAN,   PRADGEM,   PRadGEM1
+PLN,  PRadGEM1,    X,   550.4,   12,    1,   1
+PLN,  PRadGEM1,    Y,  1228.8,   24,    1,  -1
+
+DET,  CARTESIAN,   PRADGEM,   PRadGEM2
+PLN,  PRadGEM2,    X,   550.4,   12,    1,  -1
+PLN,  PRadGEM2,    Y,  1228.8,   24,    1,   1
+
+###########
+# DAQ MAP #
+###########
+
+#################
+#FEC#  id   ip  #
+#################
+# IP is not used currently
+
+##################################################################################
+#APV#  fec  adc  detector  plane_type  orient  plane_index  header_level  status #
+##################################################################################
+# (optional, following 'status')  time_sample  common_mode_thres  zero_sup_thres #
+##################################################################################
+###X->Y is clockwise
+
+#################
+#  SRU1 -> GEM1 #
+#################
+FEC,   1,     10.0.2.2
+APV,   1,     0,      PRadGEM1,  Y,     0,    0,    1500,     normal
+APV,   1,     1,      PRadGEM1,  Y,     0,    1,    1500,     normal
+APV,   1,     2,      PRadGEM1,  Y,     0,    2,    1500,     normal
+APV,   1,     3,      PRadGEM1,  Y,     0,    3,    1500,     normal
+APV,   1,     4,      PRadGEM1,  Y,     0,    4,    1500,     normal
+APV,   1,     5,      PRadGEM1,  Y,     0,    5,    1500,     normal
+APV,   1,     6,      PRadGEM1,  Y,     0,    6,    1500,     normal
+APV,   1,     7,      PRadGEM1,  Y,     0,    7,    1500,     normal
+#
+APV,   1,     8,      PRadGEM1,  X,     1,    11,    1500,     normal
+
+FEC,   3,     10.0.8.2
+APV,   3,     0,      PRadGEM1,  Y,     0,    8,    1500,     normal
+APV,   3,     1,      PRadGEM1,  Y,     0,    9,    1500,     normal
+APV,   3,     2,      PRadGEM1,  Y,     0,    10,    1500,     normal
+APV,   3,     3,      PRadGEM1,  Y,     0,    11,    1500,     normal
+APV,   3,     4,      PRadGEM1,  Y,     0,    12,    1500,     normal
+APV,   3,     5,      PRadGEM1,  Y,     0,    13,    1500,     normal
+APV,   3,     6,      PRadGEM1,  Y,     0,    14,    1500,     normal
+APV,   3,     7,      PRadGEM1,  Y,     0,    15,    1500,     normal
+#
+APV,   3,     8,      PRadGEM1,  X,     0,    10,    1500,     splitChannels
+
+FEC,   0,     10.0.0.2
+APV,   0,     0,      PRadGEM1,  Y,     0,    16,    1500,     normal
+APV,   0,     1,      PRadGEM1,  Y,     0,    17,    1500,     normal
+APV,   0,     2,      PRadGEM1,  Y,     0,    18,    1500,     normal
+APV,   0,     3,      PRadGEM1,  Y,     0,    19,    1500,     normal
+APV,   0,     4,      PRadGEM1,  Y,     0,    20,    1500,     normal
+APV,   0,     5,      PRadGEM1,  Y,     0,    21,    1500,     normal
+APV,   0,     6,      PRadGEM1,  Y,     0,    22,    1500,     normal
+APV,   0,     7,      PRadGEM1,  Y,     0,    23,    1500,     normal
+#
+APV,   0,     8,      PRadGEM1,  X,     0,    9,    1500,     splitChannels
+
+FEC,   2,     10.0.3.2
+APV,   2,     0,      PRadGEM1,  X,     1,    0,    1500,     splitChannels
+APV,   2,     1,      PRadGEM1,  X,     1,    1,    1500,     normal
+APV,   2,     2,      PRadGEM1,  X,     1,    2,    1500,     normal
+APV,   2,     3,      PRadGEM1,  X,     1,    3,    1500,     normal
+APV,   2,     4,      PRadGEM1,  X,     1,    4,    1500,     normal
+APV,   2,     5,      PRadGEM1,  X,     1,    5,    1500,     normal
+APV,   2,     6,      PRadGEM1,  X,     0,    6,    1500,     normal
+APV,   2,     7,      PRadGEM1,  X,     0,    7,    1500,     normal
+#
+APV,   2,     8,      PRadGEM1,  X,     0,    8,    1500,     normal
+
+
+#################
+#  SRU2 -> GEM2 #
+#################
+#
+FEC,   7,     10.0.7.2
+APV,   7,     0,      PRadGEM2,  Y,     0,    0,    1500,     normal
+APV,   7,     1,      PRadGEM2,  Y,     0,    1,    1500,     normal
+APV,   7,     2,      PRadGEM2,  Y,     0,    2,    1500,     normal
+APV,   7,     3,      PRadGEM2,  Y,     0,    3,    1500,     normal
+APV,   7,     4,      PRadGEM2,  Y,     0,    4,    1500,     normal
+APV,   7,     5,      PRadGEM2,  Y,     0,    5,    1500,     normal
+APV,   7,     6,      PRadGEM2,  Y,     0,    6,    1500,     normal
+APV,   7,     7,      PRadGEM2,  Y,     0,    7,    1500,     normal
+#
+APV,   7,     8,      PRadGEM2,  X,     0,    10,    1500,     splitChannels
+
+FEC,   5,     10.0.5.2
+APV,   5,     0,      PRadGEM2,  Y,     0,    8,    1500,     normal
+APV,   5,     1,      PRadGEM2,  Y,     0,    9,    1500,     normal
+APV,   5,     2,      PRadGEM2,  Y,     0,    10,    1500,     normal
+APV,   5,     3,      PRadGEM2,  Y,     0,    11,    1500,     normal
+APV,   5,     4,      PRadGEM2,  Y,     0,    12,    1500,     normal
+APV,   5,     5,      PRadGEM2,  Y,     0,    13,    1500,     normal
+APV,   5,     6,      PRadGEM2,  Y,     0,    14,    1500,     normal
+APV,   5,     7,      PRadGEM2,  Y,     0,    15,    1500,     normal
+#
+APV,   5,     8,      PRadGEM2,  X,     0,    9,    1500,      splitChannels
+
+FEC,   4,     10.0.4.2
+APV,   4,     0,      PRadGEM2,  Y,     0,    16,    1500,     normal
+APV,   4,     1,      PRadGEM2,  Y,     0,    17,    1500,     normal
+APV,   4,     2,      PRadGEM2,  Y,     0,    18,    1500,     normal
+APV,   4,     3,      PRadGEM2,  Y,     0,    19,    1500,     normal
+APV,   4,     4,      PRadGEM2,  Y,     0,    20,    1500,     normal
+APV,   4,     5,      PRadGEM2,  Y,     0,    21,    1500,     normal
+APV,   4,     6,      PRadGEM2,  Y,     0,    22,    1500,     normal
+APV,   4,     7,      PRadGEM2,  Y,     0,    23,    1500,     normal
+#
+APV,   4,     8,      PRadGEM2,  X,     0,    8,    1500,     normal
+
+FEC,   6,     10.0.6.2
+APV,   6,     0,      PRadGEM2,  X,     1,    0,    1500,     splitChannels
+APV,   6,     1,      PRadGEM2,  X,     1,    1,    1500,     normal
+APV,   6,     2,      PRadGEM2,  X,     1,    2,    1500,     normal
+APV,   6,     3,      PRadGEM2,  X,     1,    3,    1500,     normal
+APV,   6,     4,      PRadGEM2,  X,     1,    4,    1500,     normal
+APV,   6,     5,      PRadGEM2,  X,     1,    5,    1500,     normal
+APV,   6,     6,      PRadGEM2,  X,     0,    6,    1500,     normal
+APV,   6,     7,      PRadGEM2,  X,     0,    7,    1500,     normal
+#
+APV,   6,     8,      PRadGEM2,  X,     1,    11,    1500,     normal

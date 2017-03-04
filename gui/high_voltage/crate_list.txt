@@ -1,0 +1,8 @@
+# This configuration file tells the program to add CAEN high voltage crate
+# The CAEN HV channel is presumed to have the same name of the connected HyCal module
+# Crate name        crate ip            crate id
+PRadHV_1            129.57.160.67       1
+PRadHV_2            129.57.160.68       2
+PRadHV_3            129.57.160.69       3
+PRadHV_4            129.57.160.70       4
+PRadHV_5            129.57.160.71       5
