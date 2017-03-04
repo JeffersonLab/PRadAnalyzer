@@ -1,0 +1,8 @@
+# Ignore data files in this directory
+*.txt
+*.dat
+*.root
+*.dst
+*.evio
+*.evio.*
+

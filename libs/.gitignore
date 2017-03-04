@@ -1,0 +1,2 @@
+# Ignore compiled libraries in this directory
+*.so

@@ -1,0 +1,8 @@
+# Ignore binary makefile qt_moc/ obj/
+EventViewer
+Makefile
+qt_moc/
+obj/
+
+# Never ignore this file
+!.gitignore

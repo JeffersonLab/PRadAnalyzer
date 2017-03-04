@@ -1,0 +1,12 @@
+# Igonre all possible data files and root files
+*.dst
+*.dat
+*.txt
+*.root
+*.evio
+*.evio.*
+*.ev
+*.ev.*
+
+# Never ignore this file
+!.gitignore

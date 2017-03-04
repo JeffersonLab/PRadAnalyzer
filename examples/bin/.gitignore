@@ -1,0 +1,12 @@
+# To ignore all binary files
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+# Never ignore this file
+!.gitignore

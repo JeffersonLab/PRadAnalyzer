@@ -1,0 +1,32 @@
+PRad EventViewer is a C++ program developed for PRad experiment, the main purpose
+is to monitor online data, decode and view the experimental data.
+
+Qt progject file is named as QMakefile.pro, in that file you can disable or
+enable some optional components, such as online monitoring mode, high voltage
+control and standard evio file reading.
+
+Run "qmake" to generate the Makefile,
+then "make" to compile this program
+
+Depandencies:
+    Qt (required)
+        The basis of GUI, compatibility with version 4.6 - 5.6 is tested.
+
+    root (required)
+        Dealing with histograms, fittings in the program, compatible with
+        version 5.34 - 6.06.
+
+    evio (optional)
+        https://coda.jlab.org/drupal/content/event-io-evio
+        Event file io control, compatible with 4.4.6 or the library from
+        CODA 2.6.2 - CODA 3.02.
+
+    et (optional)
+        https://coda.jlab.org/drupal/content/event-transfer-et
+        Event transport package, tool to grab online data , compatible with 15.1
+        or the library from CODA 2.6.2 - CODA 3.02.
+
+    CAENHVWrapper (optional)
+        http://www.caen.it/jsp/Template2/CaenProd.jsp?parent=42&idmod=835#
+        CAEN HV control library, wrapped by this program to control PRad High
+        Voltage System.
