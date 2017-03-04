@@ -33,7 +33,6 @@ PRadGEMSystem *gem;
 PRadCoordSystem *coord_sys;
 PRadDetMatch *det_match;
 void testMatch(const string &path);
-ostream &operator <<(ostream &os, const PRadBenchMark &timer);
 
 int main(int argc, char *argv[])
 {

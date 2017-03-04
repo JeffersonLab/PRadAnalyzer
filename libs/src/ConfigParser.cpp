@@ -676,9 +676,9 @@ vector<pair<int, int>> ConfigParser::find_pairs(const string &str,
 // get file name and directory from a path
 ConfigParser::PathInfo ConfigParser::decompose_path(const string &path)
 {
-    // remove directory and affix
+    // find directory and suffix
     auto dir_pos = path.find_last_of("/");
-    auto suf_pos = path.find_last_of(".");
+    auto suf_pos = path.find_first_of(".");
 
     PathInfo res;
     if(dir_pos == string::npos) {
@@ -702,10 +702,13 @@ std::string ConfigParser::compose_path(const ConfigParser::PathInfo &path)
     std::string res(path.dir);
     res.reserve(path.dir.size() + path.name.size() + path.suffix.size() + 2);
 
-    if(res.back() != '/')
+    if(!res.empty() && res.back() != '/')
         res += '/';
 
-    res += path.name + "." + path.suffix;
+    res += path.name;
+
+    if(!path.suffix.empty())
+        res += "." + path.suffix;
 
     return res;
 }

@@ -62,6 +62,7 @@ EXAMPLE       = testGEM \
 				messReject \
 				mollerCenter \
 				physCalib \
+				reconstruct \
 				testNeural \
 				neuralTrain \
 				neuralReject
