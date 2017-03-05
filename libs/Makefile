@@ -33,7 +33,7 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 LINK          = g++
-LFLAGS        = -shared -Wl,-O1 -Wl,-z,relro
+LFLAGS        = -shared
 LIBS          = -lpthread -lexpat -lgfortran \
                 -L$(ROOTSYS)/lib -lCore -lRint -lRIO -lNet -lHist \
 				-lGraf -lGraf3d -lGpad -lTree -lPostscript -lMatrix \
