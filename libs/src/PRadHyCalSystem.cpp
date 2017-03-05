@@ -240,7 +240,7 @@ void PRadHyCalSystem::ReadChannelList(const std::string &path)
     std::vector<int> option_args = {0, 1};
 
     // this vector is to store all the following arguments
-    std::vector<std::vector<ConfigValue>> ch_args[types.size()];
+    std::vector<std::vector<std::vector<ConfigValue>>> ch_args(types.size());
 
     // read all the elements in
     while(c_parser.ParseLine())

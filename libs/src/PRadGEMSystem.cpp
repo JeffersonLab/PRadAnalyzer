@@ -244,7 +244,7 @@ void PRadGEMSystem::ReadMapFile(const std::string &path) throw(PRadException)
     std::vector<int> expect_args = {3, 6, 2, 8};
     std::vector<int> option_args = {0, 0, 0, 4};
     // this std::vector is to store all the following arguments
-    std::vector<std::list<ConfigValue>> args[types.size()];
+    std::vector<std::vector<std::list<ConfigValue>>> args(types.size());
 
     // read all the elements in
     while(c_parser.ParseLine())

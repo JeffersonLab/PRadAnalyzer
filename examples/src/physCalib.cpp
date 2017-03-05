@@ -155,7 +155,7 @@ int main(int argc, char * argv [])
                 if(gem2_hits.size() == 1) GEM_ep_x_y->Fill(gem2_hits.front().x, gem2_hits.front().y);
 
                 // combine hycalhits and gemhits if matched
-                CombinedHit myhits[clusterN];
+                CombinedHit *myhits = new CombinedHit[clusterN];
                 for(int i = 0; i < clusterN; ++i)
                 {
                     myhits[i] = hycal_hits[i];
@@ -184,6 +184,7 @@ int main(int argc, char * argv [])
                     MultiHitAnalyzer(myhits, clusterN);
                 }
 
+                delete [] myhits;
             }
             else if(dst_parser->EventType() == PRadDSTParser::Type::epics) {
                 const auto &epics_ev = dst_parser->GetEPICSEvent();
