@@ -534,19 +534,7 @@ void PRadHyCalSystem::UpdateRunFiles(bool verbose)
         SetConfigValue("Sub-period", it->sub);
     }
 
-    // run info file
     std::string file_path;
-    file_path = ConfigParser::form_path(GetConfig<std::string>("Run Info Folder"),
-                                        GetConfig<std::string>("Run Info File"));
-
-    ReadRunInfoFile(file_path);
-
-    if(verbose) {
-        std::cout << "PRad HyCal System: Read Run Info File "
-                  << "\"" << file_path << "\""
-                  << std::endl;
-    }
-
     // calibration file
     file_path = ConfigParser::form_path(GetConfig<std::string>("Calibration Folder"),
                                         GetConfig<std::string>("Calibration File"));
@@ -558,6 +546,20 @@ void PRadHyCalSystem::UpdateRunFiles(bool verbose)
                       << "\"" << file_path << "\""
                       << std::endl;
         }
+    }
+
+    // run info file
+    // calibration file should be read first, since the gain will be corrected
+    // based on the read calibration constants
+    file_path = ConfigParser::form_path(GetConfig<std::string>("Run Info Folder"),
+                                        GetConfig<std::string>("Run Info File"));
+
+    ReadRunInfoFile(file_path);
+
+    if(verbose) {
+        std::cout << "PRad HyCal System: Read Run Info File "
+                  << "\"" << file_path << "\""
+                  << std::endl;
     }
 }
 
