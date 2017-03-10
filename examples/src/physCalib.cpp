@@ -167,7 +167,7 @@ int main(int argc, char * argv [])
                     myhits[hit.hycal_idx].x_gem = hit.x;
                     myhits[hit.hycal_idx].y_gem = hit.y;
                     // take the matching flag in
-                    myhits[hit.hycal_idx].flag = hit.hycal.flag;
+                    myhits[hit.hycal_idx].match_flag = hit.mflag;
                 }
 
 	            //get beam energy
@@ -871,6 +871,6 @@ inline int IsNeighborToInner(int& id)
 
 bool MatchedGEM(const CombinedHit &hit)
 {
-    return TEST_BIT(hit.flag, kGEM1Match) || TEST_BIT(hit.flag, kGEM2Match);
+    return TEST_BIT(hit.match_flag, kGEM1Match) || TEST_BIT(hit.match_flag, kGEM2Match);
 }
 

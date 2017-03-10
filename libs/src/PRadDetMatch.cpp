@@ -123,11 +123,11 @@ const
         PostMatch(mhit);
 
         // matched with gem1
-        if(TEST_BIT(mhit.hycal.flag, kGEM1Match)) {
+        if(TEST_BIT(mhit.mflag, kGEM1Match)) {
             matched1.insert(mhit.gem1.front());
         }
         // matched with gem2
-        if(TEST_BIT(mhit.hycal.flag, kGEM2Match)) {
+        if(TEST_BIT(mhit.mflag, kGEM2Match)) {
             matched2.insert(mhit.gem2.front());
         }
     }
@@ -180,12 +180,12 @@ const
 
     // have candidates from gem1
     if(h.gem1.size()) {
-        SET_BIT(h.hycal.flag, kGEM1Match);
+        SET_BIT(h.mflag, kGEM1Match);
     }
 
     // have candidates from gem2
     if(h.gem2.size()) {
-        SET_BIT(h.hycal.flag, kGEM2Match);
+        SET_BIT(h.mflag, kGEM2Match);
     }
 
     // have candidates from both gem
@@ -200,20 +200,22 @@ const
             // gem1 matches
             if(dist1 < dist2) {
                 // remove the matching flag from gem2
-                CLEAR_BIT(h.hycal.flag, kGEM2Match);
+                CLEAR_BIT(h.mflag, kGEM2Match);
             // gem2 matches
             } else {
                 // remove the matching flag from gem1
-                CLEAR_BIT(h.hycal.flag, kGEM1Match);
+                CLEAR_BIT(h.mflag, kGEM1Match);
             }
         }
     }
 
-    // using gem position instead of hycal's
+    // set the best matched gem hit and use gem position instead of hycal's
     // gem1 will always be used in overlapping match
-    if(TEST_BIT(h.hycal.flag, kGEM1Match)) {
+    if(TEST_BIT(h.mflag, kGEM1Match)) {
+        h.gem = h.gem1.front();
         h.SubstituteCoord(h.gem1.front());
     } else {
+        h.gem = h.gem2.front();
         h.SubstituteCoord(h.gem2.front());
     }
 }

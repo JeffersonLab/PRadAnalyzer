@@ -387,7 +387,13 @@ struct EventData
 // *BEGIN* CLUSTER STRUCTURE                                                  //
 //============================================================================//
 
-// common part between gem and hycal cluster
+// status enums require bitwise manipulation
+// the following defintions are copies from Rtypes.h in root (cern)
+#define SET_BIT(n,i)  ( (n) |= (1ULL << i) )
+#define CLEAR_BIT(n,i)  ( (n) &= ~(1ULL << i) )
+#define TEST_BIT(n,i)  ( (bool)( n & (1ULL << i) ) )
+
+// common part between gem and hycal hits
 class BaseHit
 {
 public:
@@ -405,29 +411,20 @@ public:
     {};
 };
 
-// hycal cluster status
+// hycal hit status
 enum HyCalHitStatus
 {
-// this enum is for bitwise manipulation
-// the following defintions are from Rtypes.h in root (cern)
-// copied here for a clearer reference
-#define SET_BIT(n,i)  ( (n) |= (1ULL << i) )
-#define CLEAR_BIT(n,i)  ( (n) &= ~(1ULL << i) )
-#define TEST_BIT(n,i)  ( (bool)( n & (1ULL << i) ) )
-
-    kPbGlass = 0,       //cluster center at lead glass region
-    kPbWO4,             //cluster center at lead tungstate region
-    kTransition,        //cluster center at transition region
-    kSplit,             //cluster after splitting
-    kDeadModule,        //cluster center is a dead module (only possible from leakage correction)
-    kDeadNeighbor,      //cluster center is near a dead module
-    kInnerBound,        //cluster near the inner hole of HyCal
-    kOuterBound,        //cluster near the outer boundary of HyCal
-    kGEM1Match,         //cluster found a match GEM hit on GEM 1
-    kGEM2Match,         //cluster found a match GEM hit on GEM 2
+    kPbGlass = 0,       // cluster center at lead glass region
+    kPbWO4,             // cluster center at lead tungstate region
+    kTransition,        // cluster center at transition region
+    kSplit,             // cluster after splitting
+    kDeadModule,        // cluster center is a dead module (only possible from leakage correction)
+    kDeadNeighbor,      // cluster center is near a dead module
+    kInnerBound,        // cluster near the inner hole of HyCal
+    kOuterBound,        // cluster near the outer boundary of HyCal
 };
 
-// hycal cluster
+// hycal reconstructed hit
 class HyCalHit : public BaseHit
 {
 public:
@@ -473,7 +470,7 @@ public:
     }
 };
 
-// gem cluster
+// gem reconstructed hit
 class GEMHit : public BaseHit
 {
 public:
@@ -498,26 +495,39 @@ public:
 
 };
 
+
+// hit matching status
+enum MatchHitStatus
+{
+    // since this status flag is originally from HyCalHitStatus
+    // start with its original value to avoid mismatch with old code
+
+    kGEM1Match = 8,     // found a matched GEM hit on PRadGEM1
+    kGEM2Match,         // found a matched GEM hit on PRadGEM2
+};
+
 class MatchHit : public BaseHit
 {
 public:
     HyCalHit hycal;
+    GEMHit gem;
     std::vector<GEMHit> gem1;
     std::vector<GEMHit> gem2;
+    unsigned int mflag;
     // this index is kept because of decoder/physCalib is using it
     // TODO revamp physCalib and remove this member
-    uint32_t hycal_idx;
+    unsigned int hycal_idx;
 
     MatchHit(const HyCalHit &hit)
-    : BaseHit(hit.x, hit.y, hit.z, hit.E), hycal(hit)
+    : BaseHit(hit.x, hit.y, hit.z, hit.E), hycal(hit), mflag(0)
     {};
 
     MatchHit(const HyCalHit &hit, std::vector<GEMHit> &&v1, std::vector<GEMHit> &&v2)
-    : BaseHit(hit.x, hit.y, hit.z, hit.E), hycal(hit), gem1(v1), gem2(v2)
+    : BaseHit(hit.x, hit.y, hit.z, hit.E), hycal(hit), gem1(v1), gem2(v2), mflag(0)
     {};
 
     MatchHit(const HyCalHit &hit, const std::vector<GEMHit> &v1, const std::vector<GEMHit> &v2)
-    : BaseHit(hit.x, hit.y, hit.z, hit.E), hycal(hit), gem1(v1), gem2(v2)
+    : BaseHit(hit.x, hit.y, hit.z, hit.E), hycal(hit), gem1(v1), gem2(v2), mflag(0)
     {};
 
     void SubstituteCoord(const BaseHit &h)
