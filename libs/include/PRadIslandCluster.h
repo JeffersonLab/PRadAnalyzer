@@ -4,6 +4,11 @@
 #include <vector>
 #include "PRadHyCalCluster.h"
 
+// use the original island method, do iterations on splitting clusters
+// undefine it will switch the method to do a coarse splitting with an
+// improved performance
+// SUGGEST to be defined since performance should not be an issue for
+// this adapted C++ island code
 #define ISLAND_FINE_SPLIT
 
 class PRadIslandCluster : public PRadHyCalCluster

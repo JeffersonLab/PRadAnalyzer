@@ -47,6 +47,11 @@ class CombinedHit : public HyCalHit
 public:
     float x_gem;
     float y_gem;
+    unsigned int match_flag;
+
+    CombinedHit()
+    : x_gem(0.), y_gem(0.), match_flag(0)
+    {};
 
     // be abled to assgin HyCalHit to this class
     CombinedHit &operator =(const HyCalHit &hit)

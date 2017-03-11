@@ -134,13 +134,20 @@ float PRadEPICSystem::GetValue(const std::string &name)
 const
 {
     unsigned int ch = GetChannel(name);
-    if(ch >= epics_values.size())
-        return EPICS_UNDEFINED_VALUE;
 
-    if(epics_data.size())
+    if(epics_data.size() && epics_data.back().values.size() > ch)
         return epics_data.back().values.at(ch);
 
-    return epics_values.at(ch);
+    return EPICS_UNDEFINED_VALUE;
+}
+
+int PRadEPICSystem::GetEventNumber()
+const
+{
+    if(epics_data.empty())
+        return -1;
+
+    return epics_data.back().event_number;
 }
 
 int PRadEPICSystem::GetChannel(const std::string &name)

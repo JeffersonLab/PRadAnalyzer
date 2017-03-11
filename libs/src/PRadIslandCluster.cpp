@@ -4,9 +4,8 @@
 //                                                                            //
 // Ilya Larin, adapted GAMS island algorithm for HyCal in PrimEx.             //
 // Maxime Levillain & Weizhi Xiong, developed a new method based on PrimEx    //
-//                                  method, has a much better performance on  //
-//                                  splitting, but has a slightly worse       //
-//                                  resolution 08/01/2016                     //
+//                                  method, has a better performance but a    //
+//                                  slightly worse result, 08/01/2016         //
 // Weizhi Xiong, adapted island algorithm for PRad, reduced the discretized   //
 //               energy value from 10 MeV to 0.1 MeV, wrote a C++ wrapper for //
 //               the fortran code. 09/28/2016                                 //
@@ -293,6 +292,9 @@ const
             // update the center energy
             if(new_hit == cluster.center)
                 cluster.center.energy = new_hit.energy;
+
+            // set flag to mark the splitted clusters
+            SET_BIT(cluster.center.flag, kSplit);
         }
     }
 }

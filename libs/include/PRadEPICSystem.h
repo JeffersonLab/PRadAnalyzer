@@ -38,8 +38,9 @@ public:
     void SaveData(const int &event_number, bool online = false);
 
     std::vector<EPICSChannel> GetSortedList() const;
-    const std::vector<float> &GetValues() const {return epics_values;};
+    const std::vector<float> &GetCurrentValues() const {return epics_values;};
     float GetValue(const std::string &name) const;
+    int GetEventNumber() const;
     int GetChannel(const std::string &name) const;
     const EpicsData &GetEvent(const unsigned int &index) const throw(PRadException);
     const std::deque<EpicsData> &GetEventData() const {return epics_data;};

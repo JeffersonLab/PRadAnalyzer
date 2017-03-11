@@ -356,7 +356,7 @@ void PRadDataHandler::EndProcess(EventData *ev)
 
         if(epic_sys) {
             if(replayMode)
-                dst_parser.WriteEPICS(EpicsData(ev->event_number, epic_sys->GetValues()));
+                dst_parser.WriteEPICS(EpicsData(ev->event_number, epic_sys->GetCurrentValues()));
             else
                 epic_sys->SaveData(ev->event_number, onlineMode);
         }
