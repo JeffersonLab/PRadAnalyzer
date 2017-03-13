@@ -42,7 +42,7 @@ protected:
     float cross_talk_width;
 
     // cross talk characteristic distances
-    std::vector<double> charac_distance;
+    std::vector<float> charac_dists;
 };
 
 #endif

@@ -18,9 +18,6 @@
 
 class PRadHyCalSystem;
 class PRadHyCalCluster;
-// these two structure will be used for cluster reconstruction, defined at the end
-struct ModuleHit;
-struct ModuleCluster;
 
 class PRadHyCalDetector : public PRadDetector
 {
@@ -112,86 +109,5 @@ protected:
     std::vector<HyCalHit> hycal_hits;
 };
 
-struct ModuleHit
-{
-    int id;                         // module id
-    unsigned int flag;              // module flag
-    int sector;                     // hycal sector
-    PRadHyCalModule::Geometry geo;  // geometry
-    float energy;                   // participated energy, may be splitted
-    bool real;                      // false for virtual hit to correct leakage
-
-    ModuleHit(bool r = true)
-    : id(0), flag(0), sector(0), energy(0), real(r)
-    {};
-
-    ModuleHit(PRadHyCalModule *m, float e, bool r = true)
-    : energy(e), real(r)
-    {
-        id = m->GetID();
-        flag = m->GetLayoutFlag();
-        sector = m->GetSectorID();
-        geo = m->GetGeometry();
-    };
-
-    bool operator ==(const ModuleHit &rhs) const {return id == rhs.id;};
-};
-
-struct ModuleCluster
-{
-    ModuleHit center;               // center hit
-    std::vector<ModuleHit> hits;    // hits group
-    float energy;                   // cluster energy
-    float leakage;                  // energy leakage
-
-    ModuleCluster()
-    : energy(0), leakage(0)
-    {
-        hits.reserve(100);
-    }
-
-    ModuleCluster(const ModuleHit &hit)
-    : center(hit), energy(0), leakage(0)
-    {
-        hits.reserve(100);
-    }
-
-    void AddHit(const ModuleHit &hit)
-    {
-        hits.emplace_back(hit);
-        energy += hit.energy;
-    }
-
-    void Merge(const ModuleCluster &that)
-    {
-        hits.reserve(hits.size() + that.hits.size());
-        hits.insert(hits.end(), that.hits.begin(), that.hits.end());
-
-        energy += that.energy;
-        leakage += that.leakage;
-
-        if(center.energy < that.center.energy)
-            center = that.center;
-    }
-
-    void FindCenter()
-    {
-        if(hits.empty())
-            return;
-
-        float max_e = center.energy;
-        ModuleHit *cptr = nullptr;
-        for(auto &hit : hits)
-        {
-            if(hit.energy > max_e) {
-                max_e = hit.energy;
-                cptr = &hit;
-            }
-        }
-
-        if(cptr)
-            center = *cptr;
-    }
-};
-
 #endif
+

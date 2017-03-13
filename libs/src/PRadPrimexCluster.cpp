@@ -1,5 +1,11 @@
 //============================================================================//
-// A C++ wrapper for island reconstruction method from PrimEx code            //
+// A C++ wrapper for island reconstruction method from original PrimEx code   //
+// HyCal is separated into 5 sectors, each sector runs the fortran island code//
+// and the formed clusters are glued outside.                                 //
+//                                                                            //
+// Not suggested due to the following known issues:                           //
+// 1. double leakage correction for the transition region.                    //
+// 2. poor performance.                                                       //
 //                                                                            //
 // Weizhi Xiong, Chao Peng                                                    //
 // 09/28/2016                                                                 //
@@ -158,7 +164,6 @@ const
 {
     // determine sector's column and row ranges
     ISECT = isect;
-    int coloffset = 0, rowoffset = 0;
     switch(isect)
     {
     case 0:
@@ -168,22 +173,18 @@ const
     case 1:
         NCOL = 24; NROW =  6;
         SET_XSIZE = GLASS_SIZE; SET_YSIZE = GLASS_SIZE;
-        coloffset = 0, rowoffset = 0;
         break;
     case 2:
         NCOL =  6; NROW =  24;
         SET_XSIZE = GLASS_SIZE; SET_YSIZE = GLASS_SIZE;
-        coloffset = 24, rowoffset = 0;
         break;
     case 3:
         NCOL = 24; NROW =  6;
         SET_XSIZE = GLASS_SIZE; SET_YSIZE = GLASS_SIZE;
-        coloffset =  6, rowoffset = 24;
         break;
     case 4:
         NCOL =  6; NROW = 24;
         SET_XSIZE = GLASS_SIZE; SET_YSIZE = GLASS_SIZE;
-        coloffset = 0, rowoffset = 6;
         break;
     default:
         printf("call_island bad sector given : %i\n",isect);
@@ -205,19 +206,13 @@ const
     for(auto &hit : hits)
     {
         // not belong to this sector or energy is too low
-        if((hit.sector != isect) ||
+        if((hit.layout.sector != isect) ||
            (hit.energy < min_module_energy.at(hit.geo.type)))
             continue;
 
         const int &id  = hit.id;
-        int column, row;
-        if(id > 1000) {
-            column = (id-1001)%NCOL+1;
-            row    = (id-1001)/NROW+1;
-        } else {
-            column = (id-1)%(NCOL+NROW)+1-coloffset;
-            row    = (id-1)/(NCOL+NROW)+1-rowoffset;
-        }
+        int column = hit.layout.column + 1;
+        int row = hit.layout.row + 1;
 
         // discretize to 0.1 MeV
         ECH(column,row) = int(hit.energy*10. + 0.5);
@@ -289,7 +284,7 @@ inline bool PRadPrimexCluster::checkTransAdj(const ModuleCluster &c1,
 const
 {
     // don't merge the clusters in the same sector
-    if(c1.center.sector == c2.center.sector)
+    if(c1.center.layout.sector == c2.center.layout.sector)
         return false;
 
     for(auto &m1 : c1.hits)

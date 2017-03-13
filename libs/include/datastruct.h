@@ -1,6 +1,8 @@
 #ifndef PRAD_DATA_STRUCT_H
 #define PRAD_DATA_STRUCT_H
 
+// structure and enums related to the raw data from DAQ system
+
 #include <cstddef>
 #include <cstdint>
 
@@ -179,7 +181,8 @@ struct APVAddress
 #define V767_INVALID_BIT (V767_HEADER_BIT | V767_END_BIT)
 
 // v1190 type check (data >> 27)
-enum V1190WordType {
+enum V1190WordType
+{
     V1190_GLOBAL_HEADER = 0x08,  // 01000
     V1190_GLOBAL_TRAILER = 0x10, // 10000
     V1190_GLOBAL_TIMETAG = 0x11, // 10001

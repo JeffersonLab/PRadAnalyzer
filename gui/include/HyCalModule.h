@@ -15,7 +15,7 @@ class HyCalModule : public QGraphicsItem, public PRadHyCalModule
 public:
     HyCalModule(PRadEventViewer* const p,
                 const std::string &name,
-                const PRadHyCalModule::Geometry &geo);
+                const Geometry &geo);
     virtual ~HyCalModule();
 
     void Initialize();

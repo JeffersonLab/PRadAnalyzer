@@ -69,7 +69,7 @@ void PRadHyCalCluster::ReadVModuleList(const std::string &path)
 
     std::string name;
     std::string type, sector;
-    PRadHyCalModule::Geometry geo;
+    Geometry geo;
 
     // some info that is not read from list
     while (c_parser.ParseLine())
@@ -87,13 +87,13 @@ void PRadHyCalCluster::ReadVModuleList(const std::string &path)
             ModuleHit inner_hit(false);
             inner_hit.id = -1;
             inner_hit.geo = geo;
-            inner_hit.sector = 0;
+            inner_hit.layout.sector = 0;
             inner_virtual.push_back(inner_hit);
         } else if(ConfigParser::str_upper(name) == "OUTER") {
             ModuleHit outer_hit(false);
             outer_hit.id = -1;
             outer_hit.geo = geo;
-            outer_hit.sector = 1;
+            outer_hit.layout.sector = 1;
             outer_virtual.push_back(outer_hit);
         }
     }
@@ -154,10 +154,10 @@ HyCalHit PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster, const float
 const
 {
     // initialize the hit
-    HyCalHit hycal_hit(cluster.center.id,       // center id
-                       cluster.center.flag,     // module flag
-                       cluster.energy,          // total energy
-                       cluster.leakage);        // energy from leakage corr
+    HyCalHit hycal_hit(cluster.center.id,               // center id
+                       cluster.center.layout.flag,      // module flag
+                       cluster.energy,                  // total energy
+                       cluster.leakage);                // energy from leakage corr
 
     // do non-linearity energy correction
     if(linear_corr && fabs(alpE) < linear_corr_limit) {
@@ -194,13 +194,13 @@ const
     if(!leak_corr)
         return;
 
-    if(TEST_BIT(cluster.center.flag, kDeadNeighbor))
+    if(TEST_BIT(cluster.center.layout.flag, kDeadNeighbor))
         AddVirtHits(cluster, dead);
 
-    if(TEST_BIT(cluster.center.flag, kInnerBound))
+    if(TEST_BIT(cluster.center.layout.flag, kInnerBound))
         AddVirtHits(cluster, inner_virtual);
 
-    if(TEST_BIT(cluster.center.flag, kOuterBound))
+    if(TEST_BIT(cluster.center.layout.flag, kOuterBound))
         AddVirtHits(cluster, outer_virtual);
 }
 

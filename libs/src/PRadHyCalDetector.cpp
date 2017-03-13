@@ -152,7 +152,7 @@ void PRadHyCalDetector::ReadModuleList(const std::string &path)
 
     std::string name;
     std::string type, sector;
-    PRadHyCalModule::Geometry geo;
+    Geometry geo;
 
     // some info that is not read from list
     while (c_parser.ParseLine())
@@ -386,7 +386,11 @@ void PRadHyCalDetector::CreateDeadHits()
         // module is not connected to a adc channel or the channel is dead
         if(!module->GetChannel() || module->GetChannel()->IsDead()) {
             SET_BIT(module->layout.flag, kDeadModule);
-            dead_hits.emplace_back(module, 0., false);
+            dead_hits.emplace_back(module->GetID(),         // id
+                                   module->GetGeometry(),   // geometry
+                                   module->GetLayout(),     // layout
+                                   0.,                      // energy
+                                   false);                  // virtual
         }
     }
 
@@ -457,7 +461,10 @@ void PRadHyCalDetector::CollectHits()
     {
         float energy = module->GetEnergy();
         if(energy > 0)
-            module_hits.emplace_back(module, energy);
+            module_hits.emplace_back(module->GetID(),           // id
+                                     module->GetGeometry(),     // geometry
+                                     module->GetLayout(),       // layout
+                                     energy);                   // energy
     }
 }
 
@@ -585,7 +592,7 @@ const
         }
     }
 
-    module.SetLayout(PRadHyCalModule::Layout(flag, sector, row-1, col-1));
+    module.SetLayout(Layout(flag, sector, row-1, col-1));
 }
 
 // quantize the distance between two modules by there sizes

@@ -18,7 +18,7 @@
 
 HyCalModule::HyCalModule(PRadEventViewer* const p,
                          const std::string &n,
-                         const PRadHyCalModule::Geometry &geo)
+                         const Geometry &geo)
 : PRadHyCalModule(n, geo),
   console(p), qname(QString::fromStdString(n)), m_hover(false),
   m_selected(false), color(Qt::white), font(QFont("times",10)), custom_value(0.)

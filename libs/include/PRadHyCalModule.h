@@ -4,7 +4,8 @@
 #include <string>
 #include <iostream>
 #include "PRadCalibConst.h"
-
+// Geometry and Layout definition
+#include "generalstruct.h"
 
 class PRadHyCalDetector;
 class PRadADCChannel;
@@ -24,41 +25,6 @@ public:
         PbWO4 = 1,
         // max number of types
         Max_Type,
-    };
-
-    struct Geometry
-    {
-        int type;
-        double size_x;
-        double size_y;
-        double size_z;
-        double x;
-        double y;
-        double z;
-
-        Geometry()
-        : type(-1), size_x(0), size_y(0), size_z(0), x(0), y(0), z(0)
-        {};
-
-        Geometry(int t, double sx, double sy, double sz,
-                double pos_x, double pos_y, double pos_z)
-        : type(t), size_x(sx), size_y(sy), size_z(sz), x(pos_x), y(pos_y), z(pos_z)
-        {};
-    };
-
-    struct Layout
-    {
-        unsigned int flag;
-        int sector;
-        int row;
-        int column;
-
-        Layout() : flag(0), sector(-1), row(0), column(0)
-        {};
-
-        Layout(unsigned int f, int s, int r, int c)
-        : flag(f), sector(s), row(r), column(c)
-        {};
     };
 
 public:

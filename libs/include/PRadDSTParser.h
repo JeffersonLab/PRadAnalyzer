@@ -18,7 +18,7 @@ class PRadDSTParser
 public:
     friend class PRadDataHandler;
 
-    enum PRadDSTHeader : unsigned int
+    enum Header : unsigned int
     {
         // headers
         FileHeader = 0xc0c0c0,
@@ -39,8 +39,7 @@ public:
 
     enum class Mode : unsigned int
     {
-        // by default it updates all info
-        update_gem_info,
+        update_gem_info = 0,
         update_hycal_ped,
         update_hycal_cal,
         update_run_info,

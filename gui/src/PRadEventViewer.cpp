@@ -932,7 +932,7 @@ void PRadEventViewer::UpdateStatusInfo()
 
     QStringList valueList;
     QString typeInfo;
-    PRadHyCalModule::Geometry geoInfo = selection->GetGeometry();
+    Geometry geoInfo = selection->GetGeometry();
 
     switch(geoInfo.type)
     {

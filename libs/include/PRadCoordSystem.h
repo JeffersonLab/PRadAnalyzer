@@ -17,66 +17,6 @@ class PRadGEMDetector;
 class PRadCoordSystem
 {
 public:
-    struct Point
-    {
-        float x;
-        float y;
-        float z;
-
-        Point() : x(0), y(0), z(0)
-        {};
-        Point(float xi, float yi, float zi)
-        : x(xi), y(yi), z(zi)
-        {};
-    };
-
-    struct DetCoord
-    {
-        int run_number; // associated run
-        int det_enum;   // detector index
-        float x_ori;    // origin x
-        float y_ori;    // origin y
-        float z_ori;    // origin z
-        float theta_x;  // tilting angle on x axis
-        float theta_y;  // tilting angle on y axis
-        float theta_z;  // tilting angle on z axis
-
-        DetCoord()
-        : run_number(0), det_enum(0),
-          x_ori(0), y_ori(0), z_ori(0), theta_x(0), theta_y(0), theta_z(0)
-        {};
-        DetCoord(int r, int i, float x, float y, float z)
-        : run_number(r), det_enum(i),
-          x_ori(x), y_ori(y), z_ori(z), theta_x(0), theta_y(0), theta_z(0)
-        {};
-        DetCoord(int r, int i, float x, float y, float z, float tx, float ty, float tz)
-        : run_number(r), det_enum(i),
-          x_ori(x), y_ori(y), z_ori(z), theta_x(tx), theta_y(ty), theta_z(tz)
-        {};
-
-        // these functions help to retrieve values in array or set values in array
-        float get_dim_coord(int i)
-        {
-            if(i == 0) return x_ori;
-            if(i == 1) return y_ori;
-            if(i == 2) return z_ori;
-            if(i == 3) return theta_x;
-            if(i == 4) return theta_y;
-            if(i == 5) return theta_z;
-            return 0.;
-        }
-
-        void set_dim_coord(int i, float val)
-        {
-            if(i == 0) x_ori = val;
-            if(i == 1) y_ori = val;
-            if(i == 2) z_ori = val;
-            if(i == 3) theta_x = val;
-            if(i == 4) theta_y = val;
-            if(i == 5) theta_z = val;
-        }
-    };
-
 public:
     PRadCoordSystem(const std::string &path = "", const int &run = 0);
     virtual ~PRadCoordSystem();
@@ -196,9 +136,9 @@ public:
 
 public:
     //static public members
-    static Point origin();
-    static Point target();
-    static Point BeamLine(const float &z);
+    static Point origin() {return Point(0., 0., 0.);};
+    static Point target() {return Point(0., 0., 88.9);};
+    static Point beamline(const float &z) {return Point(0., 0., z);};
 
     // basic projection functions
     static void Projection(float &x, float &y, float &z,
@@ -243,5 +183,5 @@ protected:
     std::vector<DetCoord> current_coord;
 };
 
-std::ostream &operator << (std::ostream &os, const PRadCoordSystem::DetCoord &off);
+std::ostream &operator <<(std::ostream &os, const DetCoord &coord);
 #endif

@@ -46,14 +46,16 @@ void PRadGEMCluster::Configure(const std::string &path)
     cross_talk_width = getDefConfig<float>("Cross Talk Width", 2, verbose);
 
     // get cross talk characteristic distance
-    charac_distance.clear();
+    charac_dists.clear();
     std::string dist_str = GetConfig<std::string>("Characteristic Distance");
     auto dists = ConfigParser::split(dist_str, ",");  // split input string
     while(dists.size())
     {
-	    std::string dist = ConfigParser::trim(dists.front(), " \t"); // trim off white spaces
+        // trim off white spaces
+	    ConfigValue dist = ConfigParser::trim(dists.front(), " \t");
 	    dists.pop_front();
-	    charac_distance.push_back(std::stod(dist)); // convert string to double and save it
+        // convert string to number and save it
+	    charac_dists.push_back(dist.Float());
     }
 }
 
@@ -258,9 +260,9 @@ const
 
     for(auto it = clusters.begin(); it != clusters.end(); ++it)
     {
-        double delta = fabs(it->position - cluster.position);
+        float delta = fabs(it->position - cluster.position);
 
-        for(auto &dist : charac_distance)
+        for(auto &dist : charac_dists)
         {
             if(delta > dist - cross_talk_width &&
                delta < dist + cross_talk_width)

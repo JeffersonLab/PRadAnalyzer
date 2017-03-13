@@ -197,7 +197,7 @@ void HyCalScene::ReadModuleList(const std::string &path)
 
     std::string name;
     std::string type, sector;
-    PRadHyCalModule::Geometry geo;
+    Geometry geo;
 
     // some info that is not read from list
     while (c_parser.ParseLine())

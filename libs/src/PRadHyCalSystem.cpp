@@ -621,7 +621,10 @@ void PRadHyCalSystem::Reconstruct(const EventData &event)
 
         double val = (double)adc.value - adc_list.at(adc.channel_id)->GetPedestal().mean;
 
-        hits.emplace_back(module, module->GetEnergy(val));
+        hits.emplace_back(module->GetID(),                  // module id
+                          module->GetGeometry(),            // module geometry
+                          module->GetLayout(),              // module layout
+                          module->GetEnergy(val));          // module energy
     }
 
     // reoncsturct

@@ -161,7 +161,7 @@ const
         float b = m1.geo.y - k*m1.geo.x;
 
         // determine which boundary the line is crossing
-        int sect = abs(m1.sector - m2.sector);
+        int sect = abs(m1.layout.sector - m2.layout.sector);
         float boundary = __cp_boundary[sect - 1];
         bool x_boundary = __cp_x_boundary[sect - 1];
 
@@ -228,7 +228,7 @@ const
         float b = y - k*x;
 
         // determine which boundary the line is crossing
-        sect = abs(sect - hit.sector);
+        sect = abs(sect - hit.layout.sector);
         float boundary = __cp_boundary[sect - 1];
         bool x_boundary = __cp_x_boundary[sect - 1];
 
@@ -263,9 +263,9 @@ const
 
     // determine energy resolution
     float res = 0.026;  // 2.6% for PbWO4
-    if(TEST_BIT(cl.center.flag, kPbGlass))
+    if(TEST_BIT(cl.center.layout.flag, kPbGlass))
         res = 0.065;    // 6.5% for PbGlass
-    if(TEST_BIT(cl.center.flag, kTransition))
+    if(TEST_BIT(cl.center.layout.flag, kTransition))
         res = 0.050;    // 5.0% for transition
     res /= sqrt(h.E/1000.);
 

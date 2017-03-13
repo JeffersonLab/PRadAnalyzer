@@ -1,10 +1,13 @@
 #ifndef PRAD_EVENT_STRUCT_H
 #define PRAD_EVENT_STRUCT_H
 
+// class, structure and enum related the reconstructed event
+
 #include <string>
 #include <vector>
 #include <deque>
 #include <utility>
+#include "generalstruct.h"
 #include "datastruct.h"
 
 // some discriminator related settings
@@ -44,6 +47,8 @@ struct RunInfo
 //============================================================================//
 // *END* RUN INFORMATION STRUCTURE                                            //
 //============================================================================//
+
+
 
 //============================================================================//
 // *BEGIN* ONLINE INFORMATION STRUCTURE                                       //
@@ -94,6 +99,8 @@ struct OnlineInfo
 // *END* ONLINE INFORMATION STRUCTURE                                         //
 //============================================================================//
 
+
+
 //============================================================================//
 // *BEGIN* RAW EPICS DATA STRUCTURE                                           //
 //============================================================================//
@@ -124,6 +131,8 @@ struct EpicsData
 //============================================================================//
 // *END* RAW EPICS DATA STRUCTURE                                             //
 //============================================================================//
+
+
 
 //============================================================================//
 // *BEGIN* RAW EVENT DATA COMPONENTS                                          //
@@ -199,6 +208,8 @@ struct GEM_Data
 //============================================================================//
 // *END* RAW EVENT DATA COMPONENTS                                            //
 //============================================================================//
+
+
 
 //============================================================================//
 // *BEGIN* RAW EVENT DATA STRUCTURE                                           //
@@ -383,8 +394,151 @@ struct EventData
 // *END* RAW EVENT DATA STRUCTURE                                             //
 //============================================================================//
 
+
+
 //============================================================================//
-// *BEGIN* CLUSTER STRUCTURE                                                  //
+// *BEGIN* HYCAL MODULE HIT AND CLUSTER STRUCTURE                             //
+//============================================================================//
+struct ModuleHit
+{
+    int id;                         // module id
+    Geometry geo;                   // module geometry
+    Layout layout;                  // module layout
+    float energy;                   // participated energy, may be splitted
+    bool real;                      // false for virtual hit to correct leakage
+
+    ModuleHit(bool r = true)
+    : id(0), energy(0), real(r)
+    {};
+
+    ModuleHit(int i, const Geometry &g, const Layout &l, float e, bool r = true)
+    : id(i), geo(g), layout(l), energy(e), real(r)
+    {};
+
+    bool operator ==(const ModuleHit &rhs) const {return id == rhs.id;};
+};
+
+struct ModuleCluster
+{
+    ModuleHit center;               // center hit
+    std::vector<ModuleHit> hits;    // hits group
+    float energy;                   // cluster energy
+    float leakage;                  // energy leakage
+
+    ModuleCluster()
+    : energy(0), leakage(0)
+    {
+        hits.reserve(100);
+    }
+
+    ModuleCluster(const ModuleHit &hit)
+    : center(hit), energy(0), leakage(0)
+    {
+        hits.reserve(100);
+    }
+
+    void AddHit(const ModuleHit &hit)
+    {
+        hits.emplace_back(hit);
+        energy += hit.energy;
+    }
+
+    void Merge(const ModuleCluster &that)
+    {
+        hits.reserve(hits.size() + that.hits.size());
+        hits.insert(hits.end(), that.hits.begin(), that.hits.end());
+
+        energy += that.energy;
+        leakage += that.leakage;
+
+        if(center.energy < that.center.energy)
+            center = that.center;
+    }
+
+    void FindCenter()
+    {
+        if(hits.empty())
+            return;
+
+        float max_e = center.energy;
+        ModuleHit *cptr = nullptr;
+        for(auto &hit : hits)
+        {
+            if(hit.energy > max_e) {
+                max_e = hit.energy;
+                cptr = &hit;
+            }
+        }
+
+        if(cptr)
+            center = *cptr;
+    }
+};
+
+//============================================================================//
+// *END* HYCAL MODULE HIT AND CLUSTER STRUCTURE                               //
+//============================================================================//
+
+
+
+//============================================================================//
+// *BEGIN* GEM STRIP HIT AND CLUSTER STRUCTURE                                //
+//============================================================================//
+struct StripHit
+{
+    int strip;
+    float charge;
+    float position;
+    bool cross_talk;
+    APVAddress apv_addr;
+
+    StripHit()
+    : strip(0), charge(0.), position(0.), cross_talk(false), apv_addr(-1, -1)
+    {};
+    StripHit(int s, float c, float p, bool f = false, int fec = -1, int adc = -1)
+    : strip(s), charge(c), position(p), cross_talk(f), apv_addr(fec, adc)
+    {};
+};
+
+struct StripCluster
+{
+    float position;
+    float peak_charge;
+    float total_charge;
+    std::vector<StripHit> hits;
+
+    StripCluster()
+    : position(0.), peak_charge(0.), total_charge(0.)
+    {};
+
+    StripCluster(const std::vector<StripHit> &p)
+    : position(0.), peak_charge(0.), total_charge(0.), hits(p)
+    {};
+
+    StripCluster(std::vector<StripHit> &&p)
+    : position(0.), peak_charge(0.), total_charge(0.), hits(std::move(p))
+    {};
+
+    bool IsCrossTalk()
+    const
+    {
+        for(auto &hit : hits)
+        {
+            if(!hit.cross_talk)
+                return false;
+        }
+        return true;
+    }
+};
+
+//============================================================================//
+// *END* GEM STRIP HIT AND CLUSTER STRUCTURE                                  //
+//============================================================================//
+
+
+
+//============================================================================//
+// *BEGIN* DETECTOR HIT STRUCTURE                                             //
 //============================================================================//
 
 // status enums require bitwise manipulation
@@ -539,7 +693,7 @@ public:
 };
 
 //============================================================================//
-// *END* CLUSTER STRUCTURE                                                    //
+// *END* DETECTOR HIT STRUCTURE                                               //
 //============================================================================//
 
 #endif

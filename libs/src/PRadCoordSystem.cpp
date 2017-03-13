@@ -159,7 +159,7 @@ void PRadCoordSystem::ChooseCoord(int run_number)
 }
 
 // choose coordinates
-void PRadCoordSystem::SetCurrentCoord(const std::vector<PRadCoordSystem::DetCoord> &coords)
+void PRadCoordSystem::SetCurrentCoord(const std::vector<DetCoord> &coords)
 {
     current_coord = coords;
 
@@ -233,7 +233,7 @@ void PRadCoordSystem::Projection(float &x, float &y, float &z, const Point &pi, 
     Projection(x, y, z, pi.x, pi.y, pi.z, zf);
 }
 
-float PRadCoordSystem::ProjectionDistance(PRadCoordSystem::Point p1, PRadCoordSystem::Point p2)
+float PRadCoordSystem::ProjectionDistance(Point p1, Point p2)
 {
     // on the same plane
     if(p1.z == p2.z)
@@ -249,25 +249,7 @@ float PRadCoordSystem::ProjectionDistance(PRadCoordSystem::Point p1, PRadCoordSy
     return sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y));
 }
 
-// origin of the beam center frame
-PRadCoordSystem::Point PRadCoordSystem::origin()
-{
-    return Point(0., 0., 0.);
-}
-
-// target center at the beam center frame
-PRadCoordSystem::Point PRadCoordSystem::target()
-{
-    return Point(0., 0., 88.9);
-}
-
-// beam line point
-PRadCoordSystem::Point PRadCoordSystem::BeamLine(const float &z)
-{
-    return Point(0., 0., z);
-}
-
-std::ostream &operator <<(std::ostream &os, const PRadCoordSystem::DetCoord &det)
+std::ostream &operator <<(std::ostream &os, const DetCoord &det)
 {
     return os << std::setw(8)  << det.run_number
               << std::setw(12) << PRadDetector::getName(det.det_enum)

@@ -14,9 +14,6 @@
 
 class PRadGEMDetector;
 class PRadGEMCluster;
-// these two structure will be used for cluster reconstruction, defined at the end
-struct StripHit;
-struct StripCluster;
 
 class PRadGEMPlane
 {
@@ -93,53 +90,6 @@ private:
     // plane raw hits and clusters
     std::vector<StripHit> strip_hits;
     std::vector<StripCluster> strip_clusters;
-};
-
-struct StripHit
-{
-    int strip;
-    float charge;
-    float position;
-    bool cross_talk;
-    APVAddress apv_addr;
-
-    StripHit()
-    : strip(0), charge(0.), position(0.), cross_talk(false), apv_addr(-1, -1)
-    {};
-    StripHit(int s, float c, float p, bool f = false, int fec = -1, int adc = -1)
-    : strip(s), charge(c), position(p), cross_talk(f), apv_addr(fec, adc)
-    {};
-};
-
-struct StripCluster
-{
-    float position;
-    float peak_charge;
-    float total_charge;
-    std::vector<StripHit> hits;
-
-    StripCluster()
-    : position(0.), peak_charge(0.), total_charge(0.)
-    {};
-
-    StripCluster(const std::vector<StripHit> &p)
-    : position(0.), peak_charge(0.), total_charge(0.), hits(p)
-    {};
-
-    StripCluster(std::vector<StripHit> &&p)
-    : position(0.), peak_charge(0.), total_charge(0.), hits(std::move(p))
-    {};
-
-    bool IsCrossTalk()
-    const
-    {
-        for(auto &hit : hits)
-        {
-            if(!hit.cross_talk)
-                return false;
-        }
-        return true;
-    }
 };
 
 #endif

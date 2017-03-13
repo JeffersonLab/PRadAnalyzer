@@ -294,7 +294,7 @@ const
                 cluster.center.energy = new_hit.energy;
 
             // set flag to mark the splitted clusters
-            SET_BIT(cluster.center.flag, kSplit);
+            SET_BIT(cluster.center.layout.flag, kSplit);
         }
     }
 }
