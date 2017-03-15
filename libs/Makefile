@@ -6,17 +6,17 @@ MAKEFILE      = Makefile
 COMPONENTS    = PRIMEX_METHOD, MULTI_THREAD
 
 # neural network directory
-NEURAL 		  = cneural
+NEURAL 	      = cneural
 
 ####### Compiler, tools and options
 CC            = gcc
 CXX           = g++
 FORTRAN       = gfortran
-FFLAGS        = -fPIC
+FFLAGS        = -fPIC -cpp
 CXXFLAGS      = -shared -std=c++11 -m64 -O2 -g -pipe -Wall $(DEFINES) \
 				-fstack-protector-strong --param=ssp-buffer-size=4 \
 				-grecord-gcc-switches -mtune=generic -fPIC
-INCPATH       = -Iinclude -Iinclude -I$(ROOTSYS)/include
+INCPATH       = -I$(ROOTSYS)/include
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
 MKDIR         = mkdir -p
@@ -45,17 +45,18 @@ STRIP         =
 
 ####### Targets, add new objects here
 
-# lib PRadDecoder
-LIB_DIR       = .
+# lib
 TARGET_LIB    = libprana.so
-LIB_SRC_DIR   = src
-FORTRAN_SRC   = fortran
-FORTRAN_INC   = fortran
-LIB_OBJ_DIR   = $(LIB_DIR)/obj
-LIB_CLASSES   = PRadDAQChannel \
-				PRadADCChannel \
-				PRadTDCChannel \
-				PRadCalibConst \
+OBJECTS_DIR   = obj
+
+# c++ part
+CXX_SRC_DIR   = src
+CXX_INC_DIR   = include
+CXX_SUFFIX    = cpp
+CXX_SOURCES   = PRadDAQChannel \
+                PRadADCChannel \
+                PRadTDCChannel \
+                PRadCalibConst \
                 PRadEvioParser \
                 PRadDSTParser \
                 PRadDataHandler \
@@ -86,21 +87,32 @@ LIB_CLASSES   = PRadDAQChannel \
                 PRadTaggerSystem
 
 
-LIB_OBJECTS   = $(addprefix $(LIB_OBJ_DIR)/, $(LIB_CLASSES:=.o))
+# fortran part
+FOR_SRC_DIR   = fortran
+FOR_INC_DIR   = fortran
+FOR_SOURCES   = 
+FOR_SUFFIX    = f
 
 
 ###### Components related
 
 # use primex clustering method
 ifneq (,$(findstring PRIMEX_METHOD,$(COMPONENTS)))
-	LIB_CLASSES +=  island PRadPrimexCluster
-	DEFINES     +=  -DUSE_PRIMEX_METHOD
+	FOR_SOURCES += island
+	CXX_SOURCES += PRadPrimexCluster
+	DEFINES     += -DUSE_PRIMEX_METHOD
 endif
 
 # enable multi-threading in the code
 ifneq (, $(findstring MULTI_THREAD,$(COMPONENTS)))
 	DEFINES     += -DMULTI_THREAD
 endif
+
+
+# find all objects to be made
+CXX_OBJECTS   = $(addprefix $(OBJECTS_DIR)/, $(CXX_SOURCES:=.$(CXX_SUFFIX).o))
+FOR_OBJECTS   = $(addprefix $(OBJECTS_DIR)/, $(FOR_SOURCES:=.$(FOR_SUFFIX).o))
+OBJECTS       = $(CXX_OBJECTS) $(FOR_OBJECTS)
 
 ####### Build rules
 first: all neural
@@ -113,23 +125,25 @@ all:
 neural:
 	$(MAKE) -C $(NEURAL)
 
-$(TARGET_LIB):  $(LIB_OBJECTS)
-	$(LINK) $(LFLAGS) -o $(LIB_DIR)/$(TARGET_LIB) $(LIB_OBJECTS) $(LIBS)
+$(TARGET_LIB):  $(OBJECTS)
+	$(LINK) $(LFLAGS) -o $(TARGET_LIB) $(OBJECTS) $(LIBS)
 
-$(LIB_OBJ_DIR)/%.o: $(LIB_SRC_DIR)/%.cpp
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
+# cpp objects
+$(OBJECTS_DIR)/%.$(CXX_SUFFIX).o: $(CXX_SRC_DIR)/%.$(CXX_SUFFIX)
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -I$(CXX_INC_DIR) -o $@ $<
 
-$(LIB_OBJ_DIR)/island.o: $(FORTRAN_SRC)/island.F
-	$(FORTRAN) -c $(FFLAGS) $(INCPATH) -I$(FORTRAN_INC) -o $@ $<
+# fortran objects
+$(OBJECTS_DIR)/%.$(FOR_SUFFIX).o: $(FOR_SRC_DIR)/%.$(FOR_SUFFIX)
+	$(FORTRAN) -c $(FFLAGS) $(INCPATH) -I$(FOR_INC_DIR) -o $@ $<
 
 ####### Clean
 clean: cleanobj cleanlib
 
 cleanobj:
-	$(DEL_FILE) $(LIB_OBJ_DIR)/*.o $(EXE_OBJ_DIR)/*.o
+	$(DEL_FILE) $(OBJECTS_DIR)/*.o
 	$(MAKE) -C $(NEURAL) cleanobj
 
 cleanlib:
-	$(DEL_FILE) $(LIB_DIR)/$(TARGET_LIB)
+	$(DEL_FILE) $(TARGET_LIB)
 	$(MAKE) -C $(NEURAL) cleanlib
 

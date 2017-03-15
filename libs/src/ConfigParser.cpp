@@ -21,11 +21,12 @@ using namespace std;
 //============================================================================//
 ConfigParser::ConfigParser(const string &s,
                            const string &w,
-                           const vector<string> &c)
-: splitters(s), white_space(w), comment_marks(c), line_number(0),
-  in_comment_pair(false)
+                           const vector<string> &c,
+                           const string_pair &p)
+: splitters(s), white_spaces(w), comment_marks(c), comment_pair(p),
+  line_number(0), in_comment_pair(false)
 {
-    comment_pair = make_pair("/*", "*/");
+    // place holder
 }
 
 ConfigParser::~ConfigParser()
@@ -165,7 +166,7 @@ int ConfigParser::ParseString(const string &line)
     int count = 0;
     for(auto &ele : eles)
     {
-        string trim_ele = trim(ele, white_space);
+        string trim_ele = trim(ele, white_spaces);
         if(trim_ele.size()) {
             elements.emplace_back(move(trim_ele));
             count++;

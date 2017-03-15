@@ -8,13 +8,10 @@ PRAD_LIBS     = ../libs
 ####### Compiler, tools and options
 CC            = gcc
 CXX           = g++
-FORTRAN       = gfortran
-FFLAGS        = -fPIC
 CXXFLAGS      = -std=c++11 -O1 -g -pipe -Wall -m64 -mtune=generic -fPIC \
 				-fstack-protector-strong --param=ssp-buffer-size=4 \
-				-grecord-gcc-switches -mtune=generic -fPIC
-INCPATH       = -Iinclude -I$(PRAD_LIBS)/include \
-				-I$(ROOTSYS)/include
+				-grecord-gcc-switches
+INCPATH       = -Iinclude -I$(PRAD_LIBS)/include -I$(ROOTSYS)/include
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
 MKDIR         = mkdir -p
@@ -31,7 +28,6 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 LINK          = g++
-LFLAGS_LIBS   = -shared -Wl,-O1 -Wl,-z,relro
 LFLAGS        = -Wl,-O1 -Wl,-z,relro
 LIBS          = -lpthread -lexpat \
                 -L$(PRAD_LIBS) -lprana -lcneural \

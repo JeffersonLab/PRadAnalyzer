@@ -50,6 +50,7 @@ MOC_DIR = qt_moc
 
 TEMPLATE = app
 TARGET = EventViewer
+QMAKE_CLEAN += $$(TARGET)
 DEPENDPATH += 
 INCLUDEPATH += include \
                ../libs/include \

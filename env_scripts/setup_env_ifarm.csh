@@ -5,6 +5,8 @@
 
 setenv PRAD_PATH /work/hallb/prad/PRadAnalyzer
 
+source /work/hallb/prad/apps/set_env_CUE.csh
+
 # setup the coda library and caen library
 # these are needed for online monitoring and high voltage control
 if (`uname -m` == 'x86_64') then
@@ -16,10 +18,6 @@ else
     setenv ET_INC /u/site/coda/2.6.2/common/include
     setenv THIRD_LIB  ${PRAD_PATH}/thirdparty/lib
 endif
-
-# comment this if you have your own root installed
-# setup root environment
-source /u/apps/root/6.08.00/setroot_CUE.csh
 
 # setup the libraries path
 setenv PRAD_LIB ${PRAD_PATH}/libs

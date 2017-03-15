@@ -26,7 +26,7 @@ void PRadEventFilter::LoadBadEventsList(const std::string &path, bool clear_exis
 
     ConfigParser c_parser;
     // remove *, space and tab at both ends of each element
-    c_parser.SetWhiteSpace(" \t*");
+    c_parser.SetWhiteSpaces(" \t*");
 
     if (!c_parser.ReadFile(path)) {
         std::cerr << "PRad Event Filter: Cannot open bad event list "

@@ -11,15 +11,18 @@
 // config parser class
 class ConfigParser
 {
+    typedef std::pair<std::string, std::string> string_pair;
+
 public:
-    ConfigParser(const std::string &s = " ,\t",  // splitters
-                 const std::string &w = " \t",  // white_space
-                 const std::vector<std::string> &c = {"#", "//"}); // comment_mark
+    ConfigParser(const std::string &s = " ,\t",                     // splitters
+                 const std::string &w = " \t",                      // white_space
+                 const std::vector<std::string> &c = {"#", "//"},   // comment mark
+                 const string_pair &p = std::make_pair("/*", "*/"));// comment pair
     virtual ~ConfigParser();
 
     // Set members
     void SetSplitters(const std::string &s) {splitters = s;};
-    void SetWhiteSpace(const std::string &w) {white_space = w;};
+    void SetWhiteSpaces(const std::string &w) {white_spaces = w;};
     void SetCommentMarks(const std::vector<std::string> &c) {comment_marks = c;};
     void SetCommentPair(const std::string &o, const std::string &c) {comment_pair = std::make_pair(o, c);};
     void AddCommentMark(const std::string &c);
@@ -106,9 +109,9 @@ public:
 
     // get members
     const std::string &GetSplitters() const {return splitters;};
-    const std::string &GetWhiteSpace() const {return white_space;};
+    const std::string &GetWhiteSpaces() const {return white_spaces;};
     const std::vector<std::string> &GetCommentMarks() const {return comment_marks;};
-    const std::pair<std::string, std::string> &GetCommentPair() const {return comment_pair;};
+    const string_pair &GetCommentPair() const {return comment_pair;};
 
 
 private:
@@ -121,9 +124,9 @@ private:
 private:
     // private members
     std::string splitters;
-    std::string white_space;
+    std::string white_spaces;
     std::vector<std::string> comment_marks;
-    std::pair<std::string, std::string> comment_pair;
+    string_pair comment_pair;
     std::deque<std::string> lines;
     std::deque<std::string> elements;
     std::string current_line;
