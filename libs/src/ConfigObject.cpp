@@ -86,7 +86,8 @@ bool ConfigObject::ReadConfigFile(const std::string &path)
         }
         // unsupported format
         else {
-            std::cout << "Warning: Unsupported configuration file format "
+            std::cout << "Warning: Unsupported format in file "
+                      << "\"" << path << "\" "
                       << "at line " << c_parser.LineNumber()
                       << std::endl
                       << "\"" << c_parser.CurrentLine() << "\""

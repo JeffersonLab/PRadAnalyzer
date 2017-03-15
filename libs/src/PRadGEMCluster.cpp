@@ -56,7 +56,6 @@ void PRadGEMCluster::Configure(const std::string &path)
 	    dists.pop_front();
         // convert string to number and save it
 	    charac_dists.push_back(dist.Float());
-        std::cout << dist.Float() << std::endl;
     }
 }
 

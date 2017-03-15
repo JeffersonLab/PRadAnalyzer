@@ -22,8 +22,9 @@ using namespace std;
 ConfigParser::ConfigParser(const string &s,
                            const string &w,
                            const vector<string> &c,
-                           const string_pair &p)
-: splitters(s), white_spaces(w), comment_marks(c), comment_pair(p),
+                           const string_pair &p,
+                           const string &g)
+: splitters(s), white_spaces(w), comment_marks(c), comment_pair(p), line_glues(g),
   line_number(0), in_comment_pair(false)
 {
     // place holder
@@ -267,46 +268,85 @@ bool ConfigParser::parseFile()
     // comment pair needs to be taken care here
     while(!count)
     {
-        // end of file
-        if(!getline(infile, current_line))
+        if(infile.bad() || infile.eof())
             return false;
 
-        // count the line parsed
-        ++line_number;
+        string parse_string;
+        getLineFromFile(parse_string);
+
+        if(parse_string.empty())
+            continue;
 
         // no need to take care comment pair
         if(comment_pair.first.empty() || comment_pair.second.empty()) {
-            count = ParseString(current_line);
+            count = ParseString(parse_string);
         } else {
             // if we had comment pair opened
             if(in_comment_pair) {
                 // see if there is an end to the comment pair
-                auto c_end = current_line.find(comment_pair.second);
+                auto c_end = parse_string.find(comment_pair.second);
                 // end of a comment pair
                 if(c_end != string::npos) {
-                    count = ParseString(current_line.substr(c_end + comment_pair.second.size()));
+                    count = ParseString(parse_string.substr(c_end + comment_pair.second.size()));
                     in_comment_pair = false;
                 }
             // if no previous comment pair opened
             } else {
                 // remove complete comment pair in one line
-                while(comment_between(current_line, comment_pair.first, comment_pair.second))
+                while(comment_between(parse_string, comment_pair.first, comment_pair.second))
                 {;}
                 // see if there is any comment pair opening
-                auto c_beg = current_line.find(comment_pair.first);
+                auto c_beg = parse_string.find(comment_pair.first);
                 // find comment pair openning
                 if(c_beg != string::npos) {
-                    count = ParseString(current_line.substr(0, c_beg));
+                    count = ParseString(parse_string.substr(0, c_beg));
                     in_comment_pair = true;
                 } else {
                     // no special treatment
-                    count = ParseString(current_line);
+                    count = ParseString(parse_string);
                 }
             }
         }
     }
 
     return true;
+}
+
+// get a line from ifstream, it takes care of empty line and concatenated lines
+inline void ConfigParser::getLineFromFile(string &to_be_parsed)
+{
+    bool continuation;
+
+    do {
+        continuation = false;
+        // end or error reached
+        if(!getline(infile, current_line))
+            break;
+
+        // count the line number
+        ++line_number;
+
+        // trim white spaces at both ends
+        current_line = trim(current_line, white_spaces);
+
+        // should continue to read next line
+        if(current_line.empty()) {
+            continuation = true;
+        } else {
+            for(auto &c : line_glues)
+            {
+                if(current_line.back() == c) {
+                    current_line.pop_back();
+                    continuation = true;
+                    break;
+                }
+            }
+        }
+
+        // add current line to be parsed
+        to_be_parsed.append(current_line);
+
+    } while(continuation);
 }
 
 // take a line from the stored lines buffer and parse it
@@ -318,19 +358,59 @@ bool ConfigParser::parseBuffer()
     int count = 0;
     while(!count)
     {
-        // end of buffer
         if(lines.empty())
             return false;
 
-        // count the line parsed
-        ++line_number;
+        string parse_string;
+        getLineFromBuffer(parse_string);
+        if(parse_string.empty())
+            continue;
 
-        current_line = move(lines.front());
-        lines.pop_front();
-        count = ParseString(current_line);
+        count = ParseString(parse_string);
     }
 
     return true; // parsed a line
+}
+
+inline void ConfigParser::getLineFromBuffer(string &to_be_parsed)
+{
+    bool continuation;
+
+    do {
+        continuation = false;
+
+        // end reached
+        if(lines.empty())
+            break;
+
+        // take line
+        current_line = move(lines.front());
+        lines.pop_front();
+
+        // count the line number
+        ++line_number;
+
+        // trim white spaces at both ends
+        current_line = trim(current_line, white_spaces);
+
+        // should continue to read next line
+        if(current_line.empty()) {
+            continuation = true;
+        } else {
+            for(auto &c : line_glues)
+            {
+                if(current_line.back() == c) {
+                    current_line.pop_back();
+                    continuation = true;
+                    break;
+                }
+            }
+        }
+
+        // add current line to be parsed
+        to_be_parsed.append(current_line);
+
+    } while(continuation);
 }
 
 // comment out the characters with certain mark
