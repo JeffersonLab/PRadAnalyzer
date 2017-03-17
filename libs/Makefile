@@ -3,7 +3,8 @@
 ################################################################################
 
 MAKEFILE      = Makefile
-COMPONENTS    = PRIMEX_METHOD, MULTI_THREAD
+# passed by command line
+#OPTION    = PRIMEX_METHOD, MULTI_THREAD
 
 # neural network directory
 NEURAL 	      = cneural
@@ -97,14 +98,14 @@ FOR_SUFFIX    = f
 ###### Components related
 
 # use primex clustering method
-ifneq (,$(findstring PRIMEX_METHOD,$(COMPONENTS)))
+ifneq (,$(findstring PRIMEX_METHOD,$(OPTION)))
 	FOR_SOURCES += island
 	CXX_SOURCES += PRadPrimexCluster
 	DEFINES     += -DUSE_PRIMEX_METHOD
 endif
 
 # enable multi-threading in the code
-ifneq (, $(findstring MULTI_THREAD,$(COMPONENTS)))
+ifneq (, $(findstring MULTI_THREAD,$(OPTION)))
 	DEFINES     += -DMULTI_THREAD
 endif
 

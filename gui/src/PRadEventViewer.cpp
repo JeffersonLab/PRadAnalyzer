@@ -55,12 +55,12 @@
 #endif
 
 #ifdef USE_ONLINE_MODE
-#include "PRadETChannel.h"
-#include "ETSettingPanel.h"
+#include "online_monitor/PRadETChannel.h"
+#include "online_monitor/ETSettingPanel.h"
 #endif
 
 #ifdef USE_CAEN_HV
-#include "PRadHVSystem.h"
+#include "high_voltage/PRadHVSystem.h"
 #endif
 
 #ifdef USE_EVIO_LIB

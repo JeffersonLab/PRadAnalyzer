@@ -5,8 +5,8 @@
 // 04/01/2016                                                                 //
 //============================================================================//
 
-#include "PRadETStation.h"
-#include "PRadETChannel.h"
+#include "online_monitor/PRadETStation.h"
+#include "online_monitor/PRadETChannel.h"
 
 PRadETStation::PRadETStation(PRadETChannel *p, std::string n, int mode)
 : et_system(p), name(n)

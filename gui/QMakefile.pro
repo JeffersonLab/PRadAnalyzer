@@ -16,23 +16,21 @@ DEFINES += MULTI_THREAD
 ######################################################################
 # optional components
 ######################################################################
-
-# empty components
-COMPONENTS = 
+# it can be changed by command line `qmake "COMPONENTS += something"`
 
 # enable online mode, it requires Event Transfer,
 # it is the monitoring process from CODA group
-COMPONENTS += ONLINE_MODE
+#COMPONENTS += ONLINE_MODE
 
 # enable high voltage control, it requires CAENHVWrapper library
-COMPONENTS += HV_CONTROL
+#COMPONENTS += HV_CONTROL
 
 # use standard evio libraries instead of self-defined function to read
 # evio data files
 #COMPONENTS += STANDARD_EVIO
 
 # enable the reconstruction display in GUI
-COMPONENTS += RECON_DISPLAY
+#COMPONENTS += RECON_DISPLAY
 
 ######################################################################
 # optional components end
@@ -96,24 +94,30 @@ LIBS += -L../libs -lprana \
 
 contains(COMPONENTS, ONLINE_MODE) {
     DEFINES += USE_ONLINE_MODE
-    HEADERS += include/PRadETChannel.h \
-               include/PRadETStation.h \
-               include/ETSettingPanel.h
-    SOURCES += src/PRadETChannel.cpp \
-               src/PRadETStation.cpp \
-               src/ETSettingPanel.cpp
+    HEADERS += include/online_monitor/PRadETChannel.h \
+               include/online_monitor/PRadETStation.h \
+               include/online_monitor/ETSettingPanel.h
+    SOURCES += src/online_monitor/PRadETChannel.cpp \
+               src/online_monitor/PRadETStation.cpp \
+               src/online_monitor/ETSettingPanel.cpp
     INCLUDEPATH += $$(ET_INC)
     LIBS += -L$$(ET_LIB) -let
+    message("Online Monitor = Enabled")
+} else {
+    message("Online Monitor = Disabled")
 }
 
 contains(COMPONENTS, HV_CONTROL) {
     DEFINES += USE_CAEN_HV
-    HEADERS += include/PRadHVSystem.h \
-               include/CAENHVSystem.h
-    SOURCES += src/PRadHVSystem.cpp \
-               src/CAENHVSystem.cpp
+    HEADERS += include/high_voltage/PRadHVSystem.h \
+               include/high_voltage/CAENHVSystem.h
+    SOURCES += src/high_voltage/PRadHVSystem.cpp \
+               src/high_voltage/CAENHVSystem.cpp
     INCLUDEPATH += ../thirdparty/include
     LIBS += -L$$(THIRD_LIB) -lcaenhvwrapper
+    message("High Voltage Control = Enalbed")
+} else {
+    message("High Voltage Control = Disabled")
 }
 
 contains(COMPONENTS, STANDARD_EVIO) {
@@ -122,6 +126,9 @@ contains(COMPONENTS, STANDARD_EVIO) {
         INCLUDEPATH += ../thirdparty/include
     }
     LIBS += -L$$(THIRD_LIB) -levio -levioxx
+    message("EVIO Reading = Standard library")
+} else {
+    message("EVIO Reading = PRad specific")
 }
 
 contains(COMPONENTS, RECON_DISPLAY) {
@@ -130,6 +137,9 @@ contains(COMPONENTS, RECON_DISPLAY) {
                include/MarkSettingWidget.h
     SOURCES += src/ReconSettingPanel.cpp \
                src/MarkSettingWidget.cpp
+    message("Reconstruct Events Display = Enabled")
+} else {
+    message("Reconstruct Events Display = Disabled")
 }
 
 ######################################################################

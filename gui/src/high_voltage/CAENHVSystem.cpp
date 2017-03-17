@@ -5,7 +5,7 @@
 // 05/17/2016                                                                 //
 //============================================================================//
 
-#include "CAENHVSystem.h"
+#include "high_voltage/CAENHVSystem.h"
 #include <cstring>
 
 using namespace std;
