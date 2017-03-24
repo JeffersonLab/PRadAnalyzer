@@ -56,4 +56,7 @@ cleanexe:
 # distclean is set by Qt, will remove the Makefile and target
 # in addition to the objects
 cleangui:
+ifneq ("$(wildcard $(GUI_DIR)/$(MAKE_FILE))","")
 	$(MAKE) -C $(GUI_DIR) -f $(MAKE_FILE) distclean
+endif
+# do nothing if the make file doesn't exist

@@ -71,6 +71,9 @@ bool ConfigObject::ReadConfigFile(const std::string &path)
         return false;
     }
 
+    // record THIS_DIR
+    SetConfigValue("THIS_DIR", ConfigParser::decompose_path(path).dir);
+
     while(c_parser.ParseLine())
     {
         // possible control words
@@ -221,13 +224,17 @@ const
         size_t end = pos2 - cl.size();
         size_t size = end - beg + 1;
 
+        std::string var = result.substr(beg, size);
+        std::string val;
+
         if(pos1 > 0 && input.at(pos1 - 1) == '$') {
-            const char *env_p = std::getenv(result.substr(beg, size).c_str());
-            result.replace(pos1 - 1, pos2 - pos1 + 2, env_p);
+            pos1 --;
+            val = std::getenv(var.c_str());
         } else {
-            ConfigValue val = GetConfigValue(result.substr(beg, size));
-            result.replace(pos1, pos2 - pos1 + 1, val.c_str());
+            val = GetConfig<std::string>(var);
         }
+
+        result.replace(pos1, pos2 - pos1 + 1, val);
     }
 
     return ConfigValue(std::move(result));
@@ -255,7 +262,11 @@ void ConfigObject::parseControl(const std::string &word)
         int begin = pairs.back().first + 1;
         int length = pairs.back().second - begin;
         std::string path = word.substr(begin, length);
+        // save current THIS_DIR
+        std::string prev_dir = GetConfig<std::string>("THIS_DIR");
         ReadConfigFile(path);
+        // restore THIS_DIR
+        SetConfigValue("THIS_DIR", prev_dir);
     }
     else {
         std::cout << "Unsupported control word: " << word << std::endl;

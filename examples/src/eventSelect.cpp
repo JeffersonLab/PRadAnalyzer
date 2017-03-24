@@ -48,7 +48,6 @@ void EventSelect(const string &file, const string &bad_file)
     dst_parser.OpenInput(file);
     auto path_info = ConfigParser::decompose_path(file);
     string fname = path_info.name;
-    string dir = path_info.dir;
 
     dst_parser.OpenOutput(fname + "_sel.dst");
     dst_parser2.OpenOutput(fname + "_mon.dst");

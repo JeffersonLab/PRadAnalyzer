@@ -763,12 +763,12 @@ ConfigParser::PathInfo ConfigParser::decompose_path(const string &path)
 
     PathInfo res;
     if(dir_pos == string::npos) {
-        res.dir = "./";
+        res.dir = ".";
         res.name = path.substr(0, suf_pos);
         if(suf_pos != string::npos)
             res.suffix = path.substr(suf_pos + 1);
     } else {
-        res.dir = path.substr(0, dir_pos + 1);
+        res.dir = path.substr(0, dir_pos);
         res.name = path.substr(dir_pos + 1, suf_pos - dir_pos - 1);
         if(suf_pos != string::npos && suf_pos > dir_pos)
             res.suffix = path.substr(suf_pos + 1);
