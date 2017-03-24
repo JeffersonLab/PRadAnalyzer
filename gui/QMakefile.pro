@@ -16,21 +16,21 @@ DEFINES += MULTI_THREAD
 ######################################################################
 # optional components
 ######################################################################
-# it can be changed by command line `qmake "COMPONENTS += something"`
+# it can be changed by command line `qmake "GUI_OPTION += something"`
 
 # enable online mode, it requires Event Transfer,
 # it is the monitoring process from CODA group
-#COMPONENTS += ONLINE_MODE
+#GUI_OPTION += ONLINE_MODE
 
 # enable high voltage control, it requires CAENHVWrapper library
-#COMPONENTS += HV_CONTROL
+#GUI_OPTION += HV_CONTROL
 
 # use standard evio libraries instead of self-defined function to read
 # evio data files
-#COMPONENTS += STANDARD_EVIO
+#GUI_OPTION += STANDARD_EVIO
 
 # enable the reconstruction display in GUI
-#COMPONENTS += RECON_DISPLAY
+#GUI_OPTION += RECON_DISPLAY
 
 ######################################################################
 # optional components end
@@ -92,7 +92,7 @@ LIBS += -L../libs -lprana \
 # implement self-defined components
 ######################################################################
 
-contains(COMPONENTS, ONLINE_MODE) {
+contains(GUI_OPTION, ONLINE_MODE) {
     DEFINES += USE_ONLINE_MODE
     HEADERS += include/online_monitor/PRadETChannel.h \
                include/online_monitor/PRadETStation.h \
@@ -107,7 +107,7 @@ contains(COMPONENTS, ONLINE_MODE) {
     message("Online Monitor = Disabled")
 }
 
-contains(COMPONENTS, HV_CONTROL) {
+contains(GUI_OPTION, HV_CONTROL) {
     DEFINES += USE_CAEN_HV
     HEADERS += include/high_voltage/PRadHVSystem.h \
                include/high_voltage/CAENHVSystem.h
@@ -120,7 +120,7 @@ contains(COMPONENTS, HV_CONTROL) {
     message("High Voltage Control = Disabled")
 }
 
-contains(COMPONENTS, STANDARD_EVIO) {
+contains(GUI_OPTION, STANDARD_EVIO) {
     DEFINES += USE_EVIO_LIB
     !contains(INCLUDEPATH, ../thirdparty/include) {
         INCLUDEPATH += ../thirdparty/include
@@ -128,10 +128,10 @@ contains(COMPONENTS, STANDARD_EVIO) {
     LIBS += -L$$(THIRD_LIB) -levio -levioxx
     message("EVIO Reading = Standard library")
 } else {
-    message("EVIO Reading = PRad specific")
+    message("EVIO Reading = PRad structure")
 }
 
-contains(COMPONENTS, RECON_DISPLAY) {
+contains(GUI_OPTION, RECON_DISPLAY) {
     DEFINES += RECON_DISPLAY
     HEADERS += include/ReconSettingPanel.h \
                include/MarkSettingWidget.h
