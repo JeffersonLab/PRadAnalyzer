@@ -227,7 +227,7 @@ const
         std::string var = result.substr(beg, size);
         std::string val;
 
-        if(pos1 > 0 && input.at(pos1 - 1) == '$') {
+        if(pos1 > 0 && result.at(pos1 - 1) == '$') {
             pos1 --;
             val = std::getenv(var.c_str());
         } else {
@@ -261,10 +261,9 @@ void ConfigObject::parseControl(const std::string &word)
         }
         int begin = pairs.back().first + 1;
         int length = pairs.back().second - begin;
-        std::string path = word.substr(begin, length);
         // save current THIS_DIR
         std::string prev_dir = GetConfig<std::string>("THIS_DIR");
-        ReadConfigFile(path);
+        ReadConfigFile(form(word.substr(begin, length), replace_pair.first, replace_pair.second)._value);
         // restore THIS_DIR
         SetConfigValue("THIS_DIR", prev_dir);
     }
