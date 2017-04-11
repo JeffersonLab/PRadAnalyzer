@@ -672,8 +672,8 @@ bool ConfigParser::strcmp_case_insensitive(const string &str1, const string &str
     return true;
 }
 
-// find the first pair position in a string, it will return the most inner pair
-// if the first pair is a mult-layer structure
+// find the first pair position in a string
+// it will return the most inner pair if the first pair was in a nested structure
 bool ConfigParser::find_pair(const string &str,
                              const string &open, const string &close,
                              int &open_pos, int &close_pos)
@@ -687,7 +687,7 @@ bool ConfigParser::find_pair(const string &str,
     return true;
 }
 
-// find pair position in a string
+// find all pair positions in a string
 vector<pair<int, int>> ConfigParser::find_pairs(const string &str,
                                                 const string &op,
                                                 const string &cl)

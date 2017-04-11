@@ -71,20 +71,26 @@ bool ConfigObject::ReadConfigFile(const std::string &path)
         return false;
     }
 
-    // record THIS_DIR
-    SetConfigValue("THIS_DIR", ConfigParser::decompose_path(path).dir);
+    // current directory
+    std::string this_dir = ConfigParser::decompose_path(path).dir;
 
     while(c_parser.ParseLine())
     {
         // possible control words
         if(c_parser.NbofElements() == 1) {
             std::string control = c_parser.TakeFirst();
+            size_t pos = control.find("{THIS_DIR}");
+            if(pos != std::string::npos)
+                control.replace(pos, 10, this_dir);
             parseControl(control);
         }
         // var_name and var_value
         else if (c_parser.NbofElements() == 2) {
             std::string var_name, key, var_value;
             c_parser >> var_name >> var_value;
+            size_t pos = var_value.find("{THIS_DIR}");
+            if(pos != std::string::npos)
+                var_value.replace(pos, 10, this_dir);
             parseTerm(std::move(var_name), std::move(var_value));
         }
         // unsupported format
@@ -261,11 +267,7 @@ void ConfigObject::parseControl(const std::string &word)
         }
         int begin = pairs.back().first + 1;
         int length = pairs.back().second - begin;
-        // save current THIS_DIR
-        std::string prev_dir = GetConfig<std::string>("THIS_DIR");
         ReadConfigFile(form(word.substr(begin, length), replace_pair.first, replace_pair.second)._value);
-        // restore THIS_DIR
-        SetConfigValue("THIS_DIR", prev_dir);
     }
     else {
         std::cout << "Unsupported control word: " << word << std::endl;

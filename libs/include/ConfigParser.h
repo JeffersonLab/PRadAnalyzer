@@ -34,7 +34,7 @@ public:
     // source manipulation
     bool OpenFile(const std::string &path);
     bool ReadFile(const std::string &path);
-    void ReadBuffer(const char *);
+    void ReadBuffer(const char*);
     void CloseFile();
     void Clear();
 
