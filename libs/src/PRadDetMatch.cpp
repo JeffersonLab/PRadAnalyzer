@@ -154,7 +154,7 @@ const
         base_range = transitionRes;
 
     // correct it by energy in GeV
-        base_range /= std::sqrt(hycal.E/1000.);
+    base_range /= std::sqrt(hycal.E/1000.);
 
     float dist = PRadCoordSystem::ProjectionDistance(hycal, gem);
 
