@@ -151,7 +151,7 @@ struct APVAddress
         if( fec_id != rhs.fec_id)
             return fec_id < rhs.fec_id;
         else if( adc_ch != rhs.adc_ch)
-            return adc_ch < adc_ch;
+            return adc_ch < rhs.adc_ch;
         else
             return false;
     }

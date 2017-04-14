@@ -13,7 +13,7 @@
 #include <memory>
 #include <cxxabi.h>
 // gnu compiler needs to demangle type info
-static std::string demangle(const char* name)
+static inline std::string demangle(const char* name)
 {
 
     int status = 0;
@@ -28,7 +28,7 @@ static std::string demangle(const char* name)
 }
 #else
 // do nothing if not gnu compiler
-static std::string demangle(const char* name)
+static inline std::string demangle(const char* name)
 {
     return name;
 }

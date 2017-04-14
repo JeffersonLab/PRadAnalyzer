@@ -490,7 +490,7 @@ deque<string> ConfigParser::split(const string &str, const string &s)
 {
     deque<string> eles;
 
-    char cstr[str.length() + 1];
+    char *cstr = new char[str.length() + 1];
 
     strcpy(cstr, str.c_str());
 
@@ -502,6 +502,8 @@ deque<string> ConfigParser::split(const string &str, const string &s)
         pch = strtok(nullptr, s.c_str());
     }
 
+    delete[] cstr;
+
     return eles;
 }
 
@@ -510,7 +512,7 @@ deque<string> ConfigParser::split(const char* str, const size_t &size, const str
 {
     deque<string> eles;
 
-    char str_cpy[size + 1];
+    char *str_cpy = new char[size + 1];
 
     // end of C string
     str_cpy[size] = '\0';
@@ -524,6 +526,9 @@ deque<string> ConfigParser::split(const char* str, const size_t &size, const str
         eles.emplace_back(pch);
         pch = strtok(nullptr, s.c_str());
     }
+
+    delete[] str_cpy;
+
     return eles;
 }
 
@@ -627,11 +632,11 @@ string ConfigParser::str_upper(const string &str)
 }
 
 // remove characters in ignore list
-string ConfigParser::str_remove(const string &str, const string &ignore)
+string ConfigParser::str_remove(const string &str, const string &iignore)
 {
     string res = str;
 
-    for(auto &c : ignore)
+    for(auto &c : iignore)
     {
         res.erase(remove(res.begin(), res.end(), c), res.end());
     }
@@ -743,7 +748,7 @@ vector<pair<int, int>> ConfigParser::find_pairs(const string &str,
             bool share_char = false;
             for(auto &idx : opens)
             {
-                if(abs(i - idx) < op.size())
+                if(abs(i - idx) < (int)op.size())
                     share_char = true;
             }
 

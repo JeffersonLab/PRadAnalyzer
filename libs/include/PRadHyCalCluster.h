@@ -16,7 +16,7 @@ class PRadHyCalCluster : public ConfigObject
 {
 public:
     virtual ~PRadHyCalCluster();
-    virtual PRadHyCalCluster *Clone();
+    virtual PRadHyCalCluster *Clone() const;
     virtual void Configure(const std::string &path);
     virtual void FormCluster(std::vector<ModuleHit> &hits,
                              std::vector<ModuleCluster> &clusters) const;

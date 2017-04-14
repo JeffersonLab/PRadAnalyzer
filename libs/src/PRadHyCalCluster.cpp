@@ -28,7 +28,7 @@ PRadHyCalCluster::~PRadHyCalCluster()
     // place holder
 }
 
-PRadHyCalCluster* PRadHyCalCluster::Clone()
+PRadHyCalCluster* PRadHyCalCluster::Clone() const
 {
     return new PRadHyCalCluster(*this);
 }
