@@ -235,6 +235,105 @@ ConfigValue ConfigParser::TakeFirst()
 }
 
 
+// break text file into several blocks in the format
+// <label> <open_mark> <content> <close_mark>
+// return extracted <content>
+vector<string> ConfigParser::ReadFileInBlocks(const string &path,
+                                              const string &open,
+                                              const string &close,
+                                              const string &label,
+                                              bool case_sensitive)
+const
+{
+    vector<string> result;
+
+    if(open.empty() || close.empty())
+        return result;
+
+    ifstream inf(path);
+
+    if(!inf.is_open()) {
+        return result;
+    }
+
+    // read the whole file in
+    string buf;
+
+    inf.seekg(0, ios::end);
+    buf.reserve(inf.tellg());
+    inf.seekg(0, ios::beg);
+
+    buf.assign((istreambuf_iterator<char>(inf)), istreambuf_iterator<char>());
+    inf.close();
+
+    // remove comments
+    while(comment_between(buf, comment_pair.first, comment_pair.second)) {;}
+    for(auto &mark : comment_marks)
+    {
+        while(comment_between(buf, mark, "\n")) {;}
+    }
+
+    // find the contents in block brackets
+    auto pairs = find_pairs(buf, open, close);
+
+    int last_end = 0;
+    // we are not parse it line by line, so add the line break into white spaces
+    string whites = white_spaces + "\n";
+
+    // lambda to check character
+    auto is_white = [](const char &c, const string &ws)
+                    {
+                        for(auto &w : ws)
+                        {
+                            if(c == w)
+                                return true;
+                        }
+                        return false;
+                    };
+
+    for(auto &p : pairs)
+    {
+        bool find_content = false;
+
+        // no label specified
+        if(label.empty()) {
+            if(p.first > (int)last_end)
+                find_content = true;
+        // find the label
+        } else {
+            int beg = last_end, end = p.first - 1;
+            bool find_end = false;
+            for(int i = end; i >= beg; --i)
+            {
+                // find last not of white spaces
+                if(!find_end) {
+                    if(is_white(buf.at(i), whites)) {
+                        end--;
+                    } else {
+                        find_end = true;
+                    }
+                } else {
+                    if(is_white(buf.at(i), whites))
+                        beg = i + 1;
+                }
+            }
+
+            string lb = (end > beg) ? buf.substr(beg, end - beg + 1) : "";
+            find_content = (case_sensitive) ? (lb == label) : strcmp_case_insensitive(lb, label);
+        }
+
+        // add contents into result container
+        if(find_content) {
+            size_t beg = p.first + open.size();
+            size_t size = p.second - p.first - open.size();
+            result.push_back(buf.substr(beg, size));
+            last_end = p.second + close.size();
+        }
+    }
+
+    return result;
+}
+
 
 //============================================================================//
 // Private Member Function                                                    //
@@ -799,9 +898,9 @@ ConfigParser::PathInfo ConfigParser::decompose_path(const string &path)
 }
 
 // form the path
-std::string ConfigParser::compose_path(const ConfigParser::PathInfo &path)
+string ConfigParser::compose_path(const ConfigParser::PathInfo &path)
 {
-    std::string res(path.dir);
+    string res(path.dir);
     res.reserve(path.dir.size() + path.name.size() + path.suffix.size() + 2);
 
     if(!res.empty() && res.back() != '/')

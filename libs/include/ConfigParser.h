@@ -21,7 +21,7 @@ public:
                  const std::string &g = "\\");                      // line glue chars
     virtual ~ConfigParser();
 
-    // Set members
+    // set members
     void SetSplitters(const std::string &s) {splitters = s;};
     void SetWhiteSpaces(const std::string &w) {white_spaces = w;};
     void SetCommentMarks(const std::vector<std::string> &c) {comment_marks = c;};
@@ -31,7 +31,7 @@ public:
     void RemoveCommentMark(const std::string &c);
     void EraseCommentMarks();
 
-    // source manipulation
+    // dealing with file/buffer
     bool OpenFile(const std::string &path);
     bool ReadFile(const std::string &path);
     void ReadBuffer(const char*);
@@ -44,6 +44,15 @@ public:
     bool ParseAll();
     // parse a string, trim and split it into elements
     int ParseString(const std::string &line);
+
+    // break text file into several blocks in the format
+    // <label> <open_mark> <content> <close_mark>
+    // return extracted <content>
+    std::vector<std::string> ReadFileInBlocks(const std::string &path,
+                                              const std::string &open,
+                                              const std::string &close,
+                                              const std::string &label,
+                                              bool case_sensitive = true) const;
 
     // get current parsing status
     bool CheckElements(int num, int optional = 0);
