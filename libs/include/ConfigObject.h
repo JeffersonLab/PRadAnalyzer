@@ -23,6 +23,7 @@ public:
     bool HasKey(const std::string &name) const;
 
     bool ReadConfigFile(const std::string &path);
+    void ReadConfigString(const std::string &content);
     void SetConfigValue(const std::string &var_name, const ConfigValue &c_value);
     void SetIgnoreChars(const std::string &ignore) {ignore_chars = ignore;};
     void SetSplitChars(const std::string &splitter) {split_chars = splitter;};
@@ -64,6 +65,7 @@ protected:
     }
 
 private:
+    void parserProcess(ConfigParser &p, const std::string &source);
     void parseControl(const std::string &control_word);
     void parseTerm(std::string &&var_name, std::string &&var_value);
 

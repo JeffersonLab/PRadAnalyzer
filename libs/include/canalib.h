@@ -11,8 +11,8 @@ namespace cana
 {
     const static double alpha = 7.297352568E-3;     // 1./137.03599911
     const static double pi = 3.1415926535897932;    // pi
-    const static double rad_deg = 57.2957795131;    // rad to degree
-    const static double deg_rad = 0.01745329252;    // degree to rad
+    const static double rad2deg = 57.2957795131;    // rad to degree
+    const static double deg2rad = 0.01745329252;    // degree to rad
     const static double ele_mass = 0.510998918;     // MeV
     const static double proton_mass = 938.272046;   // MeV
     const static double neutron_mass = 939.5654133; // MeV

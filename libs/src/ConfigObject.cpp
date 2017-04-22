@@ -64,15 +64,32 @@ bool ConfigObject::ReadConfigFile(const std::string &path)
 {
     ConfigParser c_parser(split_chars); // self-defined splitters
 
-    if(!c_parser.ReadFile(path)) {
+    if(c_parser.ReadFile(path)) {
+        // current directory
+        parserProcess(c_parser, path);
+        return true;
+    } else {
         std::cerr << "Cannot open configuration file "
                   << "\"" << path << "\""
                   << std::endl;
         return false;
     }
+}
 
-    // current directory
-    std::string this_dir = ConfigParser::decompose_path(path).dir;
+// read the configuration string directly
+void ConfigObject::ReadConfigString(const std::string &content)
+{
+    ConfigParser c_parser(split_chars);
+
+    c_parser.ReadBuffer(content.c_str());
+
+    parserProcess(c_parser, "buffer_string");
+}
+
+// continue parse the terms
+void ConfigObject::parserProcess(ConfigParser &c_parser, const std::string &source)
+{
+    std::string cur_dir = ConfigParser::decompose_path(source).dir;
 
     while(c_parser.ParseLine())
     {
@@ -81,29 +98,24 @@ bool ConfigObject::ReadConfigFile(const std::string &path)
             std::string control = c_parser.TakeFirst();
             size_t pos = control.find("{THIS_DIR}");
             if(pos != std::string::npos)
-                control.replace(pos, 10, this_dir);
+                control.replace(pos, 10, cur_dir);
             parseControl(control);
-        }
         // var_name and var_value
-        else if (c_parser.NbofElements() == 2) {
+        } else if (c_parser.NbofElements() == 2) {
             std::string var_name, key, var_value;
             c_parser >> var_name >> var_value;
             size_t pos = var_value.find("{THIS_DIR}");
             if(pos != std::string::npos)
-                var_value.replace(pos, 10, this_dir);
+                var_value.replace(pos, 10, cur_dir);
             parseTerm(std::move(var_name), std::move(var_value));
-        }
         // unsupported format
-        else {
-            std::cout << "Warning: Unsupported format in file "
-                      << "\"" << path << "\" "
-                      << "at line " << c_parser.LineNumber()
-                      << std::endl
+        } else {
+            std::cout << "Warning: Unsupported format at line "
+                      << c_parser.LineNumber() << " from " << source << "\n"
                       << "\"" << c_parser.CurrentLine() << "\""
                       << std::endl;
         }
     }
-    return true;
 }
 
 // check if a certain term is configured

@@ -167,13 +167,13 @@ public:
     {
         float z = hit.z - O.z;
         float r = sqrt(pow(z, 2) + pow(hit.x - O.x, 2) + pow(hit.y - O.y, 2));
-        return acos(z/r)*cana::rad_deg;
+        return acos(z/r)*cana::rad2deg;
     }
 
     template<class T>
     inline float GetAzimuthalAngle(const T &hit, const Point &O = target())
     {
-        return atan2(hit.y - O.y, hit.x - O.x)*cana::rad_deg;
+        return atan2(hit.y - O.y, hit.x - O.x)*cana::rad2deg;
     }
 
 
