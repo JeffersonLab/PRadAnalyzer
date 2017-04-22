@@ -151,8 +151,8 @@ private:
 
 public:
     // static functions
-    static bool comment_between(std::string &str, const std::string &open, const std::string &close);
-    static std::string comment_out(const std::string &str, const std::string &c);
+    static void comment_out(std::string &str, const std::string &cmt, const std::string &brk);
+    static void comment_between(std::string &str, const std::string &open, const std::string &close);
     static std::string trim(const std::string &str, const std::string &w);
     static std::deque<std::string> split(const std::string &str, const std::string &s);
     static std::deque<std::string> split(const char* str, const size_t &size, const std::string &s);

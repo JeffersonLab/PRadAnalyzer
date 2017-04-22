@@ -267,10 +267,10 @@ const
     inf.close();
 
     // remove comments
-    while(comment_between(buf, comment_pair.first, comment_pair.second)) {;}
+    comment_between(buf, comment_pair.first, comment_pair.second);
     for(auto &mark : comment_marks)
     {
-        while(comment_between(buf, mark, "\n")) {;}
+        comment_out(buf, mark, "\n");
     }
 
     // find the contents in block brackets
@@ -344,8 +344,7 @@ void ConfigParser::bufferProcess(string &buffer)
 {
     if(comment_pair.first.size() && comment_pair.second.size()) {
         // comment by pair marks
-        while(comment_between(buffer, comment_pair.first, comment_pair.second))
-        {;}
+        comment_between(buffer, comment_pair.first, comment_pair.second);
     }
 
     string line;
@@ -393,8 +392,7 @@ bool ConfigParser::parseFile()
             // if no previous comment pair opened
             } else {
                 // remove complete comment pair in one line
-                while(comment_between(parse_string, comment_pair.first, comment_pair.second))
-                {;}
+                comment_between(parse_string, comment_pair.first, comment_pair.second);
                 // see if there is any comment pair opening
                 auto c_beg = parse_string.find(comment_pair.first);
                 // find comment pair openning
@@ -532,42 +530,63 @@ size_t ConfigParser::getCommentPoint(const string &str)
 // Public Static Function                                                     //
 //============================================================================//
 
-// comment out the characters after comment mark
-string ConfigParser::comment_out(const string &str, const string &c)
+// comment out a string, remove chars from the comment mark to the line break
+void ConfigParser::comment_out(string &str, const string &c, const string &b)
 {
-    if(c.empty())
-        return str;
+    // no need to continue
+    if(str.empty() || c.empty() || b.empty())
+        return;
 
-    const auto commentBegin = str.find(c);
-    return str.substr(0, commentBegin);
+    // loop until no marks found
+    while(true)
+    {
+        size_t c_begin = str.find(c);
+        if(c_begin != string::npos) {
+            size_t c_end = str.find(b, c_begin + c.size());
+            // found, comment out until the line break
+            if(c_end != string::npos) {
+                // do not remove line break
+                str.erase(c_begin, c_end - c_begin);
+            // not found, comment out until the end
+            } else {
+                str.erase(c_begin);
+                // can stop now, since everything afterwards is removed
+                return;
+            }
+        } else {
+            // comment marks not found
+            return;
+        }
+    }
 }
 
 // comment out between a pair of comment marks
-// erase the comment part and return true if comment found, return false else
 // NOTICE: does not support nested structure of comment marks
-bool ConfigParser::comment_between(string &str, const string &open, const string &close)
+void ConfigParser::comment_between(string &str, const string &open, const string &close)
 {
-    // sanity check
-    if(open.empty() || close.empty())
-        return false;
+    // no need to continue
+    if(str.empty() || open.empty() || close.empty())
+        return;
 
-    // find the openning comment mark
-    size_t pos1 = str.find(open);
-    if(pos1 == string::npos)
-        return false;
-
-    // find the closing comment mark
-    size_t pos2 = pos1;
-    // marks must not be overlapped
-    while(pos2 < pos1 + open.size())
+    while(true)
     {
-        pos2 = str.find(close, pos2);
-        if(pos2 == string::npos)
-            return false;
+        // find the openning comment mark
+        size_t pos1 = str.find(open);
+        if(pos1 != string::npos) {
+            size_t pos2 = str.find(close, pos1 + open.size());
+            // found pair
+            if(pos2 != string::npos) {
+                // remove everything between, including this pair
+                str.erase(pos1, pos2 + close.size() - pos1);
+            // comment pair not found
+            } else {
+                return;
+            }
+        } else {
+            // comment pair not found
+            return;
+        }
     }
-
-    str.erase(pos1, pos2 + close.size() - pos1);
-    return true;
 }
 
 // trim all the characters defined as white space at both ends
