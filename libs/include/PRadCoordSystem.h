@@ -137,6 +137,7 @@ public:
 public:
     //static public members
     static Point origin() {return Point(0., 0., 0.);};
+    // target cell center is at z = 88.9 mm from survey data
     static Point target() {return Point(0., 0., 88.9);};
     static Point beamline(const float &z) {return Point(0., 0., z);};
 
