@@ -16,7 +16,7 @@ struct TarDistPoint
 };
 
 // read-in points from the file
-// hear points must be sorted in z transcendent order, other wise the probability
+// here points must be sorted in z transcendent order, other wise the probability
 // calculation will fail
 vector<TarDistPoint> fill_points(const string &path)
 {
@@ -90,6 +90,8 @@ void show_target_dist()
     g2->Draw("LP");
 }
 
+// a simple way to do Monte-Carlo according to the target density distribution
+// output is saved in a histogram for displaying in file z_target.root
 void monte_carlo_generator(size_t event_number)
 {
     string prad_path = getenv("PRAD_PATH");
@@ -107,12 +109,12 @@ void monte_carlo_generator(size_t event_number)
         auto res = cana::binary_search_interval(data.begin(), data.end(), rnd_val);
 
         // should not happen since it is in [0, 1]
-        if(res.first == data.end() && res.second == data.end()) {
+        if(res.first == data.end() || res.second == data.end()) {
             cout << "Cannot find interval for random number " << rnd_val << endl;
             continue;
         }
 
-        // it happenly sit exactly on one point
+        // it happenly sits exactly on one point
         if(res.first == res.second) {
             z_target = res.first->z;
         } else {
