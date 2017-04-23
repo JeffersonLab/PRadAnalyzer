@@ -13,9 +13,9 @@ public:
     void Connect(CNeuronLayer &prev_layer);
     void Update(const std::vector<double> &input);
     void Update();
-    std::vector<CNeuron> &GetNeurons() {return neurons;};
-    const std::vector<CNeuron> &GetNeurons() const {return neurons;};
-    unsigned int GetInputSize() const {return input_size;};
+    std::vector<CNeuron> &GetNeurons() {return neurons;}
+    const std::vector<CNeuron> &GetNeurons() const {return neurons;}
+    unsigned int GetInputSize() const {return input_size;}
 
 private:
     unsigned int input_size;

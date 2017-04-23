@@ -22,10 +22,10 @@ public:
 
         Pedestal()
         : mean(0), sigma(0)
-        {};
+        {}
         Pedestal(const double &m, const double &s)
         : mean(m), sigma(s)
-        {};
+        {}
     };
 
 public:
@@ -51,21 +51,21 @@ public:
     void UnsetModule(bool force_unset = false);
     void SetPedestal(const Pedestal &ped);
     void SetPedestal(const double &m, const double &s);
-    void SetValue(const unsigned short &adc) {adc_value = adc;};
+    void SetValue(const unsigned short &adc) {adc_value = adc;}
     // reset data
     void Reset();
 
     // check if adc passed threshold
-    void Sparsify() {occupancy++;};
+    void Sparsify() {occupancy++;}
     bool Sparsify (const unsigned short &adcVal);
-    int GetOccupancy() const {return occupancy;};
-    unsigned short GetValue() const {return adc_value;};
-    double GetReducedValue() const {return (double)adc_value - pedestal.mean;};
+    int GetOccupancy() const {return occupancy;}
+    unsigned short GetValue() const {return adc_value;}
+    double GetReducedValue() const {return (double)adc_value - pedestal.mean;}
     double GetEnergy() const;
     double GetEnergy(const unsigned short &adcVal) const;
-    const Pedestal &GetPedestal() const {return pedestal;};
-    PRadHyCalModule *GetModule() const {return module;};
-    PRadTDCChannel *GetTDC() const {return tdc_group;};
+    const Pedestal &GetPedestal() const {return pedestal;}
+    PRadHyCalModule *GetModule() const {return module;}
+    PRadTDCChannel *GetTDC() const {return tdc_group;}
 
     // histograms manipulations
     void ResetHists();
@@ -81,7 +81,7 @@ public:
         }
     };
     TH1 *GetHist(const std::string &name = "Physics") const;
-    TH1 *GetHist(PRadTriggerType type) const {return trg_hist[(int)type];};
+    TH1 *GetHist(PRadTriggerType type) const {return trg_hist[(int)type];}
     std::vector<TH1*> GetHistList() const;
 
 protected:

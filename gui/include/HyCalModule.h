@@ -19,24 +19,24 @@ public:
     virtual ~HyCalModule();
 
     void Initialize();
-    void SetColor(const QColor &c) {color = c;};
+    void SetColor(const QColor &c) {color = c;}
     void SetColor(const double &val);
     void ShowPedestal();
     void ShowPedSigma();
     void ShowOccupancy();
     void ShowEnergy();
     void ShowEnergy(const double &energy);
-    void ShowCustomValue() {SetColor(custom_value);};
-    void SetCustomValue(double val) {custom_value = val;};
-    const double &GetCustomValue() const {return custom_value;};
-    QString GetReadID() const {return qname;};
+    void ShowCustomValue() {SetColor(custom_value);}
+    void SetCustomValue(double val) {custom_value = val;}
+    const double &GetCustomValue() const {return custom_value;}
+    QString GetReadID() const {return qname;}
 
     // overload
     QRectF boundingRect() const;
     void paint(QPainter *painter,
                const QStyleOptionGraphicsItem *option, QWidget *widget);
     void setSelected(bool selected);
-    bool isSelected(){return m_selected;};
+    bool isSelected(){return m_selected;}
 
 protected:
     void hoverEnterEvent(QGraphicsSceneHoverEvent *event);
@@ -55,8 +55,8 @@ private:
 
 #ifdef USE_CAEN_HV
 public:
-    void SetHVAddress(const ChannelAddress &set) {hv_addr = set;};
-    const ChannelAddress &GetHVAddress() const {return hv_addr;};
+    void SetHVAddress(const ChannelAddress &set) {hv_addr = set;}
+    const ChannelAddress &GetHVAddress() const {return hv_addr;}
 private:
     ChannelAddress hv_addr;
 #endif

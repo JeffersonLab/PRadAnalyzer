@@ -21,19 +21,19 @@ public:
 
     virtual ~PRadCalibConst();
 
-    void SetCalibConst(double f) {base_factor = f; factor = f;};
+    void SetCalibConst(double f) {base_factor = f; factor = f;}
     void SetRefGain(double gain, int ref);
     void ClearRefGains();
-    void SetCalibEnergy(double energy) {base_energy = energy;};
-    void SetNonLinearFactor(double nl) {non_linear = nl;};
+    void SetCalibEnergy(double energy) {base_energy = energy;}
+    void SetNonLinearFactor(double nl) {non_linear = nl;}
     void GainCorrection(double gain, int ref);
 
-    double GetCalibConst() const {return factor;};
+    double GetCalibConst() const {return factor;}
     double GetRefGain(int ref) const;
-    double GetBaseConst() const {return base_factor;};
-    double GetCalibEnergy() const {return base_energy;};
-    double GetNonLinearFactor() const {return non_linear;};
-    const std::vector<double> &GetRefGains() const {return base_gains;};
+    double GetBaseConst() const {return base_factor;}
+    double GetCalibEnergy() const {return base_energy;}
+    double GetNonLinearFactor() const {return non_linear;}
+    const std::vector<double> &GetRefGains() const {return base_gains;}
 
     double Calibration(const double &adc_value) const;
     double NonLinearCorr(const double &E) const;

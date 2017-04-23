@@ -16,7 +16,7 @@ class SpectrumSettingPanel : public QDialog
 
 public:
     SpectrumSettingPanel(QWidget *parent = 0);
-    ~SpectrumSettingPanel() {};
+    ~SpectrumSettingPanel() {}
     void ConnectSpectrum(Spectrum *s);
     void ChoosePreSetting(int val);
     void SetSpectrumRange(double min, double max);

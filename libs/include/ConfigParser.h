@@ -22,11 +22,11 @@ public:
     virtual ~ConfigParser();
 
     // set members
-    void SetSplitters(const std::string &s) {splitters = s;};
-    void SetWhiteSpaces(const std::string &w) {white_spaces = w;};
-    void SetCommentMarks(const std::vector<std::string> &c) {comment_marks = c;};
+    void SetSplitters(const std::string &s) {splitters = s;}
+    void SetWhiteSpaces(const std::string &w) {white_spaces = w;}
+    void SetCommentMarks(const std::vector<std::string> &c) {comment_marks = c;}
     void SetCommentPair(const std::string &o, const std::string &c) {comment_pair = std::make_pair(o, c);};
-    void SetLineGlues(const std::string &g) {line_glues = g;};
+    void SetLineGlues(const std::string &g) {line_glues = g;}
     void AddCommentMark(const std::string &c);
     void RemoveCommentMark(const std::string &c);
     void EraseCommentMarks();
@@ -56,10 +56,10 @@ public:
 
     // get current parsing status
     bool CheckElements(int num, int optional = 0);
-    int NbofElements() const {return elements.size();};
-    int NbofLines() const {return lines.size();};
-    int LineNumber() const {return line_number;};
-    const std::string &CurrentLine() const {return current_line;};
+    int NbofElements() const {return elements.size();}
+    int NbofLines() const {return lines.size();}
+    int LineNumber() const {return line_number;}
+    const std::string &CurrentLine() const {return current_line;}
 
     // take the lines/elements
     std::string TakeLine();
@@ -119,11 +119,11 @@ public:
     }
 
     // get members
-    const std::string &GetSplitters() const {return splitters;};
-    const std::string &GetWhiteSpaces() const {return white_spaces;};
+    const std::string &GetSplitters() const {return splitters;}
+    const std::string &GetWhiteSpaces() const {return white_spaces;}
     const std::vector<std::string> &GetCommentMarks() const {return comment_marks;};
-    const string_pair &GetCommentPair() const {return comment_pair;};
-    const std::string &GetLineGlues() const {return line_glues;};
+    const string_pair &GetCommentPair() const {return comment_pair;}
+    const std::string &GetLineGlues() const {return line_glues;}
 
 
 private:

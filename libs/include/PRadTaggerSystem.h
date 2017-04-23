@@ -33,8 +33,8 @@ public:
     void FillHists(const EventData &event);
 
     // get hists
-    TH2I *GetECounterHist() const {return hist_E;};
-    TH2I *GetTCounterHist() const {return hist_T;};
+    TH2I *GetECounterHist() const {return hist_E;}
+    TH2I *GetTCounterHist() const {return hist_T;}
 
 private:
     TH2I *hist_E;

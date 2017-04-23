@@ -18,8 +18,8 @@ public:
        float Vmon;
        float Vset;
        bool ON;
-       Voltage() : Vmon(0), Vset(0), ON(false) {};
-       Voltage(float vm, float vs, bool o = false) : Vmon(vm), Vset(vs), ON(o) {};
+       Voltage() : Vmon(0), Vset(0), ON(false) {}
+       Voltage(float vm, float vs, bool o = false) : Vmon(vm), Vset(vs), ON(o) {}
     };
 
 

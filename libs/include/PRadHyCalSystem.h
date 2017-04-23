@@ -33,10 +33,10 @@ struct CalPeriod
 
     CalPeriod()
     : begin(0), end(0), main(0), sub(0)
-    {};
+    {}
     CalPeriod(int b, int e, int m, int s)
     : begin(b), end(e), main(m), sub(s)
-    {};
+    {}
 
     bool operator ==(const int &run)
     const
@@ -109,7 +109,7 @@ public:
     PRadHyCalModule *GetModule(const int &id) const;
     PRadHyCalModule *GetModule(const std::string &name) const;
     std::vector<PRadHyCalModule*> GetModuleList() const;
-    PRadHyCalDetector *GetDetector() const {return hycal;};
+    PRadHyCalDetector *GetDetector() const {return hycal;}
 
     // daq related
     bool AddADCChannel(PRadADCChannel *adc);
@@ -122,8 +122,8 @@ public:
     PRadTDCChannel *GetTDCChannel(const int &id) const;
     PRadTDCChannel *GetTDCChannel(const std::string &name) const;
     PRadTDCChannel *GetTDCChannel(const ChannelAddress &addr) const;
-    const std::vector<PRadADCChannel*> &GetADCList() const {return adc_list;};
-    const std::vector<PRadTDCChannel*> &GetTDCList() const {return tdc_list;};
+    const std::vector<PRadADCChannel*> &GetADCList() const {return adc_list;}
+    const std::vector<PRadTDCChannel*> &GetTDCList() const {return tdc_list;}
     void Sparsify(const EventData &event);
 
     // clustering method related
@@ -131,7 +131,7 @@ public:
     void RemoveClusterMethod(const std::string &name);
     void ClearClusterMethods();
     void SetClusterMethod(const std::string &name);
-    PRadHyCalCluster *GetClusterMethod() const {return recon;};
+    PRadHyCalCluster *GetClusterMethod() const {return recon;}
     PRadHyCalCluster *GetClusterMethod(const std::string &name) const;
     std::string GetClusterMethodName() const;
     std::vector<std::string> GetClusterMethodNames() const;
@@ -142,7 +142,7 @@ public:
     void FillEnergyHist(const double &e);
     void FillEnergyHist(const EventData &event);
     void ResetEnergyHist();
-    TH1 *GetEnergyHist() const {return energy_hist;};
+    TH1 *GetEnergyHist() const {return energy_hist;}
     void SaveHists(const std::string &path) const;
     std::vector<double> FitHist(const std::string &channel,
                                 const std::string &hist_name,

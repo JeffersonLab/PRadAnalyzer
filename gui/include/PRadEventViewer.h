@@ -87,14 +87,14 @@ class PRadEventViewer : public QMainWindow
 public:
     PRadEventViewer();
     virtual ~PRadEventViewer();
-    ViewMode GetViewMode() {return viewMode;};
-    AnnoType GetAnnoType() {return annoType;};
+    ViewMode GetViewMode() {return viewMode;}
+    AnnoType GetAnnoType() {return annoType;}
     QColor GetColor(const double &val);
     void UpdateStatusBar(ViewerStatus mode);
     void UpdateStatusInfo();
     void UpdateHistCanvas();
     void SelectModule(HyCalModule* module);
-    PRadDataHandler *GetHandler() {return handler;};
+    PRadDataHandler *GetHandler() {return handler;}
 
 signals:
     void currentEventChanged(int evt);

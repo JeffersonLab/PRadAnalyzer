@@ -39,13 +39,13 @@ public:
     void SetOnlineMode(const bool &mode);
 
     // set systems
-    void SetHyCalSystem(PRadHyCalSystem *hycal) {hycal_sys = hycal;};
-    void SetGEMSystem(PRadGEMSystem *gem) {gem_sys = gem;};
-    void SetEPICSystem(PRadEPICSystem *epics) {epic_sys = epics;};
-    void SetTaggerSystem(PRadTaggerSystem *tagger) {tagger_sys = tagger;};
-    PRadHyCalSystem *GetHyCalSystem() const {return hycal_sys;};
-    PRadGEMSystem *GetGEMSystem() const {return gem_sys;};
-    PRadEPICSystem *GetEPICSystem() const {return epic_sys;};
+    void SetHyCalSystem(PRadHyCalSystem *hycal) {hycal_sys = hycal;}
+    void SetGEMSystem(PRadGEMSystem *gem) {gem_sys = gem;}
+    void SetEPICSystem(PRadEPICSystem *epics) {epic_sys = epics;}
+    void SetTaggerSystem(PRadTaggerSystem *tagger) {tagger_sys = tagger;}
+    PRadHyCalSystem *GetHyCalSystem() const {return hycal_sys;}
+    PRadGEMSystem *GetGEMSystem() const {return gem_sys;}
+    PRadEPICSystem *GetEPICSystem() const {return epic_sys;}
 
     // file reading and writing
     void Decode(const void *buffer);
@@ -78,10 +78,10 @@ public:
     // show data
     void ChooseEvent(const int &idx = -1);
     void ChooseEvent(const EventData &event);
-    int GetCurrentEventNb() const {return current_event;};
-    unsigned int GetEventCount() const {return event_data.size();};
+    int GetCurrentEventNb() const {return current_event;}
+    unsigned int GetEventCount() const {return event_data.size();}
     const EventData &GetEvent(const unsigned int &index) const throw (PRadException);
-    const std::deque<EventData> &GetEventData() const {return event_data;};
+    const std::deque<EventData> &GetEventData() const {return event_data;}
 
     // analysis tools
     void InitializeByData(const std::string &path = "", int ref = DEFAULT_REF_PMT);

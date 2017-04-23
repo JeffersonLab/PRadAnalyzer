@@ -10,7 +10,7 @@ class ETSettingPanel : public QDialog {
     Q_OBJECT
 public:
     ETSettingPanel(QWidget *parent = 0);
-    ~ETSettingPanel() {};
+    ~ETSettingPanel() {}
     QString GetETHost();
     QString GetETFilePath();
     QString GetStationName();

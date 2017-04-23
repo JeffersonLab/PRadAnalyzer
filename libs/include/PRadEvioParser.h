@@ -19,9 +19,9 @@ public:
     void ReadEvioFile(const char *filepath, int evt = -1, bool verbose = false);
     int ReadEventBuffer(const void *buf);
 
-    void SetHandler(PRadDataHandler *h) {myHandler = h;};
-    void SetEventNumber(const unsigned int &ev) {event_number = ev;};
-    unsigned int GetEventNumber() const {return event_number;};
+    void SetHandler(PRadDataHandler *h) {myHandler = h;}
+    void SetEventNumber(const unsigned int &ev) {event_number = ev;}
+    unsigned int GetEventNumber() const {return event_number;}
 
 public:
     // static functions

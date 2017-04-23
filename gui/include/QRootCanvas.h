@@ -18,8 +18,8 @@ class QRootCanvas : public QWidget
 public:
     QRootCanvas(QWidget *parent = 0);
     virtual ~QRootCanvas();
-    void Refresh() {fCanvas->Modified(); fCanvas->Update();};
-    TCanvas *GetCanvas() {return fCanvas;};
+    void Refresh() {fCanvas->Modified(); fCanvas->Update();}
+    TCanvas *GetCanvas() {return fCanvas;}
 
     // wrapper class
     void SetFillColor(Color_t c);

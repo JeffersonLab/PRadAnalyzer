@@ -45,7 +45,7 @@ public:
     friend class ConfigObject;
 
 public:
-    ConfigValue() {};
+    ConfigValue() {}
 
     ConfigValue(const std::string &value);
     ConfigValue(std::string &&value);
@@ -79,14 +79,14 @@ public:
     double Double() const;
     long double LongDouble() const;
     const char *c_str() const;
-    const std::string &String() const {return _value;};
-    bool IsEmpty() const {return _value.empty();};
+    const std::string &String() const {return _value;}
+    bool IsEmpty() const {return _value.empty();}
 
     operator std::string()
     const
     {
         return _value;
-    };
+    }
 
     bool operator ==(const std::string &rhs)
     const
@@ -99,7 +99,7 @@ public:
     const
     {
         return convert( __cv_id<T>());
-    };
+    }
 
 private:
     std::string _value;

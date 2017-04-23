@@ -25,8 +25,8 @@ public:
     bool ReadConfigFile(const std::string &path);
     void ReadConfigString(const std::string &content);
     void SetConfigValue(const std::string &var_name, const ConfigValue &c_value);
-    void SetIgnoreChars(const std::string &ignore) {ignore_chars = ignore;};
-    void SetSplitChars(const std::string &splitter) {split_chars = splitter;};
+    void SetIgnoreChars(const std::string &ignore) {ignore_chars = ignore;}
+    void SetSplitChars(const std::string &splitter) {split_chars = splitter;}
     void SetReplacePair(const std::string &open, const std::string &close)
     {
         replace_pair = std::make_pair(open, close);
@@ -34,10 +34,10 @@ public:
 
     // get members
     ConfigValue GetConfigValue(const std::string &var_name) const;
-    const std::string &GetConfigPath() const {return config_path;};
-    const std::string &GetSplitChars() const {return split_chars;};
-    const std::string &GetSpaceChars() const {return ignore_chars;};
-    const std::pair<std::string, std::string> &GetReplacePair() const {return replace_pair;};
+    const std::string &GetConfigPath() const {return config_path;}
+    const std::string &GetSplitChars() const {return split_chars;}
+    const std::string &GetSpaceChars() const {return ignore_chars;}
+    const std::pair<std::string, std::string> &GetReplacePair() const {return replace_pair;}
     std::vector<std::string> GetKeyList() const;
 
     template<typename T>

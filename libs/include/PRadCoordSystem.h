@@ -30,8 +30,8 @@ public:
     void SetCurrentCoord(const std::vector<DetCoord> &coords);
 
     // get members
-    const std::map<int ,std::vector<DetCoord>> &GetCoordsData() const {return coords_data;};
-    std::vector<DetCoord> GetCurrentCoords() const {return current_coord;};
+    const std::map<int ,std::vector<DetCoord>> &GetCoordsData() const {return coords_data;}
+    std::vector<DetCoord> GetCurrentCoords() const {return current_coord;}
 
     // basic transform functions
     void Transform(int det_id, float &x, float &y, float &z) const;
@@ -136,10 +136,10 @@ public:
 
 public:
     //static public members
-    static Point origin() {return Point(0., 0., 0.);};
+    static Point origin() {return Point(0., 0., 0.);}
     // target cell center is at z = 88.9 mm from survey data
-    static Point target() {return Point(0., 0., 88.9);};
-    static Point beamline(const float &z) {return Point(0., 0., z);};
+    static Point target() {return Point(0., 0., 88.9);}
+    static Point beamline(const float &z) {return Point(0., 0., z);}
 
     // basic projection functions
     static void Projection(float &x, float &y, float &z,

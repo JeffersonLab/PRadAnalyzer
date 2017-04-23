@@ -30,11 +30,11 @@ struct RunInfo
 
     RunInfo()
     : run_number(0), beam_charge(0.), dead_count(0.), ungated_count(0.)
-    {};
+    {}
 
     RunInfo(const int &run, const double &c, const double &d, const double &ug)
     : run_number(run), beam_charge(c), dead_count(d), ungated_count(ug)
-    {};
+    {}
 
     void reset()
     {
@@ -61,10 +61,10 @@ struct TriggerChannel
 
     TriggerChannel()
     : name("undefined"), id(0), freq(0.)
-    {};
+    {}
     TriggerChannel(const std::string &n, const uint32_t &i)
     : name(n), id(i), freq(0.)
-    {};
+    {}
 };
 
 // online information
@@ -76,12 +76,12 @@ struct OnlineInfo
 
     OnlineInfo()
     : live_time(0.), beam_current(0.)
-    {};
+    {}
 
     void add_trigger(const std::string &n, const uint32_t &i)
     {
         trigger_info.emplace_back(n, i);
-    };
+    }
 
     void reset()
     {
@@ -110,23 +110,23 @@ struct EpicsData
     std::vector<float> values;
 
     EpicsData()
-    {};
+    {}
     EpicsData(const int &ev, const std::vector<float> &val)
     : event_number(ev), values(val)
-    {};
+    {}
 
     void clear()
     {
         event_number = 0;
         values.clear();
-    };
+    }
 
-    bool operator <(const int &evt) const {return event_number < evt;};
-    bool operator >(const int &evt) const {return event_number > evt;};
-    bool operator <=(const int &evt) const {return event_number <= evt;};
-    bool operator >=(const int &evt) const {return event_number >= evt;};
-    bool operator ==(const int &evt) const {return event_number == evt;};
-    bool operator !=(const int &evt) const {return event_number != evt;};
+    bool operator <(const int &evt) const {return event_number < evt;}
+    bool operator >(const int &evt) const {return event_number > evt;}
+    bool operator <=(const int &evt) const {return event_number <= evt;}
+    bool operator >=(const int &evt) const {return event_number >= evt;}
+    bool operator ==(const int &evt) const {return event_number == evt;}
+    bool operator !=(const int &evt) const {return event_number != evt;}
 };
 //============================================================================//
 // *END* RAW EPICS DATA STRUCTURE                                             //
@@ -144,10 +144,10 @@ typedef struct ChannelData
 
     ChannelData()
     : channel_id(0), value(0)
-    {};
+    {}
     ChannelData(const unsigned short &i, const unsigned short &v)
     : channel_id(i), value(v)
-    {};
+    {}
 
 } TDC_Data, ADC_Data;
 
@@ -158,10 +158,10 @@ struct DSC_Data
 
     DSC_Data()
     : gated_count(0), ungated_count(0)
-    {};
+    {}
     DSC_Data(const unsigned int &g1, const unsigned int &g2)
     : gated_count(g1), ungated_count(g2)
-    {};
+    {}
 };
 
 struct GEMChannelAddress
@@ -170,12 +170,12 @@ struct GEMChannelAddress
     unsigned char adc;
     unsigned char strip;
 
-    GEMChannelAddress() {};
+    GEMChannelAddress() {}
     GEMChannelAddress(const unsigned char &f,
                       const unsigned char &a,
                       const unsigned char &s)
     : fec(f), adc(a), strip(s)
-    {};
+    {}
 };
 
 struct GEM_Data
@@ -183,12 +183,12 @@ struct GEM_Data
     GEMChannelAddress addr;
     std::vector<float> values;
 
-    GEM_Data() {};
+    GEM_Data() {}
     GEM_Data(const unsigned char &f,
              const unsigned char &a,
              const unsigned char &s)
     : addr(f, a, s)
-    {};
+    {}
 
     void set_address (const unsigned char &f,
                       const unsigned char &a,
@@ -231,10 +231,10 @@ struct EventData
     // constructors
     EventData()
     : event_number(0), type(0), trigger(0), timestamp(0)
-    {};
+    {}
     EventData(const unsigned char &t)
     : event_number(0), type(t), trigger(0), timestamp(0)
-    {};
+    {}
     EventData(const unsigned char &t,
               const PRadTriggerType &trg,
               std::vector<ADC_Data> &adc,
@@ -243,7 +243,7 @@ struct EventData
               std::vector<DSC_Data> &dsc)
     : event_number(0), type(t), trigger((unsigned char)trg), timestamp(0),
       adc_data(adc), tdc_data(tdc), gem_data(gem), dsc_data(dsc)
-    {};
+    {}
 
     void clear()
     {
@@ -255,35 +255,35 @@ struct EventData
         tdc_data.clear();
         gem_data.clear();
         dsc_data.clear();
-    };
+    }
 
-    void update_type(const unsigned char &t) {type = t;};
-    void update_trigger(const unsigned char &t) {trigger = t;};
-    void update_time(const uint64_t &t) {timestamp = t;};
+    void update_type(const unsigned char &t) {type = t;}
+    void update_trigger(const unsigned char &t) {trigger = t;}
+    void update_time(const uint64_t &t) {timestamp = t;}
 
-    unsigned int get_type() const {return type;};
-    unsigned int get_trigger() const {return trigger;};
-    uint64_t get_time() const {return timestamp;};
+    unsigned int get_type() const {return type;}
+    unsigned int get_trigger() const {return trigger;}
+    uint64_t get_time() const {return timestamp;}
 
-    void add_adc(const ADC_Data &a) {adc_data.emplace_back(a);};
-    void add_tdc(const TDC_Data &t) {tdc_data.emplace_back(t);};
-    void add_gemhit(const GEM_Data &g) {gem_data.emplace_back(g);};
-    void add_dsc(const DSC_Data &d) {dsc_data.emplace_back(d);};
+    void add_adc(const ADC_Data &a) {adc_data.emplace_back(a);}
+    void add_tdc(const TDC_Data &t) {tdc_data.emplace_back(t);}
+    void add_gemhit(const GEM_Data &g) {gem_data.emplace_back(g);}
+    void add_dsc(const DSC_Data &d) {dsc_data.emplace_back(d);}
 
-    void add_adc(ADC_Data &&a) {adc_data.emplace_back(a);};
-    void add_tdc(TDC_Data &&t) {tdc_data.emplace_back(t);};
-    void add_gemhit(GEM_Data &&g) {gem_data.emplace_back(g);};
-    void add_dsc(DSC_Data &&d) {dsc_data.emplace_back(d);};
+    void add_adc(ADC_Data &&a) {adc_data.emplace_back(a);}
+    void add_tdc(TDC_Data &&t) {tdc_data.emplace_back(t);}
+    void add_gemhit(GEM_Data &&g) {gem_data.emplace_back(g);}
+    void add_dsc(DSC_Data &&d) {dsc_data.emplace_back(d);}
 
-    std::vector<ADC_Data> &get_adc_data() {return adc_data;};
-    std::vector<TDC_Data> &get_tdc_data() {return tdc_data;};
-    std::vector<GEM_Data> &get_gem_data() {return gem_data;};
-    std::vector<DSC_Data> &get_dsc_data() {return dsc_data;};
+    std::vector<ADC_Data> &get_adc_data() {return adc_data;}
+    std::vector<TDC_Data> &get_tdc_data() {return tdc_data;}
+    std::vector<GEM_Data> &get_gem_data() {return gem_data;}
+    std::vector<DSC_Data> &get_dsc_data() {return dsc_data;}
 
-    const std::vector<ADC_Data> &get_adc_data() const {return adc_data;};
-    const std::vector<TDC_Data> &get_tdc_data() const {return tdc_data;};
-    const std::vector<GEM_Data> &get_gem_data() const {return gem_data;};
-    const std::vector<DSC_Data> &get_dsc_data() const {return dsc_data;};
+    const std::vector<ADC_Data> &get_adc_data() const {return adc_data;}
+    const std::vector<TDC_Data> &get_tdc_data() const {return tdc_data;}
+    const std::vector<GEM_Data> &get_gem_data() const {return gem_data;}
+    const std::vector<DSC_Data> &get_dsc_data() const {return dsc_data;}
 
     bool is_physics_event()
     const
@@ -292,20 +292,20 @@ struct EventData
                  (trigger == PHYS_TotalSum)     ||
                  (trigger == PHYS_TaggerE)      ||
                  (trigger == PHYS_Scintillator) );
-    };
+    }
 
     bool is_monitor_event()
     const
     {
         return ( (trigger == LMS_Led) ||
                  (trigger == LMS_Alpha) );
-    };
+    }
 
     bool is_sync_event()
     const
     {
         return type == CODA_Sync;
-    };
+    }
 
     double get_beam_time()
     const
@@ -318,7 +318,7 @@ struct EventData
         }
 
         return elapsed_time;
-    };
+    }
 
     double get_live_time()
     const
@@ -331,7 +331,7 @@ struct EventData
         }
 
         return live_time;
-    };
+    }
 
     double get_beam_charge()
     const
@@ -343,7 +343,7 @@ struct EventData
         }
 
         return beam_charge;
-    };
+    }
 
     double get_beam_current()
     const
@@ -353,7 +353,7 @@ struct EventData
             return get_beam_charge()/beam_time;
         else
             return 0.;
-    };
+    }
 
     DSC_Data get_dsc_channel(const uint32_t &idx)
     const
@@ -362,13 +362,13 @@ struct EventData
             return DSC_Data();
         else
             return dsc_data.at(idx);
-    };
+    }
 
     DSC_Data get_ref_channel()
     const
     {
         return get_dsc_channel(REF_CHANNEL);
-    };
+    }
 
     DSC_Data get_dsc_scaled_by_ref(const uint32_t &idx)
     const
@@ -381,14 +381,14 @@ struct EventData
         uint64_t gated_scaled = (dsc_data.at(idx).gated_count*ref_pulser)/REF_PULSER_FREQ;
 
         return DSC_Data((unsigned int)gated_scaled, (unsigned int)ungated_scaled);
-    };
+    }
 
-    bool operator == (const int &ev) const {return ev == event_number;};
-    bool operator != (const int &ev) const {return ev != event_number;};
-    bool operator > (const int &ev) const {return ev > event_number;};
-    bool operator < (const int &ev) const {return ev < event_number;};
-    bool operator > (const EventData &other) const {return other.event_number > event_number;};
-    bool operator < (const EventData &other) const {return other.event_number < event_number;};
+    bool operator == (const int &ev) const {return ev == event_number;}
+    bool operator != (const int &ev) const {return ev != event_number;}
+    bool operator > (const int &ev) const {return ev > event_number;}
+    bool operator < (const int &ev) const {return ev < event_number;}
+    bool operator > (const EventData &other) const {return other.event_number > event_number;}
+    bool operator < (const EventData &other) const {return other.event_number < event_number;}
 };
 //============================================================================//
 // *END* RAW EVENT DATA STRUCTURE                                             //
@@ -409,13 +409,13 @@ struct ModuleHit
 
     ModuleHit(bool r = true)
     : id(0), energy(0), real(r)
-    {};
+    {}
 
     ModuleHit(int i, const Geometry &g, const Layout &l, float e, bool r = true)
     : id(i), geo(g), layout(l), energy(e), real(r)
-    {};
+    {}
 
-    bool operator ==(const ModuleHit &rhs) const {return id == rhs.id;};
+    bool operator ==(const ModuleHit &rhs) const {return id == rhs.id;}
 };
 
 struct ModuleCluster
@@ -494,10 +494,10 @@ struct StripHit
 
     StripHit()
     : strip(0), charge(0.), position(0.), cross_talk(false), apv_addr(-1, -1)
-    {};
+    {}
     StripHit(int s, float c, float p, bool f = false, int fec = -1, int adc = -1)
     : strip(s), charge(c), position(p), cross_talk(f), apv_addr(fec, adc)
-    {};
+    {}
 };
 
 struct StripCluster
@@ -509,15 +509,15 @@ struct StripCluster
 
     StripCluster()
     : position(0.), peak_charge(0.), total_charge(0.)
-    {};
+    {}
 
     StripCluster(const std::vector<StripHit> &p)
     : position(0.), peak_charge(0.), total_charge(0.), hits(p)
-    {};
+    {}
 
     StripCluster(std::vector<StripHit> &&p)
     : position(0.), peak_charge(0.), total_charge(0.), hits(std::move(p))
-    {};
+    {}
 
     bool IsCrossTalk()
     const
@@ -558,11 +558,11 @@ public:
 
     BaseHit()
     : x(0.), y(0.), z(0.), E(0.)
-    {};
+    {}
 
     BaseHit(float xi, float yi, float zi, float Ei)
     : x(xi), y(yi), z(zi), E(Ei)
-    {};
+    {}
 };
 
 // hycal hit status
@@ -639,13 +639,13 @@ public:
     GEMHit()
     : det_id(-1), x_charge(0.), y_charge(0.), x_peak(0.), y_peak(0.),
       x_size(0), y_size(0)
-    {};
+    {}
 
     GEMHit(float x, float y, float z,
            int d, float xc, float yc, float xp, float yp, int xs, int ys)
     : BaseHit(x, y, z, 0.), det_id(d), x_charge(xc), y_charge(yc),
       x_peak(xp), y_peak(yp), x_size(xs), y_size(ys)
-    {};
+    {}
 
 };
 
@@ -674,15 +674,15 @@ public:
 
     MatchHit(const HyCalHit &hit)
     : BaseHit(hit.x, hit.y, hit.z, hit.E), hycal(hit), mflag(0)
-    {};
+    {}
 
     MatchHit(const HyCalHit &hit, std::vector<GEMHit> &&v1, std::vector<GEMHit> &&v2)
     : BaseHit(hit.x, hit.y, hit.z, hit.E), hycal(hit), gem1(v1), gem2(v2), mflag(0)
-    {};
+    {}
 
     MatchHit(const HyCalHit &hit, const std::vector<GEMHit> &v1, const std::vector<GEMHit> &v2)
     : BaseHit(hit.x, hit.y, hit.z, hit.E), hycal(hit), gem1(v1), gem2(v2), mflag(0)
-    {};
+    {}
 
     void SubstituteCoord(const BaseHit &h)
     {
