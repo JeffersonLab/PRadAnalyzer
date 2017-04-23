@@ -95,17 +95,17 @@ bool ConfigValue::Bool()
 const
 {
     if((_value == "1") ||
-       (ConfigParser::strcmp_case_insensitive(_value, "T")) ||
-       (ConfigParser::strcmp_case_insensitive(_value, "True")) ||
-       (ConfigParser::strcmp_case_insensitive(_value, "Y")) ||
-       (ConfigParser::strcmp_case_insensitive(_value, "Yes")))
+       (ConfigParser::case_ins_equal(_value, "T")) ||
+       (ConfigParser::case_ins_equal(_value, "True")) ||
+       (ConfigParser::case_ins_equal(_value, "Y")) ||
+       (ConfigParser::case_ins_equal(_value, "Yes")))
         return true;
 
     if((_value == "0") ||
-       (ConfigParser::strcmp_case_insensitive(_value, "F")) ||
-       (ConfigParser::strcmp_case_insensitive(_value, "False")) ||
-       (ConfigParser::strcmp_case_insensitive(_value, "N")) ||
-       (ConfigParser::strcmp_case_insensitive(_value, "No")))
+       (ConfigParser::case_ins_equal(_value, "F")) ||
+       (ConfigParser::case_ins_equal(_value, "False")) ||
+       (ConfigParser::case_ins_equal(_value, "N")) ||
+       (ConfigParser::case_ins_equal(_value, "No")))
         return false;
 
     cout << "Config Value: Failed to convert "

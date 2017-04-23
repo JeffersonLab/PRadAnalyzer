@@ -754,7 +754,7 @@ string ConfigParser::str_replace(const string &str, const string &list, const ch
 }
 
 // compare two strings, can be case insensitive
-bool ConfigParser::strcmp_case_insensitive(const string &str1, const string &str2)
+bool ConfigParser::case_ins_equal(const string &str1, const string &str2)
 {
     if(str1.size() != str2.size()) {
         return false;

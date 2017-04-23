@@ -164,7 +164,7 @@ public:
                                                const std::string &open,
                                                const std::string &close,
                                                size_t pos = 0);
-    static bool strcmp_case_insensitive(const std::string &str1, const std::string &str2);
+    static bool case_ins_equal(const std::string &str1, const std::string &str2);
     static int find_integer(const std::string &str, const size_t &pos = 0);
     static std::vector<int> find_integers(const std::string &str);
     static void find_integer_helper(const std::string &str, std::vector<int> &result);

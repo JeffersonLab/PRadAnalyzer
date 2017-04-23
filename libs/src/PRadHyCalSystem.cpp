@@ -249,7 +249,7 @@ void PRadHyCalSystem::ReadChannelList(const std::string &path)
         size_t i = 0;
         for(; i < types.size(); ++i)
         {
-            if(ConfigParser::strcmp_case_insensitive(type, types.at(i))) {
+            if(ConfigParser::case_ins_equal(type, types.at(i))) {
                 // only save elements from expected format
                 if(c_parser.CheckElements(expect_args.at(i), option_args.at(i)))
                     ch_args[i].push_back(c_parser.TakeAll<std::vector>());
@@ -293,8 +293,8 @@ void PRadHyCalSystem::ReadChannelList(const std::string &path)
         // add this adc to tdc group
         std::string tdc_name(args[4]);
         // this adc has no tdc connection
-        if(ConfigParser::strcmp_case_insensitive(tdc_name, "NONE") ||
-           ConfigParser::strcmp_case_insensitive(tdc_name, "N/A"))
+        if(ConfigParser::case_ins_equal(tdc_name, "NONE") ||
+           ConfigParser::case_ins_equal(tdc_name, "N/A"))
             continue;
 
         PRadTDCChannel *tdc = GetTDCChannel(tdc_name);
@@ -363,7 +363,7 @@ void PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
     if(c_parser.ParseLine()) {
         c_parser >> name;
 
-        if(!ConfigParser::strcmp_case_insensitive(name, "REF_GAIN")) {
+        if(!ConfigParser::case_ins_equal(name, "REF_GAIN")) {
             std::cerr << "PRad HyCal System Error: Expected Reference PMT info "
                       << "(started by REF_GAIN) as the first input. Aborted status "
                       << "file reading from "
