@@ -179,10 +179,13 @@ const
     std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
 
     auto it = config_map.find(key);
-    if(it == config_map.end())
+    if(it == config_map.end()) {
         return __empty_value;
-    else
-        return form(it->second, replace_pair.first, replace_pair.second);
+    } else {
+        ConfigValue result(it->second);
+        reform(result._value, replace_pair.first, replace_pair.second);
+        return result;
+    }
 }
 
 // set configuration value by its name/key
@@ -224,39 +227,50 @@ ConfigValue ConfigObject::getDefConfig(const std::string &name,
         return def_value;
     }
 
-    return form(it->second, replace_pair.first, replace_pair.second);
+    ConfigValue result(it->second);
+    reform(result._value, replace_pair.first, replace_pair.second);
+    return result;
 }
 
 // replace the contents inside replace_pair with the configuration value
-ConfigValue ConfigObject::form(const std::string &input,
-                               const std::string &op,
-                               const std::string &cl)
+void ConfigObject::reform(std::string &input,
+                          const std::string &op,
+                          const std::string &cl)
 const
 {
-    std::string result = input;
-    int pos1, pos2;
-
-    while(ConfigParser::find_pair(result, op, cl, pos1, pos2))
+    // loop until no pair found
+    while(true)
     {
-        size_t beg = pos1 + op.size();
-        size_t end = pos2 - cl.size();
-        size_t size = end - beg + 1;
+        auto rpair = ConfigParser::find_pair(input, op, cl);
+        if(rpair.first != std::string::npos && rpair.second != std::string::npos) {
+            // get content inside the bracket
+            std::string var = input.substr(rpair.first + op.size(),
+                                           rpair.second - op.size() - rpair.first);
+            // deal with nested structure
+            reform(var, op, cl);
 
-        std::string var = result.substr(beg, size);
-        std::string val;
+            // replace content
+            std::string val;
 
-        if(pos1 > 0 && result.at(pos1 - 1) == '$') {
-            pos1 --;
-            val = std::getenv(var.c_str());
+            // environment variable
+            if(rpair.first > 0 && input.at(rpair.first - 1) == '$') {
+                val = std::getenv(var.c_str());
+                // replace $ mark also
+                rpair.first--;
+            // ConfigObject variable
+            } else {
+                val = GetConfigValue(var)._value;
+            }
+
+            // replace variable with configuration value
+            input.replace(rpair.first, rpair.second - rpair.first + cl.size(), val);
         } else {
-            val = GetConfig<std::string>(var);
+            // no pair found any more
+            return;
         }
-
-        result.replace(pos1, pos2 - pos1 + 1, val);
     }
-
-    return ConfigValue(std::move(result));
 }
+
 
 
 
@@ -269,17 +283,22 @@ void ConfigObject::parseControl(const std::string &word)
 {
     if(ConfigParser::str_upper(word.substr(0, 7)) == "INCLUDE") {
         // need the most outer pair
-        auto pairs = ConfigParser::find_pairs(word, "(", ")");
+        auto p = ConfigParser::find_pair(word, "(", ")");
         // not find pair
-        if(pairs.empty()) {
+        if(p.first == std::string::npos || p.second == std::string::npos) {
             std::cout << "Unsupported control word format: " << word << "."
                       << "Expected: INCLUDE(path)"
                       << std::endl;
             return;
         }
-        int begin = pairs.back().first + 1;
-        int length = pairs.back().second - begin;
-        ReadConfigFile(form(word.substr(begin, length), replace_pair.first, replace_pair.second)._value);
+
+        int begin = p.first + 1;
+        int length = p.second - begin;
+
+        std::string new_path = word.substr(begin, length);
+        reform(new_path, replace_pair.first, replace_pair.second);
+
+        ReadConfigFile(new_path);
     }
     else {
         std::cout << "Unsupported control word: " << word << std::endl;

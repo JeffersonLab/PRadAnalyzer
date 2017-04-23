@@ -52,9 +52,9 @@ public:
 
 protected:
     // protected member functions
-    ConfigValue form(const std::string &input,
-                     const std::string &open = "{",
-                     const std::string &close = "}") const;
+    void reform(std::string &input,
+                const std::string &open,
+                const std::string &close) const;
     ConfigValue getDefConfig(const std::string &var_name,
                              const ConfigValue &def_value,
                              bool verbose = true);
