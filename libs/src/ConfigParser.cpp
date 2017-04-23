@@ -226,84 +226,6 @@ ConfigValue ConfigParser::TakeFirst()
     return output;
 }
 
-// break a string into several blocks with the format
-// <label> <open_mark> <content> <close_mark>
-// return extracted <label> and <content>
-vector<ConfigParser::TextBlock> ConfigParser::BreakIntoBlocks(string buf,
-                                                              const string &open,
-                                                              const string &close)
-const
-{
-    vector<TextBlock> result;
-
-    if(buf.empty() || open.empty() || close.empty())
-        return result;
-
-    // remove comments
-    comment_between(buf, comment_pair.first, comment_pair.second);
-    for(auto &mark : comment_marks)
-    {
-        comment_out(buf, mark, "\n");
-    }
-
-    // prepare white spaces removal for determining block label
-    // we are not parse it line by line, so add the line break into white spaces
-    string whites = white_spaces + "\n";
-    // lambda to check if a character is a white space
-    auto is_white = [](const char &c, const string &ws)
-                    {
-                        for(auto &w : ws)
-                        {
-                            if(c == w) return true;
-                        }
-                        return false;
-                    };
-
-    size_t last_end = 0;
-    // loop until no blocks found
-    while(true)
-    {
-        // find the contents in block brackets
-        auto p = find_pair(buf, open, close, last_end);
-
-        // no pair found anymore
-        if(p.first == string::npos || p.second == string::npos)
-            break;
-
-        // add content
-        TextBlock block;
-        block.content = buf.substr(p.first + open.size(), p.second - p.first - open.size());
-
-        // find label
-        if(p.first > last_end) {
-            bool find_end = false;
-            int beg = last_end, end = p.first - 1;
-
-            // the word before pair is the label
-            // white spaces will be trimmed
-            for(int i = end; i >= beg; --i)
-            {
-                // label end not determined
-                if(!find_end) {
-                    // find last not of white spaces
-                    if(is_white(buf.at(i), whites)) end--;
-                    else find_end = true;
-                // find label begin
-                } else {
-                    // find chars until white spaces
-                    if(is_white(buf.at(i), whites))
-                        beg = i + 1;
-                }
-            }
-            block.label = (end > beg) ? buf.substr(beg, end - beg + 1) : "";
-        }
-
-        result.emplace_back(std::move(block));
-        last_end = p.second + close.size();
-    }
-
-    return result;
-}
 
 
 //============================================================================//
@@ -506,7 +428,7 @@ size_t ConfigParser::getCommentPoint(const string &str)
 //============================================================================//
 
 // comment out a string, remove chars from the comment mark to the line break
-void ConfigParser::comment_out(string &str, const string &c, const string &b)
+void ConfigParser::comment_line(string &str, const string &c, const string &b)
 {
     // no need to continue
     if(str.empty() || c.empty() || b.empty())
@@ -899,5 +821,80 @@ string ConfigParser::file_to_string(const std::string &path)
     inf.close();
 
     return buf;
+}
+
+// break a string into several blocks with the format
+// <label> <open_mark> <content> <close_mark>
+// label and marks can be separated by separator chars
+// return extracted <label> and <content>
+vector<ConfigParser::TextBlock> ConfigParser::break_into_blocks(const string &buf,
+                                                                const string &open,
+                                                                const string &close,
+                                                                const string &sep)
+{
+    vector<TextBlock> result;
+
+    if(buf.empty() || open.empty() || close.empty())
+        return result;
+
+    // prepare white spaces removal for determining block label
+    // lambda to check if a character is a white space
+    auto is_sep = [](const char &c, const string &ws)
+                  {
+                      for(auto &w : ws)
+                      {
+                          if(c == w) return true;
+                      }
+                      return false;
+                  };
+
+    size_t last_end = 0;
+    // loop until no blocks found
+    while(true)
+    {
+        // find the contents in block brackets
+        auto p = find_pair(buf, open, close, last_end);
+
+        // no pair found anymore
+        if(p.first == string::npos || p.second == string::npos)
+            break;
+
+        // add content
+        TextBlock block;
+        block.content = buf.substr(p.first + open.size(), p.second - p.first - open.size());
+
+        // find label
+        if(p.first <= last_end) {
+            block.label = "";
+        } else if (!sep.empty()) {
+            bool find_end = false;
+            int beg = last_end, end = p.first - 1;
+
+            // the word before pair is the label
+            // white spaces will be trimmed
+            for(int i = end; i >= beg; --i)
+            {
+                // label end not determined
+                if(!find_end) {
+                    // find last not of white spaces
+                    if(is_sep(buf.at(i), sep)) end--;
+                    else find_end = true;
+                // find label begin
+                } else {
+                    // find chars until white spaces
+                    if(is_sep(buf.at(i), sep))
+                        beg = i + 1;
+                }
+            }
+            block.label = (end > beg) ? buf.substr(beg, end - beg + 1) : "";
+        } else {
+            block.label = buf.substr(last_end, p.first - last_end);
+        }
+
+        result.emplace_back(std::move(block));
+        last_end = p.second + close.size();
+    }
+
+    return result;
 }
 

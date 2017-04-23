@@ -46,14 +46,6 @@ public:
     // parse a string, trim and split it into elements
     int ParseString(const std::string &line);
 
-    // break text file into several blocks in the format
-    // <label> <open_mark> <content> <close_mark>
-    // return extracted <label> <content>
-    struct TextBlock {std::string label, content;};
-    std::vector<TextBlock> BreakIntoBlocks(std::string buf,
-                                           const std::string &open = "{",
-                                           const std::string &close = "}") const;
-
     // get current parsing status
     bool CheckElements(int num, int optional = 0);
     int NbofElements() const {return elements.size();}
@@ -151,7 +143,7 @@ private:
 
 public:
     // static functions
-    static void comment_out(std::string &str, const std::string &cmt, const std::string &brk);
+    static void comment_line(std::string &str, const std::string &cmt, const std::string &brk);
     static void comment_between(std::string &str, const std::string &open, const std::string &close);
     static std::string trim(const std::string &str, const std::string &w);
     static std::deque<std::string> split(const std::string &str, const std::string &s);
@@ -173,6 +165,15 @@ public:
     static std::string compose_path(const PathInfo &path);
     static std::string form_path(const std::string &dir, const std::string &file);
     static std::string file_to_string(const std::string &path);
+    // break text file into several blocks in the format
+    // <label> <open_mark> <content> <close_mark>
+    // return extracted <label> <content>
+    struct TextBlock {std::string label, content;};
+    static std::vector<TextBlock> break_into_blocks(const std::string &buf,
+                                                    const std::string &open = "{",
+                                                    const std::string &close = "}",
+                                                    const std::string &sep = " \t\n");
+
 };
 
 #endif
