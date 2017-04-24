@@ -1,6 +1,12 @@
-# The coordinates for the HyCal is a right handed Cartesian frame, its z points
-# surface to the back, and its origin is at the center on HyCal PbWO4 surface
-#   name      type  size_x  size_y  size_z           x           y           z
+# The coordinates for the HyCal is a left-handed Cartesian frame               #
+#==============================================================================#
+#       front view          |               side view                          #
+#           +Y              |                                                  #
+# -X        O       +X      |  Beam(-Z)    O(HyCal PbWO4 Surface)  PMTs(+Z)    #
+#           -Y              |                                                  #
+#==============================================================================#
+#   name      type  size_x  size_y  size_z           x           y           z #
+#==============================================================================#
       G1   PbGlass   38.15   38.15     450    -543.435     562.575      -101.2
       G2   PbGlass   38.15   38.15     450    -505.285     562.575      -101.2
       G3   PbGlass   38.15   38.15     450    -467.135     562.575      -101.2
