@@ -119,8 +119,8 @@ void monte_carlo_generator(size_t event_number)
             z_target = res.first->z;
         } else {
             // linear interpolation
-            z_target = (res.first->z * (rnd_val - res.first->cdf)
-                        + res.second->z * (res.second->cdf - rnd_val));
+            z_target = (res.second->z * (rnd_val - res.first->cdf)
+                        + res.first->z * (res.second->cdf - rnd_val));
             z_target /= res.second->cdf - res.first->cdf;
         }
 
