@@ -641,9 +641,9 @@ public:
       x_size(0), y_size(0)
     {}
 
-    GEMHit(float x, float y, float z,
+    GEMHit(float xx, float yy, float zz,
            int d, float xc, float yc, float xp, float yp, int xs, int ys)
-    : BaseHit(x, y, z, 0.), det_id(d), x_charge(xc), y_charge(yc),
+    : BaseHit(xx, yy, zz, 0.), det_id(d), x_charge(xc), y_charge(yc),
       x_peak(xp), y_peak(yp), x_size(xs), y_size(ys)
     {}
 

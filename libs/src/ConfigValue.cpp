@@ -314,4 +314,4 @@ const
 ostream &operator << (ostream &os, const ConfigValue &b)
 {
     return  os << b.c_str();
-};
+}

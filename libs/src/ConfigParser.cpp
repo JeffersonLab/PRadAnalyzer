@@ -897,4 +897,3 @@ vector<ConfigParser::TextBlock> ConfigParser::break_into_blocks(const string &bu
 
     return result;
 }
-

@@ -79,7 +79,7 @@ public:
         if(trg_hist[trg]) {
             trg_hist[trg]->Fill(t);
         }
-    };
+    }
     TH1 *GetHist(const std::string &name = "Physics") const;
     TH1 *GetHist(PRadTriggerType type) const {return trg_hist[(int)type];}
     std::vector<TH1*> GetHistList() const;
