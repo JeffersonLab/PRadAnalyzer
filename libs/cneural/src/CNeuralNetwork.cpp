@@ -81,12 +81,12 @@ unsigned int CNeuralNetwork::CreateNet(unsigned int input_size,
 // helper functions for reading binary file
 inline void __cnn_read_uint32(std::ifstream &ifs, uint32_t &word)
 {
-    ifs.read((char*) &word, sizeof(uint32_t));
+    if(!ifs.eof()) ifs.read((char*) &word, sizeof(uint32_t));
 }
 
 inline void __cnn_read_real64(std::ifstream &ifs, double &word)
 {
-    ifs.read((char*) &word, sizeof(double));
+    if(!ifs.eof()) ifs.read((char*) &word, sizeof(double));
 }
 
 // create a network from saved data file
@@ -138,6 +138,9 @@ unsigned int CNeuralNetwork::CreateNet(const char *path)
         layers.emplace_back(std::move(new_layer));
     }
 
+    // read in normalization factor
+    __cnn_read_real64(inf, output_norm);
+
     // build connections
     for(unsigned int i = 1; i < layers.size(); ++i)
     {
@@ -145,7 +148,8 @@ unsigned int CNeuralNetwork::CreateNet(const char *path)
     }
 
     std::cout << "Create neural network from file "
-              << "\"" << path << "\""
+              << "\"" << path << "\"\n"
+              << "Output Normalization Factor: " << output_norm
               << std::endl;
 
     __cnn_print_structure(layers);
@@ -228,6 +232,9 @@ const
         }
     }
 
+    // output normalization factor
+    __cnn_write_real64(outf, output_norm);
+
     std::cout << "Neural network data saved to "
               << "\"" << path << "\""
               << std::endl;
@@ -249,7 +256,7 @@ void CNeuralNetwork::Update(const std::vector<double> &input)
     auto &outn = layers.back().GetNeurons();
     output.clear();
     for(auto &neuron : outn)
-        output.push_back(neuron.signal);
+        output.push_back(neuron.signal*output_norm);
 }
 
 // Training with erro back propagation
@@ -277,12 +284,12 @@ void CNeuralNetwork::BP_Train(const std::vector<double> &input,
 
     for(unsigned int i = 0; i < out_neurons.size(); ++i)
     {
-        double dE = output.at(i) - expect.at(i);
+        double dE = (output.at(i) - expect.at(i))/output_norm;
         // set error
         out_neurons.at(i).BP_Init(dE);
     }
 
-    // initialize the respons for other layers
+    // initialize the response for other layers
     for(unsigned int i = 0; i < layers.size() - 1;  ++i)
     {
         auto &layer = layers.at(i);

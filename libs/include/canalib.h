@@ -24,6 +24,15 @@ namespace cana
     double gamma(const double &z);
     double spence(const double &z, const double &res = 1e-15);
     double spence_tr(const double &z, const double &res, const int &nmax);
+
+    template<typename T>
+    inline T clamp(const T &val, const T &min, const T &max)
+    {
+        if(val < min) return min;
+        if(val > max) return max;
+        return val;
+    }
+
     // simpson integration
     double simpson(double begin, double end, double (*f)(const double&), double step, int Nmin);
     template<class T>

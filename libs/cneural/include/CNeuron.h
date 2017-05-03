@@ -16,11 +16,11 @@ public:
 
         Connection()
         : weight(0.), neuron(nullptr)
-        {}
+        {};
 
         Connection(double w, CNeuron *n)
         : weight(w), neuron(n)
-        {}
+        {};
     };
 
 public:
