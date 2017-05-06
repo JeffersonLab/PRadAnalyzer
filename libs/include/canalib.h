@@ -14,10 +14,12 @@ namespace cana
     const static double rad2deg = 57.2957795131;    // rad to degree
     const static double deg2rad = 0.01745329252;    // degree to rad
     const static double ele_mass = 0.510998918;     // MeV
+    const static double mu_mass = 105.6583745;      // MeV
+    const static double tau_mass = 1776.82;         // MeV
     const static double proton_mass = 938.272046;   // MeV
     const static double neutron_mass = 939.5654133; // MeV
     const static double hbarc = 197.326968;         // hbar*c (MeV*fm)
-    const static double hbarc2 = 38937.9323;        // hbar*c (MeV*fm)
+    const static double hbarc2 = 38937.9323;        // (hbar*c)^2 (MeV*fm)^2
     const static double amu = 931.494043;           // MeV per amu
 
     double sigmoid(const double &a, const double &p);

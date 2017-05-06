@@ -54,7 +54,8 @@ OBJECTS_DIR   = obj
 CXX_SRC_DIR   = src
 CXX_INC_DIR   = include
 CXX_SUFFIX    = cpp
-CXX_SOURCES   = PRadDAQChannel \
+CXX_SOURCES   = canalib \
+                PRadDAQChannel \
                 PRadADCChannel \
                 PRadTDCChannel \
                 PRadCalibConst \
@@ -85,7 +86,8 @@ CXX_SOURCES   = PRadDAQChannel \
                 PRadDetMatch \
                 PRadEPICSystem \
                 PRadInfoCenter \
-                PRadTaggerSystem
+                PRadTaggerSystem \
+				PRadMollerGen
 
 
 # fortran part

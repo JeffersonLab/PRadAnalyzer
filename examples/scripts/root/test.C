@@ -1,5 +1,6 @@
 #include "ConfigParser.h"
 #include "ConfigObject.h"
+#include "PRadMollerGen.h"
 
 using namespace std;
 
@@ -59,4 +60,23 @@ void test_block_read(const string &path = "block_test.conf")
         cout << b.label << endl;
         cout << b.content << endl;
     }
+}
+
+void moller_test()
+{
+    TGraph *g1 = new TGraph();
+    TGraph *g2 = new TGraph();
+    PRadMollerGen moller;
+    for(double angle = 0.5; angle < 6.5; angle += 0.01)
+    {
+        g1->SetPoint(g1->GetN(), angle, moller.GetBornXS(1097, angle));
+        g2->SetPoint(g2->GetN(), angle, moller.GetNonRadXS(1097, angle));
+    }
+
+    TCanvas *c1 = new TCanvas("Moller XS", "Moller XS", 200, 10, 700, 500);
+    c1->SetGrid();
+
+    g1->Draw("AC");
+    g2->SetLineColor(2);
+    g2->Draw("C");
 }
