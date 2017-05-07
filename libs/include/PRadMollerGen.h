@@ -12,6 +12,7 @@ public:
 
 private:
     double moller_nonrad(double *p1, double *k1, double *k2, int type = 1);
+    double moller_rad(double *p1, double *k1, double *k2);
 
 };
 

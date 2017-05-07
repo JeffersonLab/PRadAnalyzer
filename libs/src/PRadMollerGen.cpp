@@ -15,9 +15,6 @@
 #include <cmath>
 #include <iostream>
 
-// TODO define lamda for now, but this part will be cancelled finally
-const double lamda = 1.;
-
 // constructor
 PRadMollerGen::PRadMollerGen()
 {
@@ -37,8 +34,59 @@ inline double pow3(double val) {return val*val*val;}
 // power of 4
 inline double pow4(double val) {double val2 = pow2(val); return val2*val2;}
 
+// get Born cross section
+// input beam energy (MeV), angle (deg)
+// output Born level cross section (nb)
+double PRadMollerGen::GetBornXS(const double &Es, const double &angle)
+{
+    double m = cana::ele_mass;
+    double theta = angle*cana::deg2rad;
+    double p_tot = sqrt(pow2(Es) - pow2(m));
+
+    // incident electron kinematics
+    double k1[4] = {Es, 0., 0., p_tot};
+    double p1[4] = {m, 0., 0., 0.};
+
+
+    // Energy of the scattered electron k1
+    double cos_E = (Es - m)*pow2(cos(theta));
+    double E1 = m*(Es + m + cos_E)/(Es + m - cos_E);
+    double k1_tot = sqrt(pow2(E1) - pow2(m));
+
+    double k2[4] = {E1, k1_tot*sin(theta), 0., k1_tot*cos(theta)};
+
+    // convert MeV^-2 to nbarn
+    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2, 0) + moller_nonrad(k1, p1, k2, 0));
+}
+
+// get non-radiative cross section
+// input beam energy (MeV), angle (deg)
+// output non-radiative cross section (nb)
+double PRadMollerGen::GetNonRadXS(const double &Es, const double &angle)
+{
+    double m = cana::ele_mass;
+    double theta = angle*cana::deg2rad;
+    double p_tot = sqrt(pow2(Es) - pow2(m));
+
+    // incident electron kinematics
+    double k1[4] = {Es, 0., 0., p_tot};
+    double p1[4] = {m, 0., 0., 0.};
+
+
+    // Energy of the scattered electron k1
+    double cos_E = (Es - m)*pow2(cos(theta));
+    double E1 = m*(Es + m + cos_E)/(Es + m - cos_E);
+    double k1_tot = sqrt(pow2(E1) - pow2(m));
+
+    double k2[4] = {E1, k1_tot*sin(theta), 0., k1_tot*cos(theta)};
+
+    // convert MeV^-2 to nbarn
+    moller_rad(p1, k1 , k2);
+    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2) + moller_nonrad(k1, p1, k2));
+}
+
 // Non-rad or Born level cross section for Moller scattering
-// input three arrays with fixed size - 4 elements each
+// input four momentum of the particles - arrays with size 4, energy is at 0
 // p1, initial target four-momentum
 // k1, initial beam electron four-momentum
 // k2, final beam electron four-momentum
@@ -49,16 +97,16 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
     // Mandelstam variables
     double u0, s, t;
     // s = (k1 + p1)^2
-    s = -(pow2(k1[1] + p1[1]) + pow2(k1[2] + p1[2]) + pow2(k1[3] + p1[3]))
-        + pow2(k1[0] + p1[0]);
+    s = pow2(k1[0] + p1[0]) - pow2(k1[1] + p1[1]) - pow2(k1[2] + p1[2])
+        - pow2(k1[3] + p1[3]);
 
-    // t = (k1 - k2)^2
-    t = -(pow2(k1[1] - k2[1]) + pow2(k1[2] - k2[2]) + pow2(k1[3] - k2[3]))
-        + pow2(k1[0] - k2[0]);
+    // t = (k2 - k1)^2
+    t = pow2(k2[0] - k1[0]) - pow2(k2[1] - k1[1]) - pow2(k2[2] - k1[2])
+        - pow2(k2[3] - k1[3]);
 
     // u0 = (k2 - p1)^2
-    u0 = -(pow2(k2[1] - p1[1]) + pow2(k2[2] - p1[2]) + pow2(k2[3] - p1[3]))
-         + pow2(k2[0] - p1[0]);
+    u0 = pow2(k2[0] - p1[0]) - pow2(k2[1] - p1[1]) - pow2(k2[2] - p1[2])
+         - pow2(k2[3] - p1[3]);
 
     double s2t = s*s*t, st2 = s*t*t, s3 = pow3(s);
     double u02t = u0*u0*t, u0t2 = u0*t*t, u03 = pow3(u0), t3 = pow3(t);
@@ -78,15 +126,20 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
     double xi_u02 = xi_u0*xi_u0, xi_u04 = xi_u02*xi_u02;
 
     // equation (49), Born Level
-    double sig0 = u0*u0/xi_s2/4./s*(4.*xi_u04 - pow2(1. - xi_u02)*(2. + t/u0)) - s*s*xi_s4/u0;
-    sig0 *= 2.*cana::pi*alp2/st2;
+    double sig_0 = (u0*u0/xi_s2/4./s*(4.*xi_u04 - pow2(1. - xi_u02)*(2. + t/u0)) - s*s*xi_s4/u0)
+                   * 2.*cana::pi*alp2/st2;
 
+    // Born level cross section
     if(type == 0)
-        return sig0;
+        return sig_0;
+
+    // singularity term, appears in delta_ver and delta_box
+    // we only need the divergence free part of the sigma_ver and simga_box,
+    // which are obtained by substituting lamda = m so log(lamda/m) = 0
+    double log_m = 0.; // log(lamda/m), where lamda is the infinitesimal photon mass
 
     // other frequently used variables
-    // Q^2 related (t)
-    double log_m = log(lamda/m);
+    // Q^2 (-t) related, equation (27) - (29)
     double Q2_m = -t + 2.*m2;
     double lamda_m = t*t - 4.*m2*t;
     double slamda_m = sqrt(lamda_m);
@@ -123,14 +176,20 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
         delta_vac += 2./3.*(-t + 2*vac_m2)*vac_L_m - 10./9. - 8./3.*vac_m2/t*(1. - 2.*vac_m2*vac_L_m);
     }
 
+    // equation (50)
+    double sig_S = alp_pi*delta_vac*sig_0;
+
     // vertex correction, factorized part
     // equation (36) with Q^2 -> -t
-    double delta_ver = 2.*(Q2_m*L_m - 1.)*log_m + (4.*m2 - 3./2.*t)*L_m - 2.
-                       - Q2_m/slamda_m*(lamda_m*L_m*L_m/2. + 2.*cana::spence(2.*slamda_m/(slamda_m - t)) - pi2/2.);
+    double delta_vert = 2.*(Q2_m*L_m - 1.)*log_m + (4.*m2 - 3./2.*t)*L_m - 2.
+                        - Q2_m/slamda_m*(lamda_m*L_m*L_m/2. + 2.*cana::spence(2.*slamda_m/(slamda_m - t)) - pi2/2.);
 
     // vertex correction, non-factorized part, anomalous magnetic moment
     // euqation (52)
     double sig_AMM = 4.*alp3/st2/xi_t*m2*log_t*(3.*(s - 2.*m2)/u0 + (10.*m2 - 3.*u0)/(s - 4.*m2));
+
+    // equation (51)
+    double sig_vert = 2.*alp_pi*delta_vert*sig_0 + sig_AMM;
 
     // box diagram, factorized part
     // equation (54)
@@ -139,9 +198,9 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
 
     // box diagram, non-factorized part
     // equation (A.1) and (A.2)
-    double sig_b1, sig_b2;
+    double sig_B1, sig_B2;
 
-    sig_b1 = 1./12./xi_s/t * ((xi_s2 + 1.)*(xi_s4 - 6.*xi_s2 - 3.)*s2t
+    sig_B1 = 1./12./xi_s/t * ((xi_s2 + 1.)*(xi_s4 - 6.*xi_s2 - 3.)*s2t
                               - 2.*xi_s2*pow3(xi_s2 + 1.)*s3 - 12.*xi_s2*st2 - 4.*t3)
                            * (4.*pi2 + 3.*log_s*log_s - 6.*log_2s*log_2s - 12.*Li2_s - 6.*log_s*log(-xi_s2*s/t))
              + 1./12./xi_t2/xi_t/t * (xi_t2*(xi_t2 - 3.)*(3.*xi_t2 + 1.)*t3
@@ -151,7 +210,7 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
              + 1./xi_s*log_s*(xi_s2*s + t)*((xi_s4 + xi_s2)*s - 2.*(xi_s2 - 2.)*t)
              + log_4t*(2.*t*t - (xi_s4 + xi_s2)*s*s + (3.*xi_s2 - 1.)*s*t - 2.*s*(t + 2.*u0)/xi_t2);
 
-    sig_b2 = 1./12./xi_u0/t * (4.*t3 - 2.*u0t2*(xi_u04 - 6.*xi_u02 - 1.)
+    sig_B2 = 1./12./xi_u0/t * (4.*t3 - 2.*u0t2*(xi_u04 - 6.*xi_u02 - 1.)
                                + u02t*(-xi_u04*xi_u02 + xi_u04 + 9.*xi_u02 + 7.) + 2.*pow3(xi_u02 + 1.)*u03)
              + (3.*log_u0*log_u0 - 6.*log_2u0*log_2u0 - 12.*Li2_u0 + 6.*log_u0*log(xi_u02*u0/t) + pi2)
              + 1./12./xi_t2/xi_t/t * (xi_t2*(-xi_t4 + 2.*xi_t2 + 3.)*t3
@@ -161,56 +220,153 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
              + log_4t*(2.*u0/xi_t2*(xi_t2*t + t + 2.*u0) + (t - u0)*(2.*t + xi_u02*u0 + u0))
              - 1./xi_u0*log_u0*(xi_u02*(t - u0) - 2.*t)*(2.*t + xi_u02*u0 + u0);
 
-    double sig_box = alp3/xi_s2/s2t/u0*(sig_b1 + sig_b2);
+    // equation (53)
+    double sig_B = alp_pi/2.*delta_box*sig_0 + alp3/xi_s2/s2t/u0*(sig_B1 + sig_B2);
 
-    return sig0*(1. + alp_pi*delta_vac + 2.*alp_pi*delta_ver + alp_pi/2.*delta_box)
-           + sig_AMM + sig_box;
+    // cross sections without real photon emission
+    return sig_0 + sig_S + sig_vert + sig_B;
 }
 
-
-// get cros section
-// input beam energy (MeV), angle (deg)
-// output Born level cross section (nb)
-double PRadMollerGen::GetBornXS(const double &Es, const double &angle)
+// real photon emission part of the Moller scattering
+// input four momentum of the particles - arrays with size 4, energy is at 0
+// p1, initial target four-momentum
+// k1, initial beam electron four-momentum
+// k2, final beam electron four-momentum
+// type, 0. born, others. non-rad
+// output cross section with the same unit from input
+double PRadMollerGen::moller_rad(double *p1, double *k1, double *k2)
 {
-    double m = cana::ele_mass;
-    double theta = angle*cana::deg2rad;
-    double p_tot = sqrt(pow2(Es) - pow2(m));
+    // electron mass
+    double m = cana::ele_mass, m2 = m*m;
+    double alp_pi = cana::alpha/cana::pi;
 
-    // incident electron kinematics
-    double k1[4] = {Es, 0., 0., p_tot};
-    double p1[4] = {m, 0., 0., 0.};
+    // Mandelstam variables and inelasticity
+    double u0, s, t, v;
+    // s = (k1 + p1)^2
+    s = pow2(k1[0] + p1[0]) - pow2(k1[1] + p1[1]) - pow2(k1[2] + p1[2])
+        - pow2(k1[3] + p1[3]);
+
+    // t = (k2 - k1)^2
+    t = pow2(k2[0] - k1[0]) - pow2(k2[1] - k1[1]) - pow2(k2[2] - k1[2])
+        - pow2(k2[3] - k1[3]);
+
+    // u0 = (k2 - p1)^2
+    u0 = pow2(k2[0] - p1[0]) - pow2(k2[1] - p1[1]) - pow2(k2[2] - p1[2])
+         - pow2(k2[3] - p1[3]);
+
+    // v = (k1 + p1 - k2)^2 - m^2
+    v = pow2(k1[0] + p1[0] - k2[1]) - pow2(k1[1] + p1[1] - k2[1])
+        - pow2(k1[2] + p1[2] - k2[2]) - pow2(k1[3] + p1[3] - k2[3]) - m2;
+
+    // frequently used variables
+    double xi_s = sqrt(1. - 4.*m2/s);
+    double xi_t = sqrt(1 - 4.*m2/t);
+    double xi_u0 = sqrt(1. - 4.*m2/u0);
+    double xi_s2 = xi_s*xi_s;
+    double xi_t2 = xi_t*xi_t;
+    double xi_u02 = xi_u0*xi_u0;
+    double log_s = log((1. + xi_s)/(1. - xi_s));
+    double log_t = log((1. + xi_t)/(xi_t - 1.));
+    double log_u0 = log((1. + xi_u0)/(xi_u0 - 1.));
+
+    // equation (A.5) - (A.13)
+    double v_max = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
+    double z_u1 = sqrt((xi_u02*(v_max + u0) - v_max)/u0)/xi_u0;
+    double z_u2 = sqrt((v_max + xi_u02*u0)/(v_max + u0))/xi_u0;
+    auto H = [m2, v_max](const double &ch)
+             {
+                 double xi_ch = sqrt(1. - 4.*m2/ch), xi_ch2 = xi_ch*xi_ch;
+                 double z_ch = 1. + xi_ch*(sqrt(pow2(xi_ch*ch) - 2.*ch*v_max + v_max*v_max) + xi_ch*ch)/v_max;
+                 double z_1 = 1. + xi_ch;
+                 double z_2 = pow2(1. + xi_ch)/(1. - xi_ch);
+                 double z_3 = 1. - xi_ch;
+                 double z_4 = pow2(1. - xi_ch)/(1. + xi_ch);
+                 double Li2_z1 = cana::spence(z_ch/z_1);
+                 double Li2_z2 = cana::spence(z_ch/z_2);
+                 double Li2_z3 = cana::spence(z_ch/z_3);
+                 double Li2_z4 = cana::spence(z_ch/z_4);
+                 double log_term = log(pow2((xi_ch + 1.)/(xi_ch - 1.)))*log((pow2(z_ch - 1.) - xi_ch2)/(1. - xi_ch2));
+
+                 return (xi_ch2 + 1.)/2./xi_ch * (Li2_z1 + Li2_z2 - Li2_z3 - Li2_z4 - log_term);
+             };
+
+    // equation (A.3)
+    double delta_1H = log(1. + v_max/m2) + H(s) - H(t)
+                      + (xi_u02 + 1.)/2./xi_u0
+                         * (cana::spence(4.* xi_u0/pow2(xi_u0 + 1.))
+                            - cana::spence(-4.*xi_u0/pow2(xi_u0 - 1.))
+                            - 2.*cana::spence(2.*xi_u0/(xi_u0 - 1.))
+                            + 2.*cana::spence(2.*xi_u0/(xi_u0 + 1.))
+                            + cana::spence(2.*(z_u1 - 1.)*xi_u0/pow2(xi_u0 - 1.))
+                            + cana::spence(-2.*(z_u1 + 1.)*xi_u0/pow2(xi_u0 - 1.))
+                            - cana::spence(-2.*(z_u1 - 1.)*xi_u0/pow2(xi_u0 + 1.))
+                            - cana::spence(2.*(z_u1 + 1.)*xi_u0/pow2(xi_u0 + 1.))
+                            + 2.*cana::spence(-(z_u2 - 1.)*xi_u0/(xi_u0 - 1.))
+                            + 2.*cana::spence((z_u2 + 1.)*xi_u0/(xi_u0 - 1.))
+                            - 2.*cana::spence((z_u2 + 1.)*xi_u0/(xi_u0 + 1.))
+                            - 2.*cana::spence((1. - z_u2)*xi_u0/(xi_u0 + 1.))
+                            + 2.*log_u0*log((xi_u02*z_u2*z_u2 - 1.)/(xi_u02 - 1.)));
 
 
-    // Energy of the scattered electron k1
-    double cos_E = (Es - m)*pow2(cos(theta));
-    double E1 = m*(Es + m + cos_E)/(Es + m - cos_E);
-    double k1_tot = sqrt(pow2(E1) - pow2(m));
+    // equation (A.14) - (A.15)
+    auto S_phi = [m2](const double &s_1, const double &s_2, const double &s_3)
+                 {
+                     double lamda_1 = s_1*s_1 - 16.*m2*m2, slamda_1 = sqrt(lamda_1);
+                     double lamda_2 = s_2*s_2 - 16.*m2*m2, slamda_2 = sqrt(lamda_2);
+                     double lamda_3 = s_3*s_3 - 16.*m2*m2, slamda_3 = sqrt(lamda_3);
+                     // z_u and z_d
+                     double z_ud[2] = {slamda_1/slamda_2 - 1., (s_1*s_2 - 4.*m2*s_3)/lamda_2 - 1.};
+                     // z_1, z_2, z_3, z_4
+                     double z[4] = {1./slamda_2*(4.*m2*(s_3 - slamda_3)/(s_2 - slamda_2) - s_1 - slamda_2),
+                                    1./slamda_2*(4.*m2*(s_3 + slamda_3)/(s_2 - slamda_2) - s_1 - slamda_2),
+                                    1./slamda_2*(s_1 - slamda_2 - 4.*m2*(s_3 + slamda_3)/(s_2 + slamda_2)),
+                                    1./slamda_2*(s_1 - slamda_2 - 4.*m2*(s_3 - slamda_3)/(s_2 + slamda_2))};
+                     // Sj
+                     double Sj[4] = {1, 1, -1, -1};
+                     // (-1)^(i + 1), i from 1 to 4 but index is from 0 to 3
+                     double Si[4] = {1, -1, 1, -1};
+                     // z_u term - z_d term
+                     double Sk[2] = {1, -1};
 
-    double k2[4] = {E1, k1_tot*sin(theta), 0., k1_tot*cos(theta)};
+                     double result = 0.;
+                     for(int k = 0; k < 2; ++k)
+                     {
+                         double term = log((s_2 - slamda_2)/(s_2 + slamda_2))
+                                       * log((z_ud[k] - z[0])*(z_ud[k] - z[2])/(z_ud[k] - z[1])/(z_ud[k] - z[3]));
 
-    // convert MeV^-2 to nbarn
-    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2, 0) + moller_nonrad(k1, p1, k2, 0));
+                         double sum_term = 0.;
+                         for(int i = 0; i < 4; ++i)
+                         {
+                             for(int j = 0; j < 4; ++j)
+                             {
+                                 double sign = Sj[j]*Si[i];
+                                 if(i == j) {
+                                     sum_term += sign*log(pow2(z_ud[k] - z[i]))/2.;
+                                 } else {
+                                     // the input to log may be negative and thus
+                                     // the result may be a complex number
+                                     // TODO check with authors for this part
+                                     double spence_term = cana::spence((z_ud[k] - z[i])/(z[j] - z[i]));
+                                     sum_term += sign*log(fabs(z_ud[k] - z[i]))*log(fabs(z[i] - z[j])) - spence_term;
+                                 }
+                             }
+                         }
+
+                         result = s_3/2./slamda_3*(term + sum_term)*Sk[k];
+                     }
+                     return result;
+                 };
+
+    // equation (A.4)
+    double delta_1S = (xi_s2 + 1.)/2./xi_s*(log_s*log_s + log_s + cana::spence(4.*xi_s/pow2(xi_s + 1.)))
+                      - (xi_t2 + 1.)/2./xi_t*(log_t*log_t - log_t + cana::spence(4.*xi_t/pow2(xi_t + 1.)))
+                      - (xi_u02 + 1.)/2./xi_u0*(log_u0*log_u0 - log_u0 + cana::spence(4.*xi_u0/pow2(xi_u0 + 1.)))
+                      - S_phi(-(xi_u02 + 1.)*u0, (xi_s2 + 1.)*s, -(xi_t2 + 1.)*t)
+                      + S_phi(-(xi_u02 + 1.)*u0, -(xi_t2 + 1.)*t, (xi_s2 + 1.)*s)
+                      - S_phi(-(xi_t2 + 1.)*t, (xi_s2 + 1.)*s, -(xi_u02 + 1.)*u0)
+                      + 1.;
+
+    std::cout << alp_pi*(delta_1H + delta_1S) << std::endl;
+    return 0.;
 }
 
-double PRadMollerGen::GetNonRadXS(const double &Es, const double &angle)
-{
-    double m = cana::ele_mass;
-    double theta = angle*cana::deg2rad;
-    double p_tot = sqrt(pow2(Es) - pow2(m));
-
-    // incident electron kinematics
-    double k1[4] = {Es, 0., 0., p_tot};
-    double p1[4] = {m, 0., 0., 0.};
-
-
-    // Energy of the scattered electron k1
-    double cos_E = (Es - m)*pow2(cos(theta));
-    double E1 = m*(Es + m + cos_E)/(Es + m - cos_E);
-    double k1_tot = sqrt(pow2(E1) - pow2(m));
-
-    double k2[4] = {E1, k1_tot*sin(theta), 0., k1_tot*cos(theta)};
-
-    // convert MeV^-2 to nbarn
-    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2) + moller_nonrad(k1, p1, k2));
-}
