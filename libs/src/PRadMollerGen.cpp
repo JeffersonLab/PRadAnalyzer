@@ -10,18 +10,30 @@
 // Code Developer: Chao Peng                                                  //
 //============================================================================//
 
+// TODO not finished, now only has the non-radiative part
+// v_min is not used because it is to separate the radiative part
+
 #include "PRadMollerGen.h"
 #include "canalib.h"
 #include <cmath>
 #include <iostream>
 #include <iomanip>
 
-#define MOLLER_TEST_URA
+//#define MOLLER_TEST_URA
+
+// some constant values to be used
+const double m = cana::ele_mass;
+const double m2 = m*m;
+const double alp_pi = cana::alpha/cana::pi;
+const double pi2 = cana::pi*cana::pi;
+const double alp2 = cana::alpha*cana::alpha;
+const double alp3 = alp2*cana::alpha;
 
 
 
 // constructor
-PRadMollerGen::PRadMollerGen()
+PRadMollerGen::PRadMollerGen(double ph_min, double ph_max)
+: v_min(ph_min), v_cut(ph_max)
 {
     // place holder
 }
@@ -52,7 +64,6 @@ double PRadMollerGen::GetBornXS(const double &Es, const double &angle)
     double k1[4] = {Es, 0., 0., p_tot};
     double p1[4] = {m, 0., 0., 0.};
 
-
     // Energy of the scattered electron k1
     double cos_E = (Es - m)*pow2(cos(theta));
     double E1 = m*(Es + m + cos_E)/(Es + m - cos_E);
@@ -61,7 +72,8 @@ double PRadMollerGen::GetBornXS(const double &Es, const double &angle)
     double k2[4] = {E1, k1_tot*sin(theta), 0., k1_tot*cos(theta)};
 
     // convert MeV^-2 to nbarn
-    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2, 0)) + moller_nonrad(k1, p1, k2, 0);
+    // t and u channels together
+    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2, 0) + moller_nonrad(k1, p1, k2, 0));
 }
 
 // get non-radiative cross section
@@ -86,17 +98,17 @@ double PRadMollerGen::GetNonRadXS(const double &Es, const double &angle)
     double k2[4] = {E1, k1_tot*sin(theta), 0., k1_tot*cos(theta)};
 
     // convert MeV^-2 to nbarn
-    moller_rad(p1, k1 , k2);
-    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2)) + moller_nonrad(k1, p1, k2);
+    // t and u channels together
+    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2) + moller_nonrad(k1, p1, k2));
 }
 
-// Non-rad or Born level cross section for Moller scattering
-// input four momentum of the particles - arrays with size 4, energy is at 0
-// p1, initial target four-momentum
-// k1, initial beam electron four-momentum
-// k2, final beam electron four-momentum
-// type, 0. born, others. non-rad
-// output cross section with the same unit from input
+// Non-radiative cross section for Moller scattering
+// input four momentum of the particles
+// p1: target electron
+// k1: incident electron
+// k2: scattered electron
+// type: <= 0 Born level, > 0 full calculation
+// output non-radiative cross section
 double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type)
 {
     // Mandelstam variables
@@ -117,12 +129,6 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
     double u02t = u0*u0*t, u0t2 = u0*t*t, u03 = pow3(u0), t3 = pow3(t);
 
     // frequently used variables
-    double m = cana::ele_mass, m2 = m*m;
-    double alp_pi = cana::alpha/cana::pi;
-    double pi2 = cana::pi*cana::pi;
-    double alp2 = cana::alpha*cana::alpha;
-    double alp3 = alp2*cana::alpha;
-
     double xi_s = sqrt(1. - 4.*m2/s);
     double xi_t = sqrt(1 - 4.*m2/t);
     double xi_u0 = sqrt(1. - 4.*m2/u0);
@@ -130,18 +136,19 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
     double xi_t2 = xi_t*xi_t, xi_t4 = xi_t2*xi_t2;
     double xi_u02 = xi_u0*xi_u0, xi_u04 = xi_u02*xi_u02;
 
+    double sig_0;
     // equation (49), Born Level
-    double sig_0 = (u0*u0/xi_s2/4./s*(4.*xi_u04 - pow2(1. - xi_u02)*(2. + t/u0)) - s*s*xi_s4/u0)
-                   * 2.*cana::pi*alp2/st2;
+    sig_0 = (u0*u0/xi_s2/4./s*(4.*xi_u04 - pow2(1. - xi_u02)*(2. + t/u0)) - s*s*xi_s4/u0)
+            * 2.*cana::pi*alp2/st2;
 
-    // Born level cross section
-    if(type == 0)
+    if(type <= 0)
         return sig_0;
 
     // singularity term, appears in delta_ver and delta_box
     // we only need the divergence free part of the sigma_ver and simga_box,
     // which are obtained by substituting lamda = m so log(lamda/m) = 0
     double log_m = 0.; // log(lamda/m), where lamda is the infinitesimal photon mass
+    double sig_S, sig_vert, sig_B;
 
     // other frequently used variables
     // Q^2 (-t) related, equation (27) - (29)
@@ -168,7 +175,6 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
     double log_2u0p = log((xi_u0 + 1.)/2./xi_u0);
     double Li2_u0 = cana::spence((1. + xi_u0)/2./xi_u0);
 
-
     // vacuum polarization for all leptons, factorized part
     // equation (41) with Q^2 -> -t
     double delta_vac = 0.;
@@ -182,7 +188,7 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
     }
 
     // equation (50)
-    double sig_S = alp_pi*delta_vac*sig_0;
+    sig_S = alp_pi*delta_vac*sig_0;
 
     // vertex correction, factorized part
     // equation (36) with Q^2 -> -t
@@ -194,7 +200,7 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
     double sig_AMM = 4.*alp3/st2/xi_t*m2*log_t*(3.*(s - 2.*m2)/u0 + (10.*m2 - 3.*u0)/(s - 4.*m2));
 
     // equation (51)
-    double sig_vert = 2.*alp_pi*delta_vert*sig_0 + sig_AMM;
+    sig_vert = 2.*alp_pi*delta_vert*sig_0 + sig_AMM;
 
     // box diagram, factorized part
     // equation (54)
@@ -226,13 +232,16 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
              - 1./xi_u0*log_u0*(xi_u02*(t - u0) - 2.*t)*(2.*t + xi_u02*u0 + u0);
 
     // equation (53)
-    double sig_B = alp_pi/2.*delta_box*sig_0 + alp3/xi_s2/s2t/u0*(sig_B1 + sig_B2);
+    sig_B = alp_pi/2.*delta_box*sig_0 + alp3/xi_s2/s2t/u0*(sig_B1 + sig_B2);
 
+    // 3 factorized part for the infrared part of the radiative cross section
+    double delta_1H, delta_1S, delta_1inf;
     // equation (A.5) - (A.13)
-    double v_max = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
+    double v_limit = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
+    double v_max = (v_cut > v_limit) ? v_limit : v_cut;
     double z_u1 = sqrt((xi_u02*(v_max + u0) - v_max)/u0)/xi_u0;
     double z_u2 = sqrt((v_max + xi_u02*u0)/(v_max + u0))/xi_u0;
-    auto H = [m2, v_max](const double &ch)
+    auto H = [v_max](const double &ch)
              {
                  double xi_ch = sqrt(1. - 4.*m2/ch), xi_ch2 = xi_ch*xi_ch;
                  double z_ch = xi_ch/v_max*(sqrt(xi_ch2*ch*ch - 2.*ch*v_max + v_max*v_max) - xi_ch*ch) + 1.;
@@ -253,25 +262,25 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
              };
 
     // equation (A.3)
-    double delta_1H = log(1. + v_max/m2) + H(s) - H(t)
-                      + (xi_u02 + 1.)/2./xi_u0
-                         * (cana::spence(4.* xi_u0/pow2(xi_u0 + 1.))
-                            - cana::spence(-4.*xi_u0/pow2(xi_u0 - 1.))
-                            - 2.*cana::spence(2.*xi_u0/(xi_u0 - 1.))
-                            + 2.*cana::spence(2.*xi_u0/(xi_u0 + 1.))
-                            + cana::spence(2.*(z_u1 - 1.)*xi_u0/pow2(xi_u0 - 1.))
-                            + cana::spence(-2.*(z_u1 + 1.)*xi_u0/pow2(xi_u0 - 1.))
-                            - cana::spence(-2.*(z_u1 - 1.)*xi_u0/pow2(xi_u0 + 1.))
-                            - cana::spence(2.*(z_u1 + 1.)*xi_u0/pow2(xi_u0 + 1.))
-                            + 2.*cana::spence(-(z_u2 - 1.)*xi_u0/(xi_u0 - 1.))
-                            + 2.*cana::spence((z_u2 + 1.)*xi_u0/(xi_u0 - 1.))
-                            - 2.*cana::spence((z_u2 + 1.)*xi_u0/(xi_u0 + 1.))
-                            - 2.*cana::spence((1. - z_u2)*xi_u0/(xi_u0 + 1.))
-                            + 2.*log_u0*log((xi_u02*z_u2*z_u2 - 1.)/(xi_u02 - 1.)));
+    delta_1H = log(1. + v_max/m2) + H(s) - H(t)
+               + (xi_u02 + 1.)/2./xi_u0
+                  * (cana::spence(4.* xi_u0/pow2(xi_u0 + 1.))
+                     - cana::spence(-4.*xi_u0/pow2(xi_u0 - 1.))
+                     - 2.*cana::spence(2.*xi_u0/(xi_u0 - 1.))
+                     + 2.*cana::spence(2.*xi_u0/(xi_u0 + 1.))
+                     + cana::spence(2.*(z_u1 - 1.)*xi_u0/pow2(xi_u0 - 1.))
+                     + cana::spence(-2.*(z_u1 + 1.)*xi_u0/pow2(xi_u0 - 1.))
+                     - cana::spence(-2.*(z_u1 - 1.)*xi_u0/pow2(xi_u0 + 1.))
+                     - cana::spence(2.*(z_u1 + 1.)*xi_u0/pow2(xi_u0 + 1.))
+                     + 2.*cana::spence(-(z_u2 - 1.)*xi_u0/(xi_u0 - 1.))
+                     + 2.*cana::spence((z_u2 + 1.)*xi_u0/(xi_u0 - 1.))
+                     - 2.*cana::spence((z_u2 + 1.)*xi_u0/(xi_u0 + 1.))
+                     - 2.*cana::spence((1. - z_u2)*xi_u0/(xi_u0 + 1.))
+                     + 2.*log_u0*log((xi_u02*z_u2*z_u2 - 1.)/(xi_u02 - 1.)));
 
 
     // equation (A.14) - (A.15)
-    auto S_phi = [m2](const double &s_1, const double &s_2, const double &s_3)
+    auto S_phi = [](const double &s_1, const double &s_2, const double &s_3)
                  {
                      double lamda_1 = s_1*s_1 - 16.*m2*m2, slamda_1 = sqrt(lamda_1);
                      double lamda_2 = s_2*s_2 - 16.*m2*m2, slamda_2 = sqrt(lamda_2);
@@ -293,6 +302,10 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
                      double result = 0.;
                      for(int k = 0; k < 2; ++k)
                      {
+                         // TODO, check with authors
+                         // it is noted in the reference that
+                         // S_phi(s1, s2, s3) == S_phi(s2, s1, s3)
+                         // but this part could not satisfy the relation
                          double term = log((s_2 - slamda_2)/(s_2 + slamda_2))
                                        * log((z_ud[k] - z[0])*(z_ud[k] - z[2])/(z_ud[k] - z[1])/(z_ud[k] - z[3]));
 
@@ -314,26 +327,25 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
                              }
                          }
 
-                         result += s_3/2./slamda_3*(term + sum_term)*Sk[k];
+                         result += s_3/2./slamda_3*(/*term +*/ sum_term)*Sk[k];
                      }
                      return result;
                  };
 
     // equation (A.4)
-    double delta_1S = (xi_s2 + 1.)/2./xi_s*(log_s*log_s + log_s + cana::spence(4.*xi_s/pow2(xi_s + 1.)))
-                      - (xi_t2 + 1.)/2./xi_t*(log_t*log_t - log_t + cana::spence(4.*xi_t/pow2(xi_t + 1.)))
-                      - (xi_u02 + 1.)/2./xi_u0*(log_u0*log_u0 - log_u0 + cana::spence(4.*xi_u0/pow2(xi_u0 + 1.)))
-                      - S_phi(-(xi_u02 + 1.)*u0, (xi_s2 + 1.)*s, -(xi_t2 + 1.)*t)
-                      + S_phi(-(xi_u02 + 1.)*u0, -(xi_t2 + 1.)*t, (xi_s2 + 1.)*s)
-                      - S_phi(-(xi_t2 + 1.)*t, (xi_s2 + 1.)*s, -(xi_u02 + 1.)*u0)
-                      + 1.;
+    delta_1S = (xi_s2 + 1.)/2./xi_s*(log_s*log_s + log_s + cana::spence(4.*xi_s/pow2(xi_s + 1.)))
+               - (xi_t2 + 1.)/2./xi_t*(log_t*log_t - log_t + cana::spence(4.*xi_t/pow2(xi_t + 1.)))
+               - (xi_u02 + 1.)/2./xi_u0*(log_u0*log_u0 - log_u0 + cana::spence(4.*xi_u0/pow2(xi_u0 + 1.)))
+               - S_phi(-(xi_u02 + 1.)*u0, (xi_s2 + 1.)*s, -(xi_t2 + 1.)*t)
+               + S_phi(-(xi_u02 + 1.)*u0, -(xi_t2 + 1.)*t, (xi_s2 + 1.)*s)
+               - S_phi(-(xi_t2 + 1.)*t, (xi_s2 + 1.)*s, -(xi_u02 + 1.)*u0) + 1.;
 
 
     // equation (60)
     double J_0 = -2.*((xi_s2 + 1.)/xi_s*log_s - (xi_t2 + 1.)/xi_t*log_t
                       - (xi_u02 + 1.)/xi_u0*log_u0 + 2.);
     // equation (66)
-    double delta_1inf = J_0*log(v_max/m2);
+    delta_1inf = J_0*log(v_max/m2);
 
 // test difference with URA
 #ifdef MOLLER_TEST_URA
@@ -358,7 +370,7 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
     double J_0_URA = -4.*(1. + log(m2*s/t/u0));
 
     std::cout << S_phi(-(xi_u02 + 1.)*u0, (xi_s2 + 1.)*s, -(xi_t2 + 1.)*t) << ", "
-              << S_phi(-(xi_s2 + 1.)*s, (xi_u02 + 1.)*u0, -(xi_t2 + 1.)*t)
+              << S_phi((xi_s2 + 1.)*s, -(xi_u02 + 1.)*u0, -(xi_t2 + 1.)*t)
               << std::endl;
 
     std::cout << " | d_1H: "
@@ -374,7 +386,7 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
 #endif // MOLLER_TEST_URA
 // end test
 
-    // equation (65), non-radiative part
+    // equation (65)
     return (1. + alp_pi*(delta_1H + delta_1S))*exp(alp_pi*delta_1inf)*sig_0
            + sig_S + sig_vert + sig_B;
 }
@@ -386,8 +398,10 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
 // k2, final beam electron four-momentum
 // type, 0. born, others. non-rad
 // output cross section with the same unit from input
+/*
 double PRadMollerGen::moller_rad(double *p1, double *k1, double *k2)
 {
     return 0.;
 }
+*/
 
