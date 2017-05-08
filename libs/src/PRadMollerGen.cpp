@@ -14,6 +14,11 @@
 #include "canalib.h"
 #include <cmath>
 #include <iostream>
+#include <iomanip>
+
+#define MOLLER_TEST_URA
+
+
 
 // constructor
 PRadMollerGen::PRadMollerGen()
@@ -56,7 +61,7 @@ double PRadMollerGen::GetBornXS(const double &Es, const double &angle)
     double k2[4] = {E1, k1_tot*sin(theta), 0., k1_tot*cos(theta)};
 
     // convert MeV^-2 to nbarn
-    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2, 0) + moller_nonrad(k1, p1, k2, 0));
+    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2, 0)) + moller_nonrad(k1, p1, k2, 0);
 }
 
 // get non-radiative cross section
@@ -82,7 +87,7 @@ double PRadMollerGen::GetNonRadXS(const double &Es, const double &angle)
 
     // convert MeV^-2 to nbarn
     moller_rad(p1, k1 , k2);
-    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2) + moller_nonrad(k1, p1, k2));
+    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2)) + moller_nonrad(k1, p1, k2);
 }
 
 // Non-rad or Born level cross section for Moller scattering
@@ -223,52 +228,6 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
     // equation (53)
     double sig_B = alp_pi/2.*delta_box*sig_0 + alp3/xi_s2/s2t/u0*(sig_B1 + sig_B2);
 
-    // cross sections without real photon emission
-    return sig_0 + sig_S + sig_vert + sig_B;
-}
-
-// real photon emission part of the Moller scattering
-// input four momentum of the particles - arrays with size 4, energy is at 0
-// p1, initial target four-momentum
-// k1, initial beam electron four-momentum
-// k2, final beam electron four-momentum
-// type, 0. born, others. non-rad
-// output cross section with the same unit from input
-double PRadMollerGen::moller_rad(double *p1, double *k1, double *k2)
-{
-    // electron mass
-    double m = cana::ele_mass, m2 = m*m;
-    double alp_pi = cana::alpha/cana::pi;
-
-    // Mandelstam variables and inelasticity
-    double u0, s, t, v;
-    // s = (k1 + p1)^2
-    s = pow2(k1[0] + p1[0]) - pow2(k1[1] + p1[1]) - pow2(k1[2] + p1[2])
-        - pow2(k1[3] + p1[3]);
-
-    // t = (k2 - k1)^2
-    t = pow2(k2[0] - k1[0]) - pow2(k2[1] - k1[1]) - pow2(k2[2] - k1[2])
-        - pow2(k2[3] - k1[3]);
-
-    // u0 = (k2 - p1)^2
-    u0 = pow2(k2[0] - p1[0]) - pow2(k2[1] - p1[1]) - pow2(k2[2] - p1[2])
-         - pow2(k2[3] - p1[3]);
-
-    // v = (k1 + p1 - k2)^2 - m^2
-    v = pow2(k1[0] + p1[0] - k2[1]) - pow2(k1[1] + p1[1] - k2[1])
-        - pow2(k1[2] + p1[2] - k2[2]) - pow2(k1[3] + p1[3] - k2[3]) - m2;
-
-    // frequently used variables
-    double xi_s = sqrt(1. - 4.*m2/s);
-    double xi_t = sqrt(1 - 4.*m2/t);
-    double xi_u0 = sqrt(1. - 4.*m2/u0);
-    double xi_s2 = xi_s*xi_s;
-    double xi_t2 = xi_t*xi_t;
-    double xi_u02 = xi_u0*xi_u0;
-    double log_s = log((1. + xi_s)/(1. - xi_s));
-    double log_t = log((1. + xi_t)/(xi_t - 1.));
-    double log_u0 = log((1. + xi_u0)/(xi_u0 - 1.));
-
     // equation (A.5) - (A.13)
     double v_max = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
     double z_u1 = sqrt((xi_u02*(v_max + u0) - v_max)/u0)/xi_u0;
@@ -276,7 +235,7 @@ double PRadMollerGen::moller_rad(double *p1, double *k1, double *k2)
     auto H = [m2, v_max](const double &ch)
              {
                  double xi_ch = sqrt(1. - 4.*m2/ch), xi_ch2 = xi_ch*xi_ch;
-                 double z_ch = 1. + xi_ch*(sqrt(pow2(xi_ch*ch) - 2.*ch*v_max + v_max*v_max) + xi_ch*ch)/v_max;
+                 double z_ch = xi_ch/v_max*(sqrt(xi_ch2*ch*ch - 2.*ch*v_max + v_max*v_max) - xi_ch*ch) + 1.;
                  double z_1 = 1. + xi_ch;
                  double z_2 = pow2(1. + xi_ch)/(1. - xi_ch);
                  double z_3 = 1. - xi_ch;
@@ -285,7 +244,10 @@ double PRadMollerGen::moller_rad(double *p1, double *k1, double *k2)
                  double Li2_z2 = cana::spence(z_ch/z_2);
                  double Li2_z3 = cana::spence(z_ch/z_3);
                  double Li2_z4 = cana::spence(z_ch/z_4);
-                 double log_term = log(pow2((xi_ch + 1.)/(xi_ch - 1.)))*log((pow2(z_ch - 1.) - xi_ch2)/(1. - xi_ch2));
+                 // NOTICE: fabs is not in the original function
+                 // however, the term in log can be negative and thus result in
+                 // undefined behavior for real numbers
+                 double log_term = log(pow2((xi_ch + 1.)/(xi_ch - 1.)))*log(fabs((pow2(z_ch - 1.) - xi_ch2)/(1. - xi_ch2)));
 
                  return (xi_ch2 + 1.)/2./xi_ch * (Li2_z1 + Li2_z2 - Li2_z3 - Li2_z4 - log_term);
              };
@@ -347,12 +309,12 @@ double PRadMollerGen::moller_rad(double *p1, double *k1, double *k2)
                                      // the result may be a complex number
                                      // TODO check with authors for this part
                                      double spence_term = cana::spence((z_ud[k] - z[i])/(z[j] - z[i]));
-                                     sum_term += sign*log(fabs(z_ud[k] - z[i]))*log(fabs(z[i] - z[j])) - spence_term;
+                                     sum_term += sign*(log(fabs(z_ud[k] - z[i]))*log(fabs(z[i] - z[j])) - spence_term);
                                  }
                              }
                          }
 
-                         result = s_3/2./slamda_3*(term + sum_term)*Sk[k];
+                         result += s_3/2./slamda_3*(term + sum_term)*Sk[k];
                      }
                      return result;
                  };
@@ -366,7 +328,66 @@ double PRadMollerGen::moller_rad(double *p1, double *k1, double *k2)
                       - S_phi(-(xi_t2 + 1.)*t, (xi_s2 + 1.)*s, -(xi_u02 + 1.)*u0)
                       + 1.;
 
-    std::cout << alp_pi*(delta_1H + delta_1S) << std::endl;
+
+    // equation (60)
+    double J_0 = -2.*((xi_s2 + 1.)/xi_s*log_s - (xi_t2 + 1.)/xi_t*log_t
+                      - (xi_u02 + 1.)/xi_u0*log_u0 + 2.);
+    // equation (66)
+    double delta_1inf = J_0*log(v_max/m2);
+
+// test difference with URA
+#ifdef MOLLER_TEST_URA
+    // equation (61)
+    double delta_1H_URA = log(-t/m2)*(log(pow2(t*(s + t))*(s - v_max)/s/v_max/(v_max - t)/pow2(s + t - v_max)) + 1.)
+                          - pow2(log(-t/m2))/2.
+                          + 2.*(-cana::spence(v_max/(s + t)) + cana::spence(v_max/s) - cana::spence(v_max/t))
+                          + cana::spence((s - v_max)/s)
+                          - cana::spence((t - v_max)/t)
+                          + log((s + t)/(s + t - v_max))*log((s + t)*(s + t - v_max)/t/t)
+                          + log((s - v_max)/s)*log((v_max - s)/t)
+                          - pow2(log(-v_max/t))/2.
+                          - pow2(log(1. - v_max/t))
+                          + log(-v_max/t) - pi2/6.;
+
+    // equation (62)
+    double delta_1S_URA = 1. - (log(-t/m2) - 1.)*log(s*(s + t)/t/t)
+                          + log(-t/m2)*(3. - 2.*log((s + t)/s))
+                          - 5./2.*pow2(log(-t/m2)) - pow2(log((s + t)/s))/2. - pi2/3.;
+
+    // equation (63)
+    double J_0_URA = -4.*(1. + log(m2*s/t/u0));
+
+    std::cout << S_phi(-(xi_u02 + 1.)*u0, (xi_s2 + 1.)*s, -(xi_t2 + 1.)*t) << ", "
+              << S_phi(-(xi_s2 + 1.)*s, (xi_u02 + 1.)*u0, -(xi_t2 + 1.)*t)
+              << std::endl;
+
+    std::cout << " | d_1H: "
+              << std::setw(10) << delta_1H << ", "
+              << std::setw(10) << delta_1H_URA
+              << " | d_1S: "
+              << std::setw(10) << delta_1S << ", "
+              << std::setw(10) << delta_1S_URA
+              << " | J_0:  "
+              << std::setw(10) << J_0 << ", "
+              << std::setw(10) << J_0_URA << " |"
+              << std::endl;
+#endif // MOLLER_TEST_URA
+// end test
+
+    // equation (65), non-radiative part
+    return (1. + alp_pi*(delta_1H + delta_1S))*exp(alp_pi*delta_1inf)*sig_0
+           + sig_S + sig_vert + sig_B;
+}
+
+// real photon emission part of the Moller scattering
+// input four momentum of the particles - arrays with size 4, energy is at 0
+// p1, initial target four-momentum
+// k1, initial beam electron four-momentum
+// k2, final beam electron four-momentum
+// type, 0. born, others. non-rad
+// output cross section with the same unit from input
+double PRadMollerGen::moller_rad(double *p1, double *k1, double *k2)
+{
     return 0.;
 }
 

@@ -63,15 +63,15 @@ double cana::gamma(const double &z)
 double cana::spence(const double &z, const double &res)
 {
     if(z > 1) {
-        return 2*pi*pi/6 - log(z)*log(z)/2 - cana::spence(1/z, res);
+        return 2*pi*pi/6. - log(z)*log(z)/2. - cana::spence(1/z, res);
     } else if (z == 1) {
         return pi*pi/6;
     } else if (z > 0.5) {
-        return pi*pi/6 - log(1-z)*log(z) - cana::spence(1-z, res);
+        return pi*pi/6. - log(1-z)*log(z) - cana::spence(1-z, res);
     } else if (z == 0.5) {
-        return pi*pi/6/2 - log(0.5)*log(0.5)/2;
+        return pi*pi/6./2. - log(0.5)*log(0.5)/2.;
     } else if (z > 0) {
-        return cana::spence_tr(z, res, __SPENCE_NMAX); // do nothing, fall into the bottom session
+        return cana::spence_tr(z, res, __SPENCE_NMAX);
     } else if (z == 0) {
         return 0;
     } else if (z > -0.95) {
@@ -82,9 +82,9 @@ double cana::spence(const double &z, const double &res)
         double dz = z + 1;
         for(int i = 0; i < __SPENCE_NUM; ++i)
             output += __spence_c[i]*std::pow(dz, i);
-        return -(1 + output*dz*dz)*pi*pi/6/2 + dz*log(2);
+        return -(1 + output*dz*dz)*pi*pi/6./2. + dz*log(2);
     } else {
-        return -pi*pi/6 - log(-z)*log(-z)/2 - cana::spence(1/z, res);
+        return -pi*pi/6. - log(-z)*log(-z)/2. - cana::spence(1/z, res);
     }
 }
 

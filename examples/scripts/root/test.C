@@ -66,17 +66,25 @@ void moller_test()
 {
     TGraph *g1 = new TGraph();
     TGraph *g2 = new TGraph();
+    TGraph *g3 = new TGraph();
     PRadMollerGen moller;
     for(double angle = 0.5; angle < 6.5; angle += 0.01)
     {
-        g1->SetPoint(g1->GetN(), angle, moller.GetBornXS(1097, angle));
-        g2->SetPoint(g2->GetN(), angle, moller.GetNonRadXS(1097, angle));
+        double born = moller.GetBornXS(6000, angle);
+        double rad = moller.GetNonRadXS(6000, angle);
+        g1->SetPoint(g1->GetN(), angle, born);
+        g2->SetPoint(g2->GetN(), angle, rad);
+        g3->SetPoint(g3->GetN(), angle, (rad/born - 1.)*100.);
     }
 
-    TCanvas *c1 = new TCanvas("Moller XS", "Moller XS", 200, 10, 700, 500);
+    TCanvas *c1 = new TCanvas("Moller XS", "Moller XS", 200, 10, 1200, 500);
+    c1->Divide(2, 1);
     c1->SetGrid();
 
+    c1->cd(1);
     g1->Draw("AC");
     g2->SetLineColor(2);
     g2->Draw("C");
+    c1->cd(2);
+    g3->Draw("AC");
 }
