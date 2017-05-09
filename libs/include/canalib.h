@@ -81,6 +81,29 @@ namespace cana
         return result*s/3.;
     }
 
+    template<class T, typename... Args>
+    double simpson(double begin, double end, double step, int Nmin,
+                   double (T::*f) (double, Args ...) const, const T *t, Args... args)
+    {
+        int Nsteps = (end - begin)/step;
+        int Nbins = std::max(Nmin, Nsteps)/2;
+        double s = (end - begin)/(double)(2.*Nbins);
+
+        // first bin
+        double result =  (t->*f)(begin, args...)
+                       + 4.*(t->*f)(begin + s, args...)
+                       + (t->*f)(end, args...);
+        double x = begin + 2.*s;
+        int i = 1;
+        while(i++ < Nbins)
+        {
+            result += 2.*(t->*f)(x, args...) + 4.*(t->*f)(x + s, args...);
+            x += 2.*s;
+        }
+
+        return result*s/3.;
+    }
+
     // the function is based on c++ source code
     // it adds permutation parity track
     template<class BidirIt>

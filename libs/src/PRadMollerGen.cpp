@@ -28,6 +28,9 @@ const double alp_pi = cana::alpha/cana::pi;
 const double pi2 = cana::pi*cana::pi;
 const double alp2 = cana::alpha*cana::alpha;
 const double alp3 = alp2*cana::alpha;
+// convert MeV^-2 to nbarn
+const double unit = cana::hbarc2*1e7;
+
 
 
 
@@ -51,35 +54,11 @@ inline double pow3(double val) {return val*val*val;}
 // power of 4
 inline double pow4(double val) {double val2 = pow2(val); return val2*val2;}
 
-// get Born cross section
+// get cross section
 // input beam energy (MeV), angle (deg)
-// output Born level cross section (nb)
-double PRadMollerGen::GetBornXS(const double &Es, const double &angle)
-{
-    double m = cana::ele_mass;
-    double theta = angle*cana::deg2rad;
-    double p_tot = sqrt(pow2(Es) - pow2(m));
-
-    // incident electron kinematics
-    double k1[4] = {Es, 0., 0., p_tot};
-    double p1[4] = {m, 0., 0., 0.};
-
-    // Energy of the scattered electron k1
-    double cos_E = (Es - m)*pow2(cos(theta));
-    double E1 = m*(Es + m + cos_E)/(Es + m - cos_E);
-    double k1_tot = sqrt(pow2(E1) - pow2(m));
-
-    double k2[4] = {E1, k1_tot*sin(theta), 0., k1_tot*cos(theta)};
-
-    // convert MeV^-2 to nbarn
-    // t and u channels together
-    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2, 0) + moller_nonrad(k1, p1, k2, 0));
-}
-
-// get non-radiative cross section
-// input beam energy (MeV), angle (deg)
-// output non-radiative cross section (nb)
-double PRadMollerGen::GetNonRadXS(const double &Es, const double &angle)
+// output Born, non-radiative, radiative cross sections (nb)
+void PRadMollerGen::GetXS(double Es, double angle, double &sig_born, double &sig_nrad, double &sig_rad)
+const
 {
     double m = cana::ele_mass;
     double theta = angle*cana::deg2rad;
@@ -97,23 +76,8 @@ double PRadMollerGen::GetNonRadXS(const double &Es, const double &angle)
 
     double k2[4] = {E1, k1_tot*sin(theta), 0., k1_tot*cos(theta)};
 
-    merad_init(Es);
-    // convert MeV^-2 to nbarn
-    // t and u channels together
-    return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2) + moller_nonrad(k1, p1, k2));
-}
-
-// Non-radiative cross section for Moller scattering
-// input four momentum of the particles
-// p1: target electron
-// k1: incident electron
-// k2: scattered electron
-// type: <= 0 Born level, > 0 full calculation
-// output non-radiative cross section
-double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type)
-{
     // Mandelstam variables
-    double u0, s, t;
+    double s, t, u0;
     // s = (k1 + p1)^2
     s = pow2(k1[0] + p1[0]) - pow2(k1[1] + p1[1]) - pow2(k1[2] + p1[2])
         - pow2(k1[3] + p1[3]);
@@ -126,6 +90,40 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
     u0 = pow2(k2[0] - p1[0]) - pow2(k2[1] - p1[1]) - pow2(k2[2] - p1[2])
          - pow2(k2[3] - p1[3]);
 
+    // virtual photon part of Moller cross section
+    // the t and u channels should be calculated together
+    double sig_0t, sig_0u, sig_St, sig_Su, sig_vertt, sig_vertu, sig_Bt, sig_Bu;
+    // t channel
+    moller_Vph(s, t, u0, sig_0t, sig_St, sig_vertt, sig_Bt);
+    // u0 channel
+    moller_Vph(s, u0, t, sig_0u, sig_Su, sig_vertu, sig_Bu);
+
+    // infrared divergent part of real photon emission
+    // the t and u channels are not separated
+    double delta_1H, delta_1S, delta_1inf;
+    moller_IR(s, t, u0, delta_1H, delta_1S, delta_1inf);
+
+    // the "soft" Bremsstrahlung part of the radiative cross section
+    // Blow v_min, photon emission is not detectable
+    merad_init(Es);
+    double sig_Fs = cana::simpson(1e-12, v_min, 0.01, 10000,
+                                  &PRadMollerGen::merad_fsirv, this, t, sig_0t + sig_0u);
+
+    // t and u channels together
+    // born level cross section
+    sig_born = unit*(sig_0t + sig_0u);
+    sig_nrad = unit*((1. + alp_pi*(delta_1H + delta_1S))*exp(alp_pi*delta_1inf)*(sig_0t + sig_0u)
+                     + sig_St + sig_Su + sig_vertt + sig_vertu + sig_Bt + sig_Bu + sig_Fs);
+    sig_rad = 0.;
+}
+
+// Cross section including virtual photon part for Moller scattering
+// input Mandelstam variables s, t, u0
+// output cross section including virtual photon effects
+void PRadMollerGen::moller_Vph(double s, double t, double u0,
+                               double &sig_0, double &sig_S, double &sig_vert, double &sig_B)
+const
+{
     double s2t = s*s*t, st2 = s*t*t, s3 = pow3(s);
     double u02t = u0*u0*t, u0t2 = u0*t*t, u03 = pow3(u0), t3 = pow3(t);
 
@@ -137,19 +135,15 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
     double xi_t2 = xi_t*xi_t, xi_t4 = xi_t2*xi_t2;
     double xi_u02 = xi_u0*xi_u0, xi_u04 = xi_u02*xi_u02;
 
-    double sig_0;
     // equation (49), Born Level
+    // NOTE: there is an additional s in the denominator (misprint)
     sig_0 = (u0*u0/xi_s2/4./s*(4.*xi_u04 - pow2(1. - xi_u02)*(2. + t/u0)) - s*s*xi_s4/u0)
-            * 2.*cana::pi*alp2/st2;
-
-    if(type <= 0)
-        return sig_0;
+            * 2.*cana::pi*alp2/t/t;
 
     // singularity term, appears in delta_ver and delta_box
     // we only need the divergence free part of the sigma_ver and simga_box,
     // which are obtained by substituting lamda = m so log(lamda/m) = 0
     double log_m = 0.; // log(lamda/m), where lamda is the infinitesimal photon mass
-    double sig_S, sig_vert, sig_B;
 
     // other frequently used variables
     // Q^2 (-t) related, equation (27) - (29)
@@ -234,9 +228,27 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
 
     // equation (53)
     sig_B = alp_pi/2.*delta_box*sig_0 + alp3/xi_s2/s2t/u0*(sig_B1 + sig_B2);
+}
 
-    // 3 factorized part for the infrared part of the radiative cross section
-    double delta_1H, delta_1S, delta_1inf;
+// Infrared part of the Moller cross sections with real photon emission
+// input Mandelstam variables
+// NOTE that the t and u0 channel are not separated
+// output 3 factorized part for the infrared part of the radiative cross section
+void PRadMollerGen::moller_IR(double s, double t, double u0,
+                              double &delta_1H, double &delta_1S, double &delta_1inf)
+const
+{
+    // frequently used variables
+    double xi_s = sqrt(1. - 4.*m2/s);
+    double xi_t = sqrt(1 - 4.*m2/t);
+    double xi_u0 = sqrt(1. - 4.*m2/u0);
+    double xi_s2 = xi_s*xi_s;
+    double xi_t2 = xi_t*xi_t;
+    double xi_u02 = xi_u0*xi_u0;
+    double log_s = log((1. + xi_s)/(1. - xi_s));
+    double log_t = log((1. + xi_t)/(xi_t - 1.));
+    double log_u0 = log((1. + xi_u0)/(xi_u0 - 1.));
+
     // equation (A.5) - (A.13)
     double v_limit = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
     double v_max = (v_cut > v_limit) ? v_limit : v_cut;
@@ -386,14 +398,6 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
               << std::endl;
 #endif // MOLLER_TEST_URA
 // end test
-
-    // the "soft" Bremsstrahlung part of the radiative cross section
-    // Blow v_min, photon emission is not detectable
-    double sig_FS = cana::simpson(1e-10, v_min, 0.01, 10000, &PRadMollerGen::merad_fsirv, this, t, sig_0);
-
-    // equation (65)
-    return (1. + alp_pi*(delta_1H + delta_1S))*exp(alp_pi*delta_1inf)*sig_0
-           + sig_S + sig_vert + sig_B + sig_FS;
 }
 
 // real photon emission part of the Moller scattering
@@ -410,7 +414,8 @@ double PRadMollerGen::moller_rad(double *p1, double *k1, double *k2)
 }
 */
 
-double PRadMollerGen::merad_fsirv(const double &v, const double &t, const double &sig0)
+double PRadMollerGen::merad_fsirv(double v, double t, double sig0)
+const
 {
     int nn;
     return merad_fsir(t, 0., v, 0., sig0, &nn, -1);
