@@ -13,7 +13,7 @@ NEURAL 	      = cneural
 CC            = gcc
 CXX           = g++
 FORTRAN       = gfortran
-FFLAGS        = -fPIC -cpp
+FFLAGS        = -fPIC -cpp -ffixed-line-length-none
 CXXFLAGS      = -shared -std=c++11 -m64 -O2 -g -pipe -Wall $(DEFINES) \
 				-fstack-protector-strong --param=ssp-buffer-size=4 \
 				-grecord-gcc-switches -mtune=generic -fPIC
@@ -93,7 +93,7 @@ CXX_SOURCES   = canalib \
 # fortran part
 FOR_SRC_DIR   = fortran
 FOR_INC_DIR   = fortran
-FOR_SOURCES   = 
+FOR_SOURCES   = merad_fsir
 FOR_SUFFIX    = f
 
 

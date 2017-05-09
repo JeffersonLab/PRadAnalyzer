@@ -97,6 +97,7 @@ double PRadMollerGen::GetNonRadXS(const double &Es, const double &angle)
 
     double k2[4] = {E1, k1_tot*sin(theta), 0., k1_tot*cos(theta)};
 
+    merad_init(Es);
     // convert MeV^-2 to nbarn
     // t and u channels together
     return cana::hbarc2*1e7*(moller_nonrad(p1, k1, k2) + moller_nonrad(k1, p1, k2));
@@ -386,9 +387,13 @@ double PRadMollerGen::moller_nonrad(double *p1, double *k1, double *k2, int type
 #endif // MOLLER_TEST_URA
 // end test
 
+    // the "soft" Bremsstrahlung part of the radiative cross section
+    // Blow v_min, photon emission is not detectable
+    double sig_FS = cana::simpson(1e-10, v_min, 0.01, 10000, &PRadMollerGen::merad_fsirv, this, t, sig_0);
+
     // equation (65)
     return (1. + alp_pi*(delta_1H + delta_1S))*exp(alp_pi*delta_1inf)*sig_0
-           + sig_S + sig_vert + sig_B;
+           + sig_S + sig_vert + sig_B + sig_FS;
 }
 
 // real photon emission part of the Moller scattering
@@ -405,3 +410,8 @@ double PRadMollerGen::moller_rad(double *p1, double *k1, double *k2)
 }
 */
 
+double PRadMollerGen::merad_fsirv(const double &v, const double &t, const double &sig0)
+{
+    int nn;
+    return merad_fsir(t, 0., v, 0., sig0, &nn, -1);
+}
