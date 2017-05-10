@@ -4,7 +4,7 @@
 extern "C"
 {
     void merad_init(double Elab);
-    double merad_sigfs(double vmin, double t, double pl);
+    double merad_sigfs(double vmin, double t, double pl, double born);
     double merad_sigfh(double vmin, double vmax, double t, double pl);
 };
 

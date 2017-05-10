@@ -109,7 +109,7 @@ const
     double v_max = (v_limit > v_cut) ? v_cut : v_limit;
     // the "soft" Bremsstrahlung part of the radiative cross section
     // blow v_min, photon emission is not detectable
-    double sig_Fs = merad_sigfs(v_min, t, 0.);
+    double sig_Fs = merad_sigfs(v_min, t, 0., sig_0t + sig_0u);
     // the "hard" Bremsstrahlung part of the radiative cross section
     double sig_Fh = merad_sigfh(v_min, v_max, t, 0.);
 

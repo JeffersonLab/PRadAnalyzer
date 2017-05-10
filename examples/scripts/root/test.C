@@ -69,8 +69,8 @@ void moller_test()
     TGraph *g1 = new TGraph();
     TGraph *g2 = new TGraph();
     TGraph *g3 = new TGraph();
-    PRadMollerGen moller(1, 400);
-    for(double angle = 0.8; angle < 3.8; angle += 0.01)
+    PRadMollerGen moller(4.69, 100);
+    for(double angle = 0.05; angle < 3.8; angle += 0.01)
     {
         double born, non_rad, rad;
         moller.GetXS(energy, angle, born, non_rad, rad);

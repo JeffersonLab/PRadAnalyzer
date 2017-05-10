@@ -94,7 +94,7 @@ CXX_SOURCES   = canalib \
 FOR_SRC_DIR   = fortran
 FOR_INC_DIR   = fortran/include
 FOR_SOURCES   = merad_fsir \
-				merad_util
+                merad_util
 FOR_SUFFIX    = f
 
 
