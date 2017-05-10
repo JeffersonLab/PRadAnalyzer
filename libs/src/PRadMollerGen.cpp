@@ -105,7 +105,7 @@ const
 
     // initialize MERADGEN
     merad_init(Es);
-    double v_limit = (s + t - 4.*m2)*0.999;
+    double v_limit = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
     double v_max = (v_limit > v_cut) ? v_cut : v_limit;
     // the "soft" Bremsstrahlung part of the radiative cross section
     // blow v_min, photon emission is not detectable
@@ -257,7 +257,7 @@ const
 
     // equation (A.5) - (A.13)
     double v_limit = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
-    double v_max = (v_min > v_limit) ? v_limit : v_min;
+    double v_max = (v_cut > v_limit) ? v_limit : v_cut;
     double z_u1 = sqrt((xi_u02*(v_max + u0) - v_max)/u0)/xi_u0;
     double z_u2 = sqrt((v_max + xi_u02*u0)/(v_max + u0))/xi_u0;
     auto H = [v_max](const double &ch)
