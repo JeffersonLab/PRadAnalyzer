@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <utility>
 #include <cmath>
+#include <cstdlib>
 
 namespace cana
 {
