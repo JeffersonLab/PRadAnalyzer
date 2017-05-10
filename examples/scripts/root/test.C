@@ -65,18 +65,19 @@ void test_block_read(const string &path = "block_test.conf")
 
 void moller_test()
 {
-    double energy = 2142;
+    double energy = 1100;
     TGraph *g1 = new TGraph();
     TGraph *g2 = new TGraph();
     TGraph *g3 = new TGraph();
-    PRadMollerGen moller(1e-6, 10);
+    PRadMollerGen moller(1, 400);
     for(double angle = 0.8; angle < 3.8; angle += 0.01)
     {
         double born, non_rad, rad;
         moller.GetXS(energy, angle, born, non_rad, rad);
         g1->SetPoint(g1->GetN(), angle, born);
-        g2->SetPoint(g2->GetN(), angle, non_rad);
-        g3->SetPoint(g3->GetN(), angle, (non_rad/born - 1.)*100.);
+        g2->SetPoint(g2->GetN(), angle, non_rad + rad);
+        g3->SetPoint(g3->GetN(), angle, ((non_rad + rad)/born - 1.)*100.);
+        cout << angle << ", " << born << ", " << non_rad + rad << ", " << non_rad << ", " << rad << endl;
     }
 
     TCanvas *c1 = new TCanvas("Moller XS", "Moller XS", 200, 10, 1200, 500);

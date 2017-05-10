@@ -30,13 +30,19 @@ const double alp2 = cana::alpha*cana::alpha;
 const double alp3 = alp2*cana::alpha;
 // convert MeV^-2 to nbarn
 const double unit = cana::hbarc2*1e7;
+// square
+inline double pow2(double val) {return val*val;}
+// cubic
+inline double pow3(double val) {return val*val*val;}
+// power of 4
+inline double pow4(double val) {double val2 = pow2(val); return val2*val2;}
 
 
 
 
 // constructor
-PRadMollerGen::PRadMollerGen(double ph_min, double ph_max)
-: v_min(ph_min), v_cut(ph_max)
+PRadMollerGen::PRadMollerGen(double vmin, double vmax)
+: v_min(vmin), v_cut(vmax)
 {
     // place holder
 }
@@ -47,21 +53,15 @@ PRadMollerGen::~PRadMollerGen()
     // place holder
 }
 
-// square
-inline double pow2(double val) {return val*val;}
-// cubic
-inline double pow3(double val) {return val*val*val;}
-// power of 4
-inline double pow4(double val) {double val2 = pow2(val); return val2*val2;}
-
 // get cross section
 // input beam energy (MeV), angle (deg)
 // output Born, non-radiative, radiative cross sections (nb)
 void PRadMollerGen::GetXS(double Es, double angle, double &sig_born, double &sig_nrad, double &sig_rad)
 const
 {
-    double m = cana::ele_mass;
     double theta = angle*cana::deg2rad;
+    // conversion from dsigma/dy (y = -t/s) to dsigma/dOmega
+    double jacob = 4.*m*(Es - m)/pow2(Es + m -(Es - m)*pow2(cos(theta)))/2./cana::pi;
     double p_tot = sqrt(pow2(Es) - pow2(m));
 
     // incident electron kinematics
@@ -103,18 +103,23 @@ const
     double delta_1H, delta_1S, delta_1inf;
     moller_IR(s, t, u0, delta_1H, delta_1S, delta_1inf);
 
-    // the "soft" Bremsstrahlung part of the radiative cross section
-    // Blow v_min, photon emission is not detectable
+    // initialize MERADGEN
     merad_init(Es);
-    double sig_Fs = cana::simpson(1e-12, v_min, 0.01, 10000,
-                                  &PRadMollerGen::merad_fsirv, this, t, sig_0t + sig_0u);
+    double v_limit = (s + t - 4.*m2)*0.999;
+    double v_max = (v_limit > v_cut) ? v_cut : v_limit;
+    // the "soft" Bremsstrahlung part of the radiative cross section
+    // blow v_min, photon emission is not detectable
+    double sig_Fs = merad_sigfs(v_min, t, 0.);
+    // the "hard" Bremsstrahlung part of the radiative cross section
+    double sig_Fh = merad_sigfh(v_min, v_max, t, 0.);
 
     // t and u channels together
     // born level cross section
-    sig_born = unit*(sig_0t + sig_0u);
-    sig_nrad = unit*((1. + alp_pi*(delta_1H + delta_1S))*exp(alp_pi*delta_1inf)*(sig_0t + sig_0u)
-                     + sig_St + sig_Su + sig_vertt + sig_vertu + sig_Bt + sig_Bu + sig_Fs);
-    sig_rad = 0.;
+    sig_born = (sig_0t + sig_0u)*jacob*unit;
+    sig_nrad = ((1. + alp_pi*(delta_1H + delta_1S))*exp(alp_pi*delta_1inf)*(sig_0t + sig_0u)
+                + sig_St + sig_Su + sig_vertt + sig_vertu + sig_Bt + sig_Bu + sig_Fs)
+               * jacob*unit;
+    sig_rad = sig_Fh*jacob*unit;
 }
 
 // Cross section including virtual photon part for Moller scattering
@@ -136,7 +141,8 @@ const
     double xi_u02 = xi_u0*xi_u0, xi_u04 = xi_u02*xi_u02;
 
     // equation (49), Born Level
-    // NOTE: there is an additional s in the denominator (misprint)
+    // NOTE that there is an additional s in the denominator, but this s leads
+    // to a wrong dimension, and disagrees with the URA form
     sig_0 = (u0*u0/xi_s2/4./s*(4.*xi_u04 - pow2(1. - xi_u02)*(2. + t/u0)) - s*s*xi_s4/u0)
             * 2.*cana::pi*alp2/t/t;
 
@@ -251,7 +257,7 @@ const
 
     // equation (A.5) - (A.13)
     double v_limit = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
-    double v_max = (v_cut > v_limit) ? v_limit : v_cut;
+    double v_max = (v_min > v_limit) ? v_limit : v_min;
     double z_u1 = sqrt((xi_u02*(v_max + u0) - v_max)/u0)/xi_u0;
     double z_u2 = sqrt((v_max + xi_u02*u0)/(v_max + u0))/xi_u0;
     auto H = [v_max](const double &ch)
@@ -413,10 +419,3 @@ double PRadMollerGen::moller_rad(double *p1, double *k1, double *k2)
     return 0.;
 }
 */
-
-double PRadMollerGen::merad_fsirv(double v, double t, double sig0)
-const
-{
-    int nn;
-    return merad_fsir(t, 0., v, 0., sig0, &nn, -1);
-}
