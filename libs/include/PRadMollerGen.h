@@ -3,9 +3,18 @@
 
 extern "C"
 {
+    // interface to visit meradgen
     void merad_init(double Elab);
     double merad_sigfs(double vmin, double t, double pl, double born);
     double merad_sigfh(double vmin, double vmax, double t, double pl);
+
+    // the grid used in meradgen declared in
+    // fortran/include/merad_grid.inc
+    // dimension must be changed accordingly
+    extern struct
+    {
+        double grv[60], grt1[30], grz[60];
+    } merad_grid_;
 };
 
 // unit MeV, degree and nb

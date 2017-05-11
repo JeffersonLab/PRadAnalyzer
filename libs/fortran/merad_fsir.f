@@ -36,15 +36,26 @@
       use, intrinsic :: ISO_C_BINDING
       implicit none
       real(C_DOUBLE), intent(IN), VALUE :: vmin, vmax, tin, plin
-      real*8 fsirhard, xs
-      integer nn, nbins, i
+      real*8 va, vb, sia, sib, fsir
+      integer nn, iv
       include 'merad_tv.inc'
-      t = tin
-      pl = plin
-      ! redundant, but it prevents crash
-      xs = fsirhard(vmin)
-      call simpsx(vmin,vmax,10000,1d-3,fsirhard,xs)
-      merad_sigfh = xs
+      include 'merad_grid.inc'
+
+      ! this hard photon part will be revisited again
+      ! so use grid to calculate it and store the values
+      ! Trapezoid rule
+      vb = vmin
+      sib = 0d0
+      do iv = 1, nv
+        va = vb
+        sia = sib
+        vb = vmin + (vmax - vmin)*grv(iv)
+        sib = fsir(tin, 0d0, vb, 0d0, plin, nn, 2, 0d0)
+        distsiv(iv) = distsiv(iv-1) + (sib + sia)*(vb-va)/2d0
+        distarv(iv) = vb
+      enddo
+
+      merad_sigfh = distsiv(nv)
       end
 
       real*8 function fsirsoft(v)
@@ -53,14 +64,6 @@
       integer nn
       include 'merad_tv.inc'
       fsirsoft=fsir(t,0d0,v,0d0,pl,nn,-1,sig0)
-      end
-
-      real*8 function fsirhard(v)
-      implicit none
-      real*8 v,fsir
-      integer nn
-      include 'merad_tv.inc'
-      fsirhard=fsir(t,0d0,v,0d0,pl,nn,2,0d0)
       end
 
       subroutine zd(t,t1,v)

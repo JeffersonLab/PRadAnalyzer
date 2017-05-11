@@ -1,9 +1,6 @@
       subroutine grid_init
       implicit none
-      integer i,nv,nt1,nz
-      parameter(nv=60)
-      parameter(nt1=30)
-      parameter(nz=60)
+      integer i
       include 'merad_grid.inc'
       do i=1,30
         grv(i)=dble(i-1)/dble(29)/4d0
