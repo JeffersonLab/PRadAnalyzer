@@ -109,7 +109,7 @@ const
     double v_max = (v_limit > v_cut) ? v_cut : v_limit;
     // the "soft" Bremsstrahlung part of the radiative cross section
     // blow v_min, photon emission is not detectable
-    double sig_Fs = merad_sigfs(v_min, t, 0., sig_0t + sig_0u);
+    double sig_Fs = merad_sigfs(v_min, t, 0.);
     // the "hard" Bremsstrahlung part of the radiative cross section
     double sig_Fh = merad_sigfh(v_min, v_max, t, 0.);
 
@@ -141,10 +141,13 @@ const
     double xi_u02 = xi_u0*xi_u0, xi_u04 = xi_u02*xi_u02;
 
     // equation (49), Born Level
-    // NOTE that there is an additional s in the denominator, but this s leads
-    // to a wrong dimension, and disagrees with the URA form
+    // we found that the equation in the paper is wrong in dimension
+    // By comparing with the equation (8) in Ref.
+    // N.M. Shumeiko and J.G. Suarez,
+    // Journal of Physics G: Nuclear and Particle Physics 26, 2, 113 (2000).
+    // There is a factor of (s - 2.0*m^2) missing
     sig_0 = (u0*u0/xi_s2/4./s*(4.*xi_u04 - pow2(1. - xi_u02)*(2. + t/u0)) - s*s*xi_s4/u0)
-            * 2.*cana::pi*alp2/t/t;
+            * 2.*cana::pi*alp2/t/t/s*(s - 2.*m2);
 
     // singularity term, appears in delta_ver and delta_box
     // we only need the divergence free part of the sigma_ver and simga_box,
@@ -321,7 +324,7 @@ const
                      double result = 0.;
                      for(int k = 0; k < 2; ++k)
                      {
-                         // TODO, check with authors
+                         // TODO, check with the authors
                          // it is noted in the reference that
                          // S_phi(s1, s2, s3) == S_phi(s2, s1, s3)
                          // but this part could not satisfy the relation
@@ -346,7 +349,7 @@ const
                              }
                          }
 
-                         result += s_3/2./slamda_3*(/*term +*/ sum_term)*Sk[k];
+                         result += s_3/2./slamda_3*(/*term*/ + sum_term)*Sk[k];
                      }
                      return result;
                  };
@@ -388,7 +391,8 @@ const
     // equation (63)
     double J_0_URA = -4.*(1. + log(m2*s/t/u0));
 
-    std::cout << S_phi(-(xi_u02 + 1.)*u0, (xi_s2 + 1.)*s, -(xi_t2 + 1.)*t) << ", "
+    std::cout << s << ", " << t << ", "
+              << S_phi(-(xi_u02 + 1.)*u0, (xi_s2 + 1.)*s, -(xi_t2 + 1.)*t) << ", "
               << S_phi((xi_s2 + 1.)*s, -(xi_u02 + 1.)*u0, -(xi_t2 + 1.)*t)
               << std::endl;
 

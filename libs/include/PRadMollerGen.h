@@ -5,16 +5,27 @@ extern "C"
 {
     // interface to visit meradgen
     void merad_init(double Elab);
-    double merad_sigfs(double vmin, double t, double pl, double born);
+    double merad_sigfs(double vmin, double t, double pl);
     double merad_sigfh(double vmin, double vmax, double t, double pl);
 
     // the grid used in meradgen declared in
     // fortran/include/merad_grid.inc
     // dimension must be changed accordingly
+#define MERAD_NV 60
+#define MERAD_NT1 30
+#define MERAD_NZ 60
+
     extern struct
     {
-        double grv[60], grt1[30], grz[60];
+        double grv[MERAD_NV], grt1[MERAD_NT1], grz[MERAD_NZ];
     } merad_grid_;
+
+    extern struct
+    {
+        double distsiv[MERAD_NV], distarv[MERAD_NV];
+        double distsit1[4*MERAD_NT1], distart1[4*MERAD_NT1];
+        double distsiz[MERAD_NZ], distarz[MERAD_NZ];
+    } merad_dist_;
 };
 
 // unit MeV, degree and nb

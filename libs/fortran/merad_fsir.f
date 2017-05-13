@@ -1,39 +1,80 @@
+! Subroutines copied from MERADGEN 1.0
+! Reference: A. Afanasev, E. Chudakov, A. Ilyichev, V. Zykunov,
+!            Comput. Phys. Commun. 176, 218 (2007)
+! Added C interfaces, changed unit from GeV to MeV
+! Chao Peng, 05/13/2017
+
+!===============================================================================
       subroutine merad_init(elab)
+! Initialize MERADGEN by beam energy, input is in MeV
      &bind(C, name = "merad_init")
       use, intrinsic :: ISO_C_BINDING
+!-------------------------------------------------------------------------------
       implicit none
       real(C_DOUBLE), intent(IN), VALUE :: elab
       include 'merad_const.inc'
-      data pi/3.14159265359/, alfa/.7297352568d-2/,
-     .m/.510998918/,m2/.2611198942/
+      data pi/3.14159265359d0/, alfa/.7297352568d-2/,
+     .     m/0.510998918d0/
+
+      m2 = m*m
       En=elab
-      s=2.d0*(En*m+m2)
-      als=s*(s-4.*m2)
+      s=2d0*(En*m+m2)
+      als=s*(s-4d0*m2)
       coeb=4d0*pi*alfa**2*(s-2d0*m2)/als
       coer=alfa**3/als/pi*(s - 2d0*m2)/4d0
       call grid_init
+
       end
 
-      real(C_DOUBLE) function merad_sigfs(vmin, tin, plin, born)
+!===============================================================================
+      real(C_DOUBLE) function merad_sigfs(vmin, tin, plin)
+! return the "soft" Bremsstrahlung cross section
+! vmin: the minimum v for photons to be detected (MeV^2)
+! tin: the Mandelstam variable t (MeV^2)
+! plin: degree of polarization
      &bind(C, name = "merad_sigfs")
       use, intrinsic :: ISO_C_BINDING
+!-------------------------------------------------------------------------------
       implicit none
-      real(C_DOUBLE), intent(IN), VALUE :: vmin, tin, plin, born
-      real*8 fsirsoft, xs
+      real(C_DOUBLE), intent(IN), VALUE :: vmin, tin, plin
+      real*8 fsirsoft, xs, sigborn
       integer nn
       include 'merad_tv.inc'
+
       t = tin
       pl = plin
-      sig0 = born
+      sig0 = sigborn(t, pl)
       ! redundant, but it prevents crash
       xs = fsirsoft(vmin)
       call simpsx(1d-22,vmin,10000,1d-3,fsirsoft,xs)
       merad_sigfs = xs
+
       end
 
+!===============================================================================
+      real*8 function fsirsoft(v)
+! a helper function to use the simpson integration subroutine
+! kinematics t, v are shared through a common block
+      implicit none
+      real*8 v,fsir
+      integer nn
+      include 'merad_tv.inc'
+
+      fsirsoft=fsir(t,0d0,v,0d0,pl,nn,-1,sig0)
+
+      end
+
+!===============================================================================
       real(C_DOUBLE) function merad_sigfh(vmin, vmax, tin, plin)
+! retrun the "hard" Bremsstrahlung cross section
+! vmin: the minimum v for photons to be detected (MeV^2)
+! vmax: v cuts on the hard photons to be calculated, cannot exceed the
+!       kinematics limit (MeV^2)
+! tin: the Mandelstam variable t (MeV^2)
+! plin: degree of polarization
      &bind(C, name = "merad_sigfh")
       use, intrinsic :: ISO_C_BINDING
+!-------------------------------------------------------------------------------
       implicit none
       real(C_DOUBLE), intent(IN), VALUE :: vmin, vmax, tin, plin
       real*8 va, vb, sia, sib, fsir
@@ -54,66 +95,64 @@
         distsiv(iv) = distsiv(iv-1) + (sib + sia)*(vb-va)/2d0
         distarv(iv) = vb
       enddo
-
       merad_sigfh = distsiv(nv)
+
       end
 
-      real*8 function fsirsoft(v)
+!===============================================================================
+      double precision function sigborn(t,pl)
+! retrun the Born cross section
+! t: the Mandelstam variable t (MeV^2)
+! pl: degree of polarization
       implicit none
-      real*8 v,fsir
-      integer nn
-      include 'merad_tv.inc'
-      fsirsoft=fsir(t,0d0,v,0d0,pl,nn,-1,sig0)
+      real*8 t,pl,u,ss,u1,u2,u3,pl1,pl2,pl3
+      include 'merad_const.inc'
+
+      u=4d0*m2-s-t
+      ss=s-2d0*m2
+      u1=(ss**2+u**2)/2d0+2d0*m2*(s+2d0*t-3d0*m2)
+      u2=(ss**2+t**2)/2d0+2d0*m2*(s+2d0*u-3d0*m2)
+      u3=(s-2d0*m2)*(s-6d0*m2)
+      pl1=-t*(-t*s**2/2d0/als-ss)
+      pl2=-t*(-t*s**2/2d0/als-2d0*m2)+als/2d0-ss*s
+      pl3=-(ss**4+4d0*m2*(ss**2*t+m2*(-ss**2+2d0*t**2-4d0*m2*t)))/als
+      sigborn=coeb*(u1/t**2+u2/u**2+u3/u/t+pl*(pl1/t**2+pl2/u**2+pl3/u/t))
+
       end
 
+!===============================================================================
       subroutine zd(t,t1,v)
+! helper subroutine to calculate some frequently used variables
+! should be called before fsir when the ikey to fsir is not 2 or -1
       implicit none
       real*8 t,t1,v,u
       include 'merad_const.inc'
       include 'merad_gr.inc'
+
       u=v-s-t+4d0*m2
+
       az=(v-t)**2-4d0*m2*t
       bz=-(v*(2d0*m2*(t+t1)+t1*(v-t)))
      .   +s*(-t**2+t1*v+t*(t1+v))
       cz=(s*(t-t1)+t1*v)**2
-     .    -4d0*m2*(s*(t-t1)**2+t1*v**2)
+     .   -4d0*m2*(s*(t-t1)**2+t1*v**2)
+
       az1=az
-      bz1=-(t*(s+t-4d0*m2)*(t-t1))+
-     .    (t*(2*t-t1)-2d0*m2*(t+t1)+s*(t+t1))*v - t*v**2
-      cz1=((s+t)*(t-t1)-t*v)**2+4d0*m2*(-((s+t)*(t-t1)**2)+
-     .         (t-t1)*(t+t1)*v-t1*v**2)
+      bz1=-(t*(s+t-4d0*m2)*(t-t1))
+     .    +(t*(2*t-t1)-2d0*m2*(t+t1)+s*(t+t1))*v - t*v**2
+      cz1=((s+t)*(t-t1)-t*v)**2+4d0*m2
+     .    *(-((s+t)*(t-t1)**2)+(t-t1)*(t+t1)*v-t1*v**2)
+
       az2=az
-      bz2=(4d0*m2-s-t)*t*(4d0*m2-t1) +
-     .      (6d0*m2*t-s*t-2d0*m2*t1+s*t1-t*t1)*v+(-4d0*m2 + s)*v**2
-      cz2=u*(-4d0*m2*(s+t1-4d0*m2)**2+
-     .         (16d0*m2**2+t1**2-4d0*m2*(s+2d0*t1))*u) -
-     .      2d0*(2d0*m2-t1)*(4d0*m2-s-t1)*u*v+(s+t1-4d0*m2)**2*v**2
+      bz2=(4d0*m2-s-t)*t*(4d0*m2-t1)
+     .    +(6d0*m2*t-s*t-2d0*m2*t1+s*t1-t*t1)*v+(-4d0*m2 + s)*v**2
+      cz2=u*(-4d0*m2*(s+t1-4d0*m2)**2
+     .    +(16d0*m2**2+t1**2-4d0*m2*(s+2d0*t1))*u)
+     .    -2d0*(2d0*m2-t1)*(4d0*m2-s-t1)*u*v+(s+t1-4d0*m2)**2*v**2
+
       end
 
-      real*8 function sig(t,pl)
-      implicit none
-      real*8 t,pl,u,ss,u1,u2,u3,pl1,pl2,pl3
-      real*8 dsvt,dsvu,du1,du2,du3,dp1,dp2,dp3,vacpol,l1f
-      include 'merad_const.inc'
-!          t=-s*y
-      u=4*m2-s-t
-      ss=s-2d0*m2
-      u1=(ss**2+u**2)/2d0+2d0*m2*(s+2d0*t-3d0*m2)
-      u2=(ss**2+t**2)/2d0+2d0*m2*(s+2d0*u-3d0*m2)
-      u3=(s-2d0*m2)*(s-6*m2)
-!      pl1=((16.0*m2**2-12.0*m2*s+2.0*s**2+s*t)*s*t)/(2.0*als)
-!      pl2=((16.0*m2**2-8.0*m2*s+s**2-s*t)*(4.0*m2-s-t)*s)/(2.0*als)
-!      pl3=(-((2.0*m2-s)**4-4.0*(2.0*m2-s)**2*m2**2+4.0*(2.0*m2-s)**2*
-!     . m2*t-8.0*(2.0*m2-t)*m2**2*t))/als
-      pl1=-t*(-t*s**2/2d0/als-ss)
-      pl2=-t*(-t*s**2/2d0/als-2d0*m2)+als/2d0-ss*s
-      pl3=-(ss**4+4d0*m2*(ss**2*t+m2*(-ss**2+2d0*t**2-4d0*m2*t)))
-     .        /als
-      sig=coeb*(u1/t**2+u2/u**2+u3/u/t
-     .          +pl*(pl1/t**2+pl2/u**2+pl3/u/t))
-      return
-      end
-
+!===============================================================================
       double precision function fsir(t,t1,v,z,pl,nn,ikey,sig0)
 ! The cross section of real photon emission
 ! t,t1,v,z are kinematic invariant
