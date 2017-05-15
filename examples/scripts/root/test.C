@@ -91,3 +91,21 @@ void moller_test()
     c1->cd(2);
     g3->Draw("AC");
 }
+
+void landau_test()
+{
+    TGraph *g1 = new TGraph();
+    TGraph *g2 = new TGraph();
+    for(double x = -5; x < 15; x += 0.1)
+    {
+        g1->SetPoint(g1->GetN(), x, cana::landau_straggle(x));
+        g2->SetPoint(g2->GetN(), x, ROOT::Math::landau_pdf(x));
+    }
+    TCanvas *c1 = new TCanvas("Landau dist", "Landau dist", 200, 10, 1200, 500);
+    g1->SetMarkerStyle(21);
+    g1->Draw("AP");
+
+    g2->SetMarkerStyle(22);
+    g2->SetMarkerColor(2);
+    g2->Draw("P");
+}

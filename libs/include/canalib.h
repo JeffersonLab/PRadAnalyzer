@@ -23,13 +23,16 @@ namespace cana
     const static double hbarc2 = 38937.9323;        // (hbar*c)^2 (MeV*fm)^2
     const static double amu = 931.494043;           // MeV per amu
 
-    double sigmoid(const double &a, const double &p);
-    double gamma(const double &z);
-    double spence(const double &z, const double &res = 1e-15);
-    double spence_tr(const double &z, const double &res, const int &nmax);
+    inline double sigmoid(double a, double p);
+    double gamma(double z);
+    double landau(double x);
+    double landau_fit(double x);
+    double landau_straggle(double x, double xi = 1., double x0 = 0., bool fit = true);
+    double spence(double z, double res = 1e-15);
+    inline double spence_tr(double z, double res, int nmax);
 
     template<typename T>
-    inline T clamp(const T &val, const T &min, const T &max)
+    inline T clamp(T val, T min, T max)
     {
         if(val < min) return min;
         if(val > max) return max;
@@ -37,7 +40,26 @@ namespace cana
     }
 
     // simpson integration
-    double simpson(double begin, double end, double (*f)(const double&), double step, int Nmin);
+    double simpson(double begin, double end, double (*f)(double), double step, int Nmin);
+
+    // simpson for lamda expression
+    template<class Lamda_func>
+    double simpson(double begin, double end, int Nbins, Lamda_func func)
+    {
+        double s = (end - begin)/(double)(2.*Nbins);
+
+        double result = func(begin) + 4.*func(begin + s) + func(end);
+        double x = begin + 2.*s;
+        int i = 1;
+        while(i++ < Nbins)
+        {
+            result += 2.*func(x) + 4.*func(x + s);
+            x += s;
+        }
+
+        return result*s/3.;
+    }
+
     template<class T>
     double simpson(double begin, double end,
                    double (T::*f)(const double&), T *t, double step, int Nmin)
