@@ -26,7 +26,7 @@ public:
     PRadException(const std::string &typ, const std::string &txt = "", const std::string &aux = "");
     PRadException(PRadExceptionType typ = UNKNOWN_ERROR, const std::string &txt = "", const std::string &aux = "");
     PRadException(PRadExceptionType typ, const std::string &txt, const std::string &file, const std::string &func, int line);
-    virtual ~PRadException(void) throw() {};
+    virtual ~PRadException(void) throw() {}
     virtual std::string FailureDesc(void) const throw();
     virtual std::string FailureType(void) const throw();
     const char *what() const throw();

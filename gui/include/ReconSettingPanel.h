@@ -27,7 +27,7 @@ class ReconSettingPanel : public QDialog
 
 public:
     ReconSettingPanel(QWidget *parent = 0);
-    ~ReconSettingPanel() {};
+    ~ReconSettingPanel() {}
 
     // connect objects
     void ConnectHyCalSystem(PRadHyCalSystem *h);

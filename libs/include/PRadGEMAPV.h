@@ -33,10 +33,10 @@ public:
         // initialize with large noise level so there will be no hits instead
         // of maximum hits when gem is not correctly initialized
         Pedestal() : offset(0.), noise(5000.)
-        {};
+        {}
         Pedestal(const float &o, const float &n)
         : offset(o), noise(n)
-        {};
+        {}
     };
 
     struct StripNb
@@ -92,23 +92,23 @@ public:
     bool IsCrossTalkStrip(const uint32_t &strip) const;
 
     // get parameters
-    int GetFECID() const {return fec_id;};
-    int GetADCChannel() const {return adc_ch;};
-    APVAddress GetAddress() const {return APVAddress(fec_id, adc_ch);};
-    uint32_t GetNTimeSamples() const {return time_samples;};
-    uint32_t GetTimeSampleSize() const {return APV_CHANNEL_SIZE;};
-    int GetOrientation() const {return orient;};
-    int GetPlaneIndex() const {return plane_index;};
-    int GetHeaderLevel() const {return header_level;};
-    bool GetSplitStatus() const {return split;};
-    float GetCommonModeThresLevel() const {return common_thres;};
-    float GetZeroSupThresLevel() const {return zerosup_thres;};
-    float GetCrossTalkThresLevel() const {return crosstalk_thres;};
-    uint32_t GetBufferSize() const {return buffer_size;};
+    int GetFECID() const {return fec_id;}
+    int GetADCChannel() const {return adc_ch;}
+    APVAddress GetAddress() const {return APVAddress(fec_id, adc_ch);}
+    uint32_t GetNTimeSamples() const {return time_samples;}
+    uint32_t GetTimeSampleSize() const {return APV_CHANNEL_SIZE;}
+    int GetOrientation() const {return orient;}
+    int GetPlaneIndex() const {return plane_index;}
+    int GetHeaderLevel() const {return header_level;}
+    bool GetSplitStatus() const {return split;}
+    float GetCommonModeThresLevel() const {return common_thres;}
+    float GetZeroSupThresLevel() const {return zerosup_thres;}
+    float GetCrossTalkThresLevel() const {return crosstalk_thres;}
+    uint32_t GetBufferSize() const {return buffer_size;}
     int GetLocalStripNb(const uint32_t &ch) const;
     int GetPlaneStripNb(const uint32_t &ch) const;
-    PRadGEMFEC *GetFEC() const {return fec;};
-    PRadGEMPlane *GetPlane() const {return plane;};
+    PRadGEMFEC *GetFEC() const {return fec;}
+    PRadGEMPlane *GetPlane() const {return plane;}
     std::vector<TH1I *> GetHistList() const;
     std::vector<Pedestal> GetPedestalList() const;
     float GetMaxCharge(const uint32_t &ch) const;
@@ -121,11 +121,11 @@ public:
     void SetDetectorPlane(PRadGEMPlane *p, int pl_idx, bool force_set = false);
     void UnsetDetectorPlane(bool force_unset = false);
     void SetTimeSample(const uint32_t &t);
-    void SetOrientation(const int &o) {orient = o;};
-    void SetHeaderLevel(const int &h) {header_level = h;};
-    void SetCommonModeThresLevel(const float &t) {common_thres = t;};
-    void SetZeroSupThresLevel(const float &t) {zerosup_thres = t;};
-    void SetCrossTalkThresLevel(const float &t) {crosstalk_thres = t;};
+    void SetOrientation(const int &o) {orient = o;}
+    void SetHeaderLevel(const int &h) {header_level = h;}
+    void SetCommonModeThresLevel(const float &t) {common_thres = t;}
+    void SetZeroSupThresLevel(const float &t) {zerosup_thres = t;}
+    void SetCrossTalkThresLevel(const float &t) {crosstalk_thres = t;}
 
 private:
     void initialize();

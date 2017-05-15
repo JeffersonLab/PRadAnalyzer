@@ -79,16 +79,16 @@ public:
     void ClearHits();
 
     // get parameters
-    PRadHyCalSystem *GetSystem() const {return system;};
+    PRadHyCalSystem *GetSystem() const {return system;}
     PRadHyCalModule *GetModule(const int &primex_id) const;
     PRadHyCalModule *GetModule(const std::string &module_name) const;
     PRadHyCalModule *GetModule(const float &x, const float &y) const;
     double GetEnergy() const;
-    const std::vector<PRadHyCalModule*> &GetModuleList() const {return module_list;};
-    const std::vector<ModuleHit> &GetModuleHits() const {return module_hits;};
-    const std::vector<ModuleCluster> &GetModuleClusters() const {return module_clusters;};
-    std::vector<HyCalHit> &GetHits() {return hycal_hits;};
-    const std::vector<HyCalHit> &GetHits() const {return hycal_hits;};
+    const std::vector<PRadHyCalModule*> &GetModuleList() const {return module_list;}
+    const std::vector<ModuleHit> &GetModuleHits() const {return module_hits;}
+    const std::vector<ModuleCluster> &GetModuleClusters() const {return module_clusters;}
+    std::vector<HyCalHit> &GetHits() {return hycal_hits;}
+    const std::vector<HyCalHit> &GetHits() const {return hycal_hits;}
 
 public:
     static int get_sector_id(const char *name);

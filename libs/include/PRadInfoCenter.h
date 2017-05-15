@@ -27,11 +27,11 @@ public:
 
     void Reset();
     void UpdateInfo(const EventData &event);
-    void SetRunInfo(const RunInfo &info) {run_info = info;};
-    void SetOnlineInfo(const OnlineInfo &info) {online_info = info;};
+    void SetRunInfo(const RunInfo &info) {run_info = info;}
+    void SetOnlineInfo(const OnlineInfo &info) {online_info = info;}
 
-    const RunInfo &GetRunInfo() const {return run_info;};
-    const OnlineInfo &GetOnlineInfo() const {return online_info;};
+    const RunInfo &GetRunInfo() const {return run_info;}
+    const OnlineInfo &GetOnlineInfo() const {return online_info;}
 
 private:
     RunInfo run_info;

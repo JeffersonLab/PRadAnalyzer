@@ -18,17 +18,17 @@ public:
     virtual ~PRadDAQChannel();
 
     // set members
-    void SetID(const unsigned short &id) {ch_id = id;};
-    void SetName(const std::string &name) {ch_name = name;};
-    void SetDead(bool d) {ch_dead = d;};
-    void SetAddress(const ChannelAddress &addr) {ch_address = addr;};
+    void SetID(const unsigned short &id) {ch_id = id;}
+    void SetName(const std::string &name) {ch_name = name;}
+    void SetDead(bool d) {ch_dead = d;}
+    void SetAddress(const ChannelAddress &addr) {ch_address = addr;}
 
     // check if it is a dead channel
-    bool IsDead() const {return ch_dead;};
+    bool IsDead() const {return ch_dead;}
     // get members
-    unsigned short GetID() const {return ch_id;};
-    const std::string &GetName() const {return ch_name;};
-    ChannelAddress GetAddress() const {return ch_address;};
+    unsigned short GetID() const {return ch_id;}
+    const std::string &GetName() const {return ch_name;}
+    ChannelAddress GetAddress() const {return ch_address;}
 
     bool operator <(const PRadDAQChannel &rhs)
     const

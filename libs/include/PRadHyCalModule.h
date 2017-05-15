@@ -52,12 +52,12 @@ public:
     void UnsetDetector(bool force_unset = false);
     void SetChannel(PRadADCChannel *ch, bool force_set = false);
     void UnsetChannel(bool force_unset = false);
-    void SetGeometry(const Geometry &geo) {geometry = geo;};
-    void SetLayout(const Layout &lay) {layout = lay;};
-    void SetLayoutFlag(unsigned int &flag) {layout.flag = flag;};
-    void SetCalibConst(const PRadCalibConst &c) {cal_const = c;};
-    void SetTriggerEfficiency(const double &eff) {trigger_eff = eff;};
-    void GainCorrection(const double &g, const int &ref) {cal_const.GainCorrection(g, ref);};
+    void SetGeometry(const Geometry &geo) {geometry = geo;}
+    void SetLayout(const Layout &lay) {layout = lay;}
+    void SetLayoutFlag(unsigned int &flag) {layout.flag = flag;}
+    void SetCalibConst(const PRadCalibConst &c) {cal_const = c;}
+    void SetTriggerEfficiency(const double &eff) {trigger_eff = eff;}
+    void GainCorrection(const double &g, const int &ref) {cal_const.GainCorrection(g, ref);}
 
     // energy related
     double Calibration(const unsigned short &adcVal) const;
@@ -65,37 +65,37 @@ public:
     double GetEnergy(const double &value) const;
 
     // check type
-    bool IsHyCalModule() const {return (geometry.type == PbGlass) || (geometry.type == PbWO4);};
-    bool IsLeadTungstate() const {return geometry.type == PbWO4;};
-    bool IsLeadGlass() const {return geometry.type == PbGlass;};
+    bool IsHyCalModule() const {return (geometry.type == PbGlass) || (geometry.type == PbWO4);}
+    bool IsLeadTungstate() const {return geometry.type == PbWO4;}
+    bool IsLeadGlass() const {return geometry.type == PbGlass;}
 
     // get members
-    unsigned short GetID() const {return id;};
-    const std::string &GetName() const {return name;};
-    const Geometry &GetGeometry() const {return geometry;};
-    const Layout &GetLayout() const {return layout;};
-    const PRadCalibConst &GetCalibConst() const {return cal_const;};
-    PRadADCChannel *GetChannel() const {return daq_ch;};
+    unsigned short GetID() const {return id;}
+    const std::string &GetName() const {return name;}
+    const Geometry &GetGeometry() const {return geometry;}
+    const Layout &GetLayout() const {return layout;}
+    const PRadCalibConst &GetCalibConst() const {return cal_const;}
+    PRadADCChannel *GetChannel() const {return daq_ch;}
 
     // get specific information
     std::string GetTypeName() const;
-    int GetType() const {return geometry.type;};
-    double GetX() const {return geometry.x;};
-    double GetY() const {return geometry.y;};
-    double GetZ() const {return geometry.z;};
-    double GetSizeX() const {return geometry.size_x;};
-    double GetSizeY() const {return geometry.size_y;};
-    double GetSizeZ() const {return geometry.size_z;};
-    int GetSectorID() const {return layout.sector;};
+    int GetType() const {return geometry.type;}
+    double GetX() const {return geometry.x;}
+    double GetY() const {return geometry.y;}
+    double GetZ() const {return geometry.z;}
+    double GetSizeX() const {return geometry.size_x;}
+    double GetSizeY() const {return geometry.size_y;}
+    double GetSizeZ() const {return geometry.size_z;}
+    int GetSectorID() const {return layout.sector;}
     std::string GetSectorName() const;
-    int GetRow() const {return layout.row;};
-    int GetColumn() const {return layout.column;};
-    unsigned int GetLayoutFlag() const {return layout.flag;};
-    double GetCalibrationFactor() const {return cal_const.factor;};
-    double GetNonLinearConst() const {return cal_const.non_linear;};
-    double GetCalibrationEnergy() const {return cal_const.base_energy;};
-    double GetReferenceGain(int ref) const {return cal_const.GetRefGain(ref);};
-    double GetTriggerEfficiency() const {return trigger_eff;};
+    int GetRow() const {return layout.row;}
+    int GetColumn() const {return layout.column;}
+    unsigned int GetLayoutFlag() const {return layout.flag;}
+    double GetCalibrationFactor() const {return cal_const.factor;}
+    double GetNonLinearConst() const {return cal_const.non_linear;}
+    double GetCalibrationEnergy() const {return cal_const.base_energy;}
+    double GetReferenceGain(int ref) const {return cal_const.GetRefGain(ref);}
+    double GetTriggerEfficiency() const {return trigger_eff;}
     PRadTDCChannel *GetTDC() const;
 
     // compare operator

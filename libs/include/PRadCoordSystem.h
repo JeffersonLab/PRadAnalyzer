@@ -30,8 +30,8 @@ public:
     void SetCurrentCoord(const std::vector<DetCoord> &coords);
 
     // get members
-    const std::map<int ,std::vector<DetCoord>> &GetCoordsData() const {return coords_data;};
-    std::vector<DetCoord> GetCurrentCoords() const {return current_coord;};
+    const std::map<int ,std::vector<DetCoord>> &GetCoordsData() const {return coords_data;}
+    std::vector<DetCoord> GetCurrentCoords() const {return current_coord;}
 
     // basic transform functions
     void Transform(int det_id, float &x, float &y, float &z) const;
@@ -136,9 +136,10 @@ public:
 
 public:
     //static public members
-    static Point origin() {return Point(0., 0., 0.);};
-    static Point target() {return Point(0., 0., 88.9);};
-    static Point beamline(const float &z) {return Point(0., 0., z);};
+    static Point origin() {return Point(0., 0., 0.);}
+    // target cell center is at z = 88.9 mm from survey data
+    static Point target() {return Point(0., 0., 88.9);}
+    static Point beamline(const float &z) {return Point(0., 0., z);}
 
     // basic projection functions
     static void Projection(float &x, float &y, float &z,
@@ -167,13 +168,13 @@ public:
     {
         float z = hit.z - O.z;
         float r = sqrt(pow(z, 2) + pow(hit.x - O.x, 2) + pow(hit.y - O.y, 2));
-        return acos(z/r)*cana::rad_deg;
+        return acos(z/r)*cana::rad2deg;
     }
 
     template<class T>
     inline float GetAzimuthalAngle(const T &hit, const Point &O = target())
     {
-        return atan2(hit.y - O.y, hit.x - O.x)*cana::rad_deg;
+        return atan2(hit.y - O.y, hit.x - O.x)*cana::rad2deg;
     }
 
 

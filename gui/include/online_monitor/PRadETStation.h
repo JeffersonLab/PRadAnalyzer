@@ -16,7 +16,7 @@ public:
         Configuration();
         virtual ~Configuration();
 
-        et_statconfig &Get() {return config;};
+        et_statconfig &Get() {return config;}
 
         //wrapper functions
         void Initialize();
@@ -39,10 +39,10 @@ public:
 public:
     PRadETStation(PRadETChannel *p, std::string n, int mode = 2);
     virtual ~PRadETStation();
-    Configuration &GetConfig() {return config;};
-    et_stat_id &GetID() {return station_id;};
-    et_att_id &GetAttachID() {return attach_id;};
-    std::string GetName() {return name;};
+    Configuration &GetConfig() {return config;}
+    et_stat_id &GetID() {return station_id;}
+    et_att_id &GetAttachID() {return attach_id;}
+    std::string GetName() {return name;}
     void PreSetting(int mode) throw(PRadException);
     void Create() throw(PRadException);
     void Attach() throw(PRadException);

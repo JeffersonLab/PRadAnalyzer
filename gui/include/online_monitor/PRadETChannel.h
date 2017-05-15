@@ -20,7 +20,7 @@ public:
         Configuration();
         virtual ~Configuration();
 
-        et_openconfig &Get() {return config;};
+        et_openconfig &Get() {return config;}
 
         // wrapper functions
         void Initialize();
@@ -57,11 +57,11 @@ public:
     void DetachStation();
     void ForceClose();
     bool Read() throw(PRadException);
-    void *GetBuffer() {return (void*) buffer;};
-    size_t GetBufferLength() {return bufferSize;};
-    Configuration &GetConfig() {return config;};
-    et_sys_id &GetID() {return et_id;};
-    PRadETStation *GetCurrentStation() {return curr_stat;};
+    void *GetBuffer() {return (void*) buffer;}
+    size_t GetBufferLength() {return bufferSize;}
+    Configuration &GetConfig() {return config;}
+    et_sys_id &GetID() {return et_id;}
+    PRadETStation *GetCurrentStation() {return curr_stat;}
     PRadETStation *GetStation(const std::string &name);
 
 private:

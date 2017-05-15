@@ -253,7 +253,7 @@ void PRadGEMSystem::ReadMapFile(const std::string &path) throw(PRadException)
         uint32_t i = 0;
         for(; i < types.size(); ++i)
         {
-            if(ConfigParser::strcmp_case_insensitive(key, types.at(i))) {
+            if(ConfigParser::case_ins_equal(key, types.at(i))) {
                 if(c_parser.CheckElements(expect_args.at(i), option_args.at(i)))
                     args[i].push_back(c_parser.TakeAll<std::list>());
                 break;

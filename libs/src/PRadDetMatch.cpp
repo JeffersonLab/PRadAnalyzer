@@ -143,14 +143,24 @@ const
 bool PRadDetMatch::PreMatch(const HyCalHit &hycal, const GEMHit &gem)
 const
 {
-    // lead glass (largest) value as default
-    float base_range = leadGlassRes;
-    // crystal region
-    if(TEST_BIT(hycal.flag, kPbWO4))
-        base_range = crystalRes;
+    // determine the resolution from hycal hit information
+    double base_range;
+
     // transition region
-    if(TEST_BIT(hycal.flag, kTransition))
-        base_range = transitionRes;
+    if(TEST_BIT(hycal.flag, kTransition)) {
+        base_range = transitionRes/std::sqrt(hycal.E/1000.);
+    // crystal region
+    } else if(TEST_BIT(hycal.flag, kPbWO4)) {
+        //base_range = crystalRes/std::sqrt(hycal.E/1000.);
+        // hard coded from fit of real data
+        base_range = 2.44436/std::sqrt(hycal.E/1000.) + 1.09709e-1/(hycal.E/1000.) - 1.76315e-2;
+    // lead glass part or undefined
+    } else {
+        base_range = leadGlassRes/std::sqrt(hycal.E/1000.);
+    }
+
+    // correct it by energy in GeV
+    base_range /= std::sqrt(hycal.E/1000.);
 
     float dist = PRadCoordSystem::ProjectionDistance(hycal, gem);
 

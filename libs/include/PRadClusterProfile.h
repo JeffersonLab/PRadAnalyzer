@@ -13,8 +13,8 @@ public:
         float frac;
         float err;
 
-        Profile() : frac(0), err(0) {};
-        Profile(float f, float e) : frac(f), err(e) {};
+        Profile() : frac(0), err(0) {}
+        Profile(float f, float e) : frac(f), err(e) {}
     };
 
 public:

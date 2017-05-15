@@ -13,8 +13,8 @@ private:
         int begin;
         int end;
 
-        ev_interval() {};
-        ev_interval(int b, int e) : begin(b), end(e) {};
+        ev_interval() {}
+        ev_interval(int b, int e) : begin(b), end(e) {}
     };
 
 public:

@@ -16,11 +16,11 @@ public:
 
         Connection()
         : weight(0.), neuron(nullptr)
-        {};
+        {}
 
         Connection(double w, CNeuron *n)
         : weight(w), neuron(n)
-        {};
+        {}
     };
 
 public:
@@ -33,7 +33,7 @@ public:
     void Update(const std::vector<double> &input);
     void Update();
     std::vector<double> GetWeights() const;
-    unsigned int GetWeightSize() const {return connections.size() + 1;};
+    unsigned int GetWeightSize() const {return connections.size() + 1;}
 
     // Back Propagation Trainning functions
     void BP_Init(const double &dE);

@@ -38,9 +38,9 @@ public:
     void ClearTimeMeasure();
 
     PRadADCChannel* GetADCChannel(int id) const;
-    TH1 *GetHist() const {return tdc_hist;};
+    TH1 *GetHist() const {return tdc_hist;}
     std::vector<PRadADCChannel*> GetChannelList() const;
-    const std::vector<unsigned short> &GetTimeMeasure() const {return time_measure;};
+    const std::vector<unsigned short> &GetTimeMeasure() const {return time_measure;}
 
 private:
     std::unordered_map<int, PRadADCChannel*> group_map;

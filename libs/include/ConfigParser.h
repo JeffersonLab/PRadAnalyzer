@@ -21,20 +21,21 @@ public:
                  const std::string &g = "\\");                      // line glue chars
     virtual ~ConfigParser();
 
-    // Set members
-    void SetSplitters(const std::string &s) {splitters = s;};
-    void SetWhiteSpaces(const std::string &w) {white_spaces = w;};
-    void SetCommentMarks(const std::vector<std::string> &c) {comment_marks = c;};
-    void SetCommentPair(const std::string &o, const std::string &c) {comment_pair = std::make_pair(o, c);};
-    void SetLineGlues(const std::string &g) {line_glues = g;};
+    // set members
+    void SetSplitters(const std::string &s) {splitters = s;}
+    void SetWhiteSpaces(const std::string &w) {white_spaces = w;}
+    void SetCommentMarks(const std::vector<std::string> &c) {comment_marks = c;}
+    void SetCommentPair(const std::string &o, const std::string &c)
+    {comment_pair = std::make_pair(o, c);}
+    void SetLineGlues(const std::string &g) {line_glues = g;}
     void AddCommentMark(const std::string &c);
     void RemoveCommentMark(const std::string &c);
     void EraseCommentMarks();
 
-    // source manipulation
+    // dealing with file/buffer
     bool OpenFile(const std::string &path);
     bool ReadFile(const std::string &path);
-    void ReadBuffer(const char *);
+    void ReadBuffer(const char*);
     void CloseFile();
     void Clear();
 
@@ -47,10 +48,10 @@ public:
 
     // get current parsing status
     bool CheckElements(int num, int optional = 0);
-    int NbofElements() const {return elements.size();};
-    int NbofLines() const {return lines.size();};
-    int LineNumber() const {return line_number;};
-    const std::string &CurrentLine() const {return current_line;};
+    int NbofElements() const {return elements.size();}
+    int NbofLines() const {return lines.size();}
+    int LineNumber() const {return line_number;}
+    const std::string &CurrentLine() const {return current_line;}
 
     // take the lines/elements
     std::string TakeLine();
@@ -110,11 +111,11 @@ public:
     }
 
     // get members
-    const std::string &GetSplitters() const {return splitters;};
-    const std::string &GetWhiteSpaces() const {return white_spaces;};
-    const std::vector<std::string> &GetCommentMarks() const {return comment_marks;};
-    const string_pair &GetCommentPair() const {return comment_pair;};
-    const std::string &GetLineGlues() const {return line_glues;};
+    const std::string &GetSplitters() const {return splitters;}
+    const std::string &GetWhiteSpaces() const {return white_spaces;}
+    const std::vector<std::string> &GetCommentMarks() const {return comment_marks;}
+    const string_pair &GetCommentPair() const {return comment_pair;}
+    const std::string &GetLineGlues() const {return line_glues;}
 
 
 private:
@@ -142,8 +143,8 @@ private:
 
 public:
     // static functions
-    static bool comment_between(std::string &str, const std::string &open, const std::string &close);
-    static std::string comment_out(const std::string &str, const std::string &c);
+    static void comment_line(std::string &str, const std::string &cmt, const std::string &brk);
+    static void comment_between(std::string &str, const std::string &open, const std::string &close);
     static std::string trim(const std::string &str, const std::string &w);
     static std::deque<std::string> split(const std::string &str, const std::string &s);
     static std::deque<std::string> split(const char* str, const size_t &size, const std::string &s);
@@ -151,13 +152,11 @@ public:
     static std::string str_replace(const std::string &str, const std::string &ignore, const char &rc = ' ');
     static std::string str_lower(const std::string &str);
     static std::string str_upper(const std::string &str);
-    static bool find_pair(const std::string &str,
-                          const std::string &open, const std::string &close,
-                          int &open_pos, int &close_pos);
-    static std::vector<std::pair<int, int>> find_pairs(const std::string &str,
-                                                       const std::string &open,
-                                                       const std::string &close);
-    static bool strcmp_case_insensitive(const std::string &str1, const std::string &str2);
+    static std::pair<size_t, size_t> find_pair(const std::string &str,
+                                               const std::string &open,
+                                               const std::string &close,
+                                               size_t pos = 0);
+    static bool case_ins_equal(const std::string &str1, const std::string &str2);
     static int find_integer(const std::string &str, const size_t &pos = 0);
     static std::vector<int> find_integers(const std::string &str);
     static void find_integer_helper(const std::string &str, std::vector<int> &result);
@@ -165,6 +164,16 @@ public:
     static PathInfo decompose_path(const std::string &path);
     static std::string compose_path(const PathInfo &path);
     static std::string form_path(const std::string &dir, const std::string &file);
+    static std::string file_to_string(const std::string &path);
+    // break text file into several blocks in the format
+    // <label> <open_mark> <content> <close_mark>
+    // return extracted <label> <content>
+    struct TextBlock {std::string label, content;};
+    static std::vector<TextBlock> break_into_blocks(const std::string &buf,
+                                                    const std::string &open = "{",
+                                                    const std::string &close = "}",
+                                                    const std::string &sep = " \t\n");
+
 };
 
 #endif

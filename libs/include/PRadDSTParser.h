@@ -62,21 +62,21 @@ public:
     PRadDSTParser &operator =(PRadDSTParser &&rhs) = delete;
 
     // public member functions
-    void SetHandler(PRadDataHandler *h) {handler = h;};
-    PRadDataHandler *GetHandler() const {return handler;};
+    void SetHandler(PRadDataHandler *h) {handler = h;}
+    PRadDataHandler *GetHandler() const {return handler;}
     void OpenOutput(const std::string &path,
                     std::ios::openmode mode = std::ios::out | std::ios::binary);
     void OpenInput(const std::string &path,
                    std::ios::openmode mode = std::ios::in | std::ios::binary);
     void CloseOutput();
     void CloseInput();
-    void SetMode(uint32_t bit_word) {mode = bit_word;};
-    void EnableMode(Mode m) {SET_BIT(mode, static_cast<uint32_t>(m));};
-    void DisableMode(Mode m) {CLEAR_BIT(mode, static_cast<uint32_t>(m));};
+    void SetMode(uint32_t bit_word) {mode = bit_word;}
+    void EnableMode(Mode m) {SET_BIT(mode, static_cast<uint32_t>(m));}
+    void DisableMode(Mode m) {CLEAR_BIT(mode, static_cast<uint32_t>(m));}
     bool Read();
-    Type EventType() const {return ev_type;};
-    const EventData &GetEvent() const {return event;};
-    const EpicsData &GetEPICSEvent() const {return epics_event;};
+    Type EventType() const {return ev_type;}
+    const EventData &GetEvent() const {return event;}
+    const EpicsData &GetEPICSEvent() const {return epics_event;}
 
     // write information
     void WriteRunInfo() throw(PRadException);

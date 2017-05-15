@@ -20,7 +20,7 @@ class MarkSettingWidget : public QWidget
 public:
     MarkSettingWidget(QWidget *parent = 0);
     MarkSettingWidget(const QStringList &m, QWidget *parent = 0);
-    ~MarkSettingWidget() {};
+    ~MarkSettingWidget() {}
 
     void SaveSettings();
     void RestoreSettings();

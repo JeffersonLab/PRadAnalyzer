@@ -17,7 +17,7 @@ struct EPICSChannel
 
     EPICSChannel(const std::string &n, const uint32_t &i, const float &v)
     : name(n), id(i), value(v)
-    {};
+    {}
 };
 
 class PRadEPICSystem
@@ -38,13 +38,13 @@ public:
     void SaveData(const int &event_number, bool online = false);
 
     std::vector<EPICSChannel> GetSortedList() const;
-    const std::vector<float> &GetCurrentValues() const {return epics_values;};
+    const std::vector<float> &GetCurrentValues() const {return epics_values;}
     float GetValue(const std::string &name) const;
     int GetEventNumber() const;
     int GetChannel(const std::string &name) const;
     const EpicsData &GetEvent(const unsigned int &index) const throw(PRadException);
-    const std::deque<EpicsData> &GetEventData() const {return epics_data;};
-    unsigned int GetEventCount() const {return epics_data.size();};
+    const std::deque<EpicsData> &GetEventData() const {return epics_data;}
+    unsigned int GetEventCount() const {return epics_data.size();}
     float FindValue(int event_number, const std::string &name) const;
     int FindEvent(int event_number) const;
 

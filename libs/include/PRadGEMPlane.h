@@ -58,23 +58,23 @@ public:
     // set parameter
     void SetDetector(PRadGEMDetector *det, bool force_set = false);
     void UnsetDetector(bool force_unset = false);
-    void SetName(const std::string &n) {name = n;};
-    void SetType(const PlaneType &t) {type = t;};
-    void SetSize(const float &s) {size = s;};
-    void SetOrientation(const int &o) {orient = o;};
+    void SetName(const std::string &n) {name = n;}
+    void SetType(const PlaneType &t) {type = t;}
+    void SetSize(const float &s) {size = s;}
+    void SetOrientation(const int &o) {orient = o;}
     void SetCapacity(int c);
 
     // get parameter
-    PRadGEMDetector *GetDetector() const {return detector;};
-    const std::string &GetName() const {return name;};
-    PlaneType GetType() const {return type;};
-    float GetSize() const {return size;};
-    int GetCapacity() const {return apv_list.size();};
-    int GetOrientation() const {return orient;};
+    PRadGEMDetector *GetDetector() const {return detector;}
+    const std::string &GetName() const {return name;}
+    PlaneType GetType() const {return type;}
+    float GetSize() const {return size;}
+    int GetCapacity() const {return apv_list.size();}
+    int GetOrientation() const {return orient;}
     std::vector<PRadGEMAPV*> GetAPVList() const;
-    std::vector<StripHit> &GetStripHits() {return strip_hits;};
-    const std::vector<StripHit> &GetStripHits() const {return strip_hits;};
-    std::vector<StripCluster> &GetStripClusters() {return strip_clusters;};
+    std::vector<StripHit> &GetStripHits() {return strip_hits;}
+    const std::vector<StripHit> &GetStripHits() const {return strip_hits;}
+    std::vector<StripCluster> &GetStripClusters() {return strip_clusters;}
     const std::vector<StripCluster> &GetStripClusters() const {return strip_clusters;};
 
 private:

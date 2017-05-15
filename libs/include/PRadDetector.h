@@ -21,8 +21,8 @@ public:
     PRadDetector(int id);
     PRadDetector(const std::string &name);
 
-    int GetDetID() const {return det_id;};
-    const std::string &GetName() const {return det_name;};
+    int GetDetID() const {return det_id;}
+    const std::string &GetName() const {return det_name;}
 
 protected:
     int det_id;

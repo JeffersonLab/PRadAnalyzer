@@ -42,10 +42,10 @@ public:
     void Clear();
 
     // get parameters
-    PRadGEMSystem *GetSystem() const {return gem_srs;};
-    int GetID() const {return id;};
-    const std::string &GetIP() const {return ip;};
-    uint32_t GetCapacity() const {return adc_list.size();};
+    PRadGEMSystem *GetSystem() const {return gem_srs;}
+    int GetID() const {return id;}
+    const std::string &GetIP() const {return ip;}
+    uint32_t GetCapacity() const {return adc_list.size();}
     PRadGEMAPV *GetAPV(const int &slot) const;
     std::vector<PRadGEMAPV*> GetAPVList() const;
 

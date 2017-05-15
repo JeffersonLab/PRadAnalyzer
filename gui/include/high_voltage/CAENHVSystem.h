@@ -31,16 +31,16 @@ public:
     CAEN_Channel(CAEN_Board *m)
     : mother(m), channel(-1), name(""), on_off(false), Vmon(0), Vset(0),
       limit(CAEN_VoltageLimit(name))
-    {};
+    {}
     CAEN_Channel(CAEN_Board *m, const unsigned short &c, const std::string &n)
     : mother(m), channel(c), name(n), on_off(false), Vmon(0), Vset(0),
       limit(CAEN_VoltageLimit(name))
-    {};
+    {}
     CAEN_Channel(CAEN_Board *m, const unsigned short &c, const std::string &n,
                  const bool &o, const float &vm, const float vs)
     : mother(m), channel(c), name(n), on_off(o), Vmon(vm), Vset(vs),
       limit(CAEN_VoltageLimit(name))
-    {};
+    {}
 
     virtual ~CAEN_Channel();
 
@@ -51,12 +51,12 @@ public:
     void ReadVoltage();
     void CheckStatus();
     void UpdateVoltage(const bool &pw, const float &vm, const float &vs);
-    const std::string &GetName() {return name;};
-    const float &GetVSet() {return Vset;};
-    const float &GetVMon() {return Vmon;};
-    const bool &IsTurnedOn() {return on_off;};
-    const unsigned short &GetChannel() {return channel;};
-    CAEN_Board *GetMOther() {return mother;};
+    const std::string &GetName() {return name;}
+    const float &GetVSet() {return Vset;}
+    const float &GetVMon() {return Vmon;}
+    const bool &IsTurnedOn() {return on_off;}
+    const unsigned short &GetChannel() {return channel;}
+    CAEN_Board *GetMOther() {return mother;}
 };
 
 class CAEN_Board
@@ -77,15 +77,15 @@ public:
     // constructor
     CAEN_Board(CAEN_Crate *mo)
     : mother(mo), slot(-1), nChan(0), serNum(0), fmwLSB(0), fmwMSB(0), primary(-1)
-    {};
+    {}
     CAEN_Board(CAEN_Crate *mo, std::string m, std::string d, unsigned short s, unsigned short n,
                unsigned short ser, unsigned char lsb, unsigned char msb)
     : mother(mo), model(m), desc(d), slot(s), nChan(n), serNum(ser), fmwLSB(lsb), fmwMSB(msb), primary(-1)
-    {};
+    {}
     CAEN_Board(CAEN_Crate *mo, char* m, char* d, unsigned short s, unsigned short n,
                unsigned short ser, unsigned char lsb, unsigned char msb)
     : mother(mo), model(m), desc(d), slot(s), nChan(n), serNum(ser), fmwLSB(lsb), fmwMSB(msb), primary(-1)
-    {};
+    {}
 
     virtual ~CAEN_Board();
 
@@ -96,17 +96,17 @@ public:
     void SetPower(const std::vector<unsigned int> &on_off);
     void SetVoltage(const std::vector<float> &Vset);
     int GetHandle();
-    const unsigned short &GetSlot() {return slot;};
-    CAEN_Crate *GetMother() {return mother;};
+    const unsigned short &GetSlot() {return slot;}
+    CAEN_Crate *GetMother() {return mother;}
     CAEN_Channel *GetPrimaryChannel();
     CAEN_Channel *GetChannel(int i);
-    std::vector<CAEN_Channel*> &GetChannelList() {return channelList;};
-    const std::string &GetModel() {return model;};
-    const std::string &GetDescription() {return desc;};
-    const unsigned short &GetSize() {return nChan;};
-    const unsigned short &GetSerialNum() {return serNum;};
+    std::vector<CAEN_Channel*> &GetChannelList() {return channelList;}
+    const std::string &GetModel() {return model;}
+    const std::string &GetDescription() {return desc;}
+    const unsigned short &GetSize() {return nChan;}
+    const unsigned short &GetSerialNum() {return serNum;}
     unsigned short GetFirmware();
-    const int &GetPrimaryChannelNumber() {return primary;};
+    const int &GetPrimaryChannelNumber() {return primary;}
  };
 
 class CAEN_Crate
@@ -135,7 +135,7 @@ public:
                const std::string &pwd)
     : id(i), name(n), ip(p), sys_type(type), link_type(link),
       username(user), password(pwd), handle(-1), mapped(false)
-    {};
+    {}
 
     virtual ~CAEN_Crate();
 
@@ -147,10 +147,10 @@ public:
     void ReadVoltage();
     void CheckStatus();
     void SetPower(const bool &on_off);
-    const int &GetHandle() {return handle;};
-    const std::string &GetName() {return name;};
-    const std::string &GetIP() {return ip;};
-    std::vector<CAEN_Board*> &GetBoardList() {return boardList;};
+    const int &GetHandle() {return handle;}
+    const std::string &GetName() {return name;}
+    const std::string &GetIP() {return ip;}
+    std::vector<CAEN_Board*> &GetBoardList() {return boardList;}
     CAEN_Board *GetBoard(const unsigned short &slot);
 };
 

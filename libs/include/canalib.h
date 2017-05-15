@@ -6,25 +6,69 @@
 #include <algorithm>
 #include <utility>
 #include <cmath>
+#include <cstdlib>
 
 namespace cana
 {
     const static double alpha = 7.297352568E-3;     // 1./137.03599911
     const static double pi = 3.1415926535897932;    // pi
-    const static double rad_deg = 57.2957795131;    // rad to degree
-    const static double deg_rad = 0.01745329252;    // degree to rad
+    const static double rad2deg = 57.2957795131;    // rad to degree
+    const static double deg2rad = 0.01745329252;    // degree to rad
     const static double ele_mass = 0.510998918;     // MeV
+    const static double mu_mass = 105.6583745;      // MeV
+    const static double tau_mass = 1776.82;         // MeV
     const static double proton_mass = 938.272046;   // MeV
     const static double neutron_mass = 939.5654133; // MeV
     const static double hbarc = 197.326968;         // hbar*c (MeV*fm)
+    const static double hbarc2 = 38937.9323;        // (hbar*c)^2 (MeV*fm)^2
     const static double amu = 931.494043;           // MeV per amu
 
-    double sigmoid(const double &a, const double &p);
-    double gamma(const double &z);
-    double spence(const double &z, const double &res = 1e-15);
-    double spence_tr(const double &z, const double &res, const int &nmax);
+    inline double sigmoid(double a, double p);
+    double gamma(double z);
+    double landau(double x);
+    double landau_fit(double x);
+    double landau_straggle(double x, double xi = 1., double x0 = 0., bool fit = true);
+    double spence(double z, double res = 1e-15);
+    inline double spence_tr(double z, double res, int nmax);
+
+    // clamp values to be restricted inside [min, max]
+    template<typename T>
+    inline T clamp(T val, T min, T max)
+    {
+        if(val < min) return min;
+        if(val > max) return max;
+        return val;
+    }
+
+    // linear interpolation of two points (x1, y1), (x2, y2)
+    // input val must be within [x1, x2]
+    template<typename T>
+    inline T linear_interp(T x1, T y1, T x2, T y2, T val)
+    {
+        return ((val - x1)*y2 + (x2 - val)*y1)/(x2 - x1);
+    }
+
     // simpson integration
-    double simpson(double begin, double end, double (*f)(const double&), double step, int Nmin);
+    double simpson(double begin, double end, double (*f)(double), double step, int Nmin);
+
+    // simpson for lamda expression
+    template<class Lamda_func>
+    double simpson(double begin, double end, int Nbins, Lamda_func func)
+    {
+        double s = (end - begin)/(double)(2.*Nbins);
+
+        double result = func(begin) + 4.*func(begin + s) + func(end);
+        double x = begin + 2.*s;
+        int i = 1;
+        while(i++ < Nbins)
+        {
+            result += 2.*func(x) + 4.*func(x + s);
+            x += 2.*s;
+        }
+
+        return result*s/3.;
+    }
+
     template<class T>
     double simpson(double begin, double end,
                    double (T::*f)(const double&), T *t, double step, int Nmin)
@@ -49,6 +93,29 @@ namespace cana
     template<class T, typename... Args>
     double simpson(double begin, double end, double step, int Nmin,
                    double (T::*f)(const double&, const Args& ...), T *t, const Args&... args)
+    {
+        int Nsteps = (end - begin)/step;
+        int Nbins = std::max(Nmin, Nsteps)/2;
+        double s = (end - begin)/(double)(2.*Nbins);
+
+        // first bin
+        double result =  (t->*f)(begin, args...)
+                       + 4.*(t->*f)(begin + s, args...)
+                       + (t->*f)(end, args...);
+        double x = begin + 2.*s;
+        int i = 1;
+        while(i++ < Nbins)
+        {
+            result += 2.*(t->*f)(x, args...) + 4.*(t->*f)(x + s, args...);
+            x += 2.*s;
+        }
+
+        return result*s/3.;
+    }
+
+    template<class T, typename... Args>
+    double simpson(double begin, double end, double step, int Nmin,
+                   double (T::*f) (double, Args ...) const, const T *t, Args... args)
     {
         int Nsteps = (end - begin)/step;
         int Nbins = std::max(Nmin, Nsteps)/2;
@@ -323,7 +390,6 @@ namespace cana
         // wn is positivie for counter clockwise and negative for clockwise
         return abs(wn);
     }
-
 };
 
 #endif

@@ -76,22 +76,14 @@ bool ConfigParser::ReadFile(const string &path)
 {
     Clear();
 
-    ifstream f(path);
+    string buffer = file_to_string(path);
 
-    if(!f.is_open())
+    if(buffer.empty())
         return false;
-
-    string buffer;
-
-    f.seekg(0, ios::end);
-    buffer.reserve(f.tellg());
-    f.seekg(0, ios::beg);
-
-    buffer.assign((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
-    f.close();
 
     // remove comments and break the buffers into lines
     bufferProcess(buffer);
+
     return true;
 }
 
@@ -160,6 +152,7 @@ bool ConfigParser::ParseAll()
 
 // parse a input string, trim the white space and split the string into elements
 // by defined splitters, the elements will also be trimmed
+// NOTICE: comments between a pair of marks are erased before input
 int ConfigParser::ParseString(const string &line)
 {
     deque<string> eles = split(line.c_str(), getCommentPoint(line), splitters);
@@ -244,8 +237,7 @@ void ConfigParser::bufferProcess(string &buffer)
 {
     if(comment_pair.first.size() && comment_pair.second.size()) {
         // comment by pair marks
-        while(comment_between(buffer, comment_pair.first, comment_pair.second))
-        {;}
+        comment_between(buffer, comment_pair.first, comment_pair.second);
     }
 
     string line;
@@ -258,6 +250,10 @@ void ConfigParser::bufferProcess(string &buffer)
             line.clear();
         }
     }
+
+    // final line if not ended with \n
+    if(line.size())
+        lines.push_back(line);
 }
 
 // take a line from opened file and parse it
@@ -293,8 +289,7 @@ bool ConfigParser::parseFile()
             // if no previous comment pair opened
             } else {
                 // remove complete comment pair in one line
-                while(comment_between(parse_string, comment_pair.first, comment_pair.second))
-                {;}
+                comment_between(parse_string, comment_pair.first, comment_pair.second);
                 // see if there is any comment pair opening
                 auto c_beg = parse_string.find(comment_pair.first);
                 // find comment pair openning
@@ -432,26 +427,62 @@ size_t ConfigParser::getCommentPoint(const string &str)
 // Public Static Function                                                     //
 //============================================================================//
 
-// comment out the characters after comment mark
-string ConfigParser::comment_out(const string &str, const string &c)
+// comment out a string, remove chars from the comment mark to the line break
+void ConfigParser::comment_line(string &str, const string &c, const string &b)
 {
-    if(c.empty())
-        return str;
+    // no need to continue
+    if(str.empty() || c.empty() || b.empty())
+        return;
 
-    const auto commentBegin = str.find(c);
-    return str.substr(0, commentBegin);
+    // loop until no marks found
+    while(true)
+    {
+        size_t c_begin = str.find(c);
+        if(c_begin != string::npos) {
+            size_t c_end = str.find(b, c_begin + c.size());
+            // found, comment out until the line break
+            if(c_end != string::npos) {
+                // do not remove line break
+                str.erase(c_begin, c_end - c_begin);
+            // not found, comment out until the end
+            } else {
+                str.erase(c_begin);
+                // can stop now, since everything afterwards is removed
+                return;
+            }
+        } else {
+            // comment marks not found
+            return;
+        }
+    }
 }
 
-// comment out between pairs
-// return false if no pair found
-bool ConfigParser::comment_between(string &str, const string &open, const string &close)
+// comment out between a pair of comment marks
+// NOTICE: does not support nested structure of comment marks
+void ConfigParser::comment_between(string &str, const string &open, const string &close)
 {
-    int pos1, pos2;
-    if(!find_pair(str, open, close, pos1, pos2)) {
-        return false;
-    } else {
-        str.erase(pos1, pos2 - pos1 + close.size());
-        return true;
+    // no need to continue
+    if(str.empty() || open.empty() || close.empty())
+        return;
+
+    while(true)
+    {
+        // find the openning comment mark
+        size_t pos1 = str.find(open);
+        if(pos1 != string::npos) {
+            size_t pos2 = str.find(close, pos1 + open.size());
+            // found pair
+            if(pos2 != string::npos) {
+                // remove everything between, including this pair
+                str.erase(pos1, pos2 + close.size() - pos1);
+            // comment pair not found
+            } else {
+                return;
+            }
+        } else {
+            // comment pair not found
+            return;
+        }
     }
 }
 
@@ -474,7 +505,7 @@ deque<string> ConfigParser::split(const string &str, const string &s)
 {
     deque<string> eles;
 
-    char cstr[str.length() + 1];
+    char *cstr = new char[str.length() + 1];
 
     strcpy(cstr, str.c_str());
 
@@ -486,6 +517,8 @@ deque<string> ConfigParser::split(const string &str, const string &s)
         pch = strtok(nullptr, s.c_str());
     }
 
+    delete[] cstr;
+
     return eles;
 }
 
@@ -494,7 +527,7 @@ deque<string> ConfigParser::split(const char* str, const size_t &size, const str
 {
     deque<string> eles;
 
-    char str_cpy[size + 1];
+    char *str_cpy = new char[size + 1];
 
     // end of C string
     str_cpy[size] = '\0';
@@ -508,6 +541,9 @@ deque<string> ConfigParser::split(const char* str, const size_t &size, const str
         eles.emplace_back(pch);
         pch = strtok(nullptr, s.c_str());
     }
+
+    delete[] str_cpy;
+
     return eles;
 }
 
@@ -611,11 +647,11 @@ string ConfigParser::str_upper(const string &str)
 }
 
 // remove characters in ignore list
-string ConfigParser::str_remove(const string &str, const string &ignore)
+string ConfigParser::str_remove(const string &str, const string &iignore)
 {
     string res = str;
 
-    for(auto &c : ignore)
+    for(auto &c : iignore)
     {
         res.erase(remove(res.begin(), res.end(), c), res.end());
     }
@@ -640,7 +676,7 @@ string ConfigParser::str_replace(const string &str, const string &list, const ch
 }
 
 // compare two strings, can be case insensitive
-bool ConfigParser::strcmp_case_insensitive(const string &str1, const string &str2)
+bool ConfigParser::case_ins_equal(const string &str1, const string &str2)
 {
     if(str1.size() != str2.size()) {
         return false;
@@ -656,102 +692,61 @@ bool ConfigParser::strcmp_case_insensitive(const string &str1, const string &str
     return true;
 }
 
-// find the first pair position in a string, it will return the most inner pair
-// if the first pair is a mult-layer structure
-bool ConfigParser::find_pair(const string &str,
-                             const string &open, const string &close,
-                             int &open_pos, int &close_pos)
+// find the first pair position in a string
+// it will return the most outer pair if the first pair was in a nested structure
+pair<size_t, size_t> ConfigParser::find_pair(const string &str,
+                                             const string &open,
+                                             const string &close,
+                                             size_t pos)
 {
-    auto pairs = find_pairs(str, open ,close);
-    if(pairs.empty())
-        return false;
+    pair<size_t, size_t> res(string::npos, string::npos);
 
-    open_pos = pairs.front().first;
-    close_pos = pairs.front().second;
-    return true;
-}
+    if(open.empty() || close.empty() || str.size() <= pos)
+        return res;
 
-// find pair position in a string
-vector<pair<int, int>> ConfigParser::find_pairs(const string &str,
-                                                const string &op,
-                                                const string &cl)
-{
-    vector<pair<int, int>> result;
+    res.first = str.find(open, pos);
 
-    if(op == cl) {
-        list<int> opens;
-        int end_pos = str.size() - op.size() + 1;
-        for(int i = 0; i < end_pos; ++i)
-        {
-            if(str.substr(i, op.size()) == op) {
-                opens.push_back(i);
-                i += op.size() - 1;
-            }
-        }
-        while(opens.size() > 1)
-        {
-            int beg = opens.front();
-            opens.pop_front();
-            int end = opens.front();
-            opens.pop_front();
-            result.emplace_back(beg, end);
-        }
-        return result;
+    // pair not found
+    if(res.first == string::npos) {
+        return res;
     }
 
-    if(op.empty() || cl.empty())
-        return result;
+    int open_bracket = 1;
+    size_t search_beg = res.first + open.size();
 
-    int mark_size = op.size() + cl.size();
-
-    // there won't be any
-    if(mark_size > (int)str.size())
-        return result;
-
-    list<int> opens;
-    int end_pos = str.size() - op.size() + 1;
-    for(int i = 0; i < end_pos; ++i)
+    // loop for nested structure
+    while(open_bracket > 0)
     {
-        if(str.substr(i, op.size()) == op) {
-            opens.push_back(i);
-            i += op.size() - 1;
+        size_t next_close = str.find(close, search_beg);
+
+        // pair not found
+        if(next_close == string::npos) {
+            // change back to npos for the not-found indication
+            res.first = string::npos;
+            return res;
+        }
+
+        // check for nested structure
+        size_t next_open = str.find(open, search_beg);
+
+        // the comparison is based on the definition of string::npos
+        // npos for not found is size_t = -1, which is the biggest size_t value
+        // find another open before close
+        if(next_open < next_close) {
+            open_bracket++;
+            search_beg = next_open + open.size();
+        // else cases
+        // 1. close mark found before open mark
+        // 2. close mark found, open mark not
+        // 3. close mark is the same as open mark, so the position is the same
+        } else {
+            open_bracket--;
+            search_beg = next_close + close.size();
+            res.second = next_close;
         }
     }
 
-    list<int> closes;
-    end_pos = str.size() - cl.size() + 1;
-    for(int i = 0; i < end_pos; ++i)
-    {
-        if(str.substr(i, cl.size()) == cl)
-        {
-            bool share_char = false;
-            for(auto &idx : opens)
-            {
-                if(abs(i - idx) < op.size())
-                    share_char = true;
-            }
-
-            if(!share_char) {
-                closes.push_back(i);
-                i += cl.size() - 1;
-            }
-        }
-    }
-
-    for(auto cl_it = closes.begin(); cl_it != closes.end(); ++cl_it)
-    {
-        for(auto op_it = opens.rbegin(); op_it != opens.rend(); ++op_it)
-        {
-            if((*cl_it - *op_it) >= (int)op.size())
-            {
-                result.emplace_back(*op_it, *cl_it);
-                opens.erase(next(op_it).base());
-                break;
-            }
-        }
-    }
-
-    return result;
+    return res;
 }
 
 // get file name and directory from a path
@@ -763,12 +758,12 @@ ConfigParser::PathInfo ConfigParser::decompose_path(const string &path)
 
     PathInfo res;
     if(dir_pos == string::npos) {
-        res.dir = "./";
+        res.dir = ".";
         res.name = path.substr(0, suf_pos);
         if(suf_pos != string::npos)
             res.suffix = path.substr(suf_pos + 1);
     } else {
-        res.dir = path.substr(0, dir_pos + 1);
+        res.dir = path.substr(0, dir_pos);
         res.name = path.substr(dir_pos + 1, suf_pos - dir_pos - 1);
         if(suf_pos != string::npos && suf_pos > dir_pos)
             res.suffix = path.substr(suf_pos + 1);
@@ -778,9 +773,9 @@ ConfigParser::PathInfo ConfigParser::decompose_path(const string &path)
 }
 
 // form the path
-std::string ConfigParser::compose_path(const ConfigParser::PathInfo &path)
+string ConfigParser::compose_path(const ConfigParser::PathInfo &path)
 {
-    std::string res(path.dir);
+    string res(path.dir);
     res.reserve(path.dir.size() + path.name.size() + path.suffix.size() + 2);
 
     if(!res.empty() && res.back() != '/')
@@ -794,6 +789,7 @@ std::string ConfigParser::compose_path(const ConfigParser::PathInfo &path)
     return res;
 }
 
+// form a path from given directory and file name, automatically add / if it is missing
 string ConfigParser::form_path(const string &dir, const string &file)
 {
     string file_path;
@@ -804,4 +800,100 @@ string ConfigParser::form_path(const string &dir, const string &file)
     file_path += file;
 
     return file_path;
+}
+
+// read a file and return its content in a char string
+string ConfigParser::file_to_string(const std::string &path)
+{
+    ifstream inf(path);
+
+    if(!inf.is_open())
+        return "";
+
+    // read the whole file in
+    string buf;
+
+    inf.seekg(0, ios::end);
+    buf.reserve(inf.tellg());
+    inf.seekg(0, ios::beg);
+
+    buf.assign((istreambuf_iterator<char>(inf)), istreambuf_iterator<char>());
+    inf.close();
+
+    return buf;
+}
+
+// break a string into several blocks with the format
+// <label> <open_mark> <content> <close_mark>
+// label and marks can be separated by separator chars
+// return extracted <label> and <content>
+vector<ConfigParser::TextBlock> ConfigParser::break_into_blocks(const string &buf,
+                                                                const string &open,
+                                                                const string &close,
+                                                                const string &sep)
+{
+    vector<TextBlock> result;
+
+    if(buf.empty() || open.empty() || close.empty())
+        return result;
+
+    // prepare white spaces removal for determining block label
+    // lambda to check if a character is a white space
+    auto is_sep = [](const char &c, const string &ws)
+                  {
+                      for(auto &w : ws)
+                      {
+                          if(c == w) return true;
+                      }
+                      return false;
+                  };
+
+    size_t last_end = 0;
+    // loop until no blocks found
+    while(true)
+    {
+        // find the contents in block brackets
+        auto p = find_pair(buf, open, close, last_end);
+
+        // no pair found anymore
+        if(p.first == string::npos || p.second == string::npos)
+            break;
+
+        // add content
+        TextBlock block;
+        block.content = buf.substr(p.first + open.size(), p.second - p.first - open.size());
+
+        // find label
+        if(p.first <= last_end) {
+            block.label = "";
+        } else if (!sep.empty()) {
+            bool find_end = false;
+            int beg = last_end, end = p.first - 1;
+
+            // the word before pair is the label
+            // white spaces will be trimmed
+            for(int i = end; i >= beg; --i)
+            {
+                // label end not determined
+                if(!find_end) {
+                    // find last not of white spaces
+                    if(is_sep(buf.at(i), sep)) end--;
+                    else find_end = true;
+                // find label begin
+                } else {
+                    // find chars until white spaces
+                    if(is_sep(buf.at(i), sep))
+                        beg = i + 1;
+                }
+            }
+            block.label = (end > beg) ? buf.substr(beg, end - beg + 1) : "";
+        } else {
+            block.label = buf.substr(last_end, p.first - last_end);
+        }
+
+        result.emplace_back(std::move(block));
+        last_end = p.second + close.size();
+    }
+
+    return result;
 }

@@ -5,7 +5,7 @@
 // 02/17/2016                                                                 //
 //============================================================================//
 
-#include "ETSettingPanel.h"
+#include "online_monitor/ETSettingPanel.h"
 #include <QDialogButtonBox>
 #include <QPushButton>
 #include <QLabel>

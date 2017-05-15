@@ -24,7 +24,12 @@ const
     }
 
     // copy the option
+#if QT_VERSION >= 0X050000
     QStyleOptionViewItem option = opt;
+#else
+    QStyleOptionViewItemV4 option = opt;
+#endif
+
     initStyleOption(&option, index);
 
     QStyle *style = option.widget? option.widget->style() : QApplication::style();
@@ -53,7 +58,12 @@ const
 QSize HtmlDelegate::sizeHint(const QStyleOptionViewItem &opt, const QModelIndex &index)
 const
 {
+#if QT_VERSION >= 0X050000
     QStyleOptionViewItem option = opt;
+#else
+    QStyleOptionViewItemV4 option = opt;
+#endif
+
     initStyleOption(&option, index);
 
     QTextDocument doc;

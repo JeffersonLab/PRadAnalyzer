@@ -131,7 +131,7 @@ typedef PRadClusterProfile::Profile CProfile;
 const CProfile &PRadClusterProfile::GetProfile(int type, int x, int y)
 const
 {
-    if(x >= x_steps || y >= y_steps)
+    if(x < 0 || x >= x_steps || y < 0 || y >= y_steps)
         return empty_prof;
 
     return profiles[type][x][y];

@@ -3,7 +3,8 @@
 ################################################################################
 
 MAKEFILE      = Makefile
-COMPONENTS    = PRIMEX_METHOD, MULTI_THREAD
+# passed by command line
+#LIB_OPTION    = PRIMEX_METHOD, MULTI_THREAD
 
 # neural network directory
 NEURAL 	      = cneural
@@ -12,7 +13,7 @@ NEURAL 	      = cneural
 CC            = gcc
 CXX           = g++
 FORTRAN       = gfortran
-FFLAGS        = -fPIC -cpp
+FFLAGS        = -fPIC -cpp -ffixed-line-length-none
 CXXFLAGS      = -shared -std=c++11 -m64 -O2 -g -pipe -Wall $(DEFINES) \
 				-fstack-protector-strong --param=ssp-buffer-size=4 \
 				-grecord-gcc-switches -mtune=generic -fPIC
@@ -53,7 +54,8 @@ OBJECTS_DIR   = obj
 CXX_SRC_DIR   = src
 CXX_INC_DIR   = include
 CXX_SUFFIX    = cpp
-CXX_SOURCES   = PRadDAQChannel \
+CXX_SOURCES   = canalib \
+                PRadDAQChannel \
                 PRadADCChannel \
                 PRadTDCChannel \
                 PRadCalibConst \
@@ -84,27 +86,29 @@ CXX_SOURCES   = PRadDAQChannel \
                 PRadDetMatch \
                 PRadEPICSystem \
                 PRadInfoCenter \
-                PRadTaggerSystem
+                PRadTaggerSystem \
+				PRadMollerGen
 
 
 # fortran part
 FOR_SRC_DIR   = fortran
-FOR_INC_DIR   = fortran
-FOR_SOURCES   = 
+FOR_INC_DIR   = fortran/include
+FOR_SOURCES   = merad_fsir \
+                merad_util
 FOR_SUFFIX    = f
 
 
 ###### Components related
 
 # use primex clustering method
-ifneq (,$(findstring PRIMEX_METHOD,$(COMPONENTS)))
+ifneq (,$(findstring PRIMEX_METHOD,$(LIB_OPTION)))
 	FOR_SOURCES += island
 	CXX_SOURCES += PRadPrimexCluster
 	DEFINES     += -DUSE_PRIMEX_METHOD
 endif
 
 # enable multi-threading in the code
-ifneq (, $(findstring MULTI_THREAD,$(COMPONENTS)))
+ifneq (, $(findstring MULTI_THREAD,$(LIB_OPTION)))
 	DEFINES     += -DMULTI_THREAD
 endif
 

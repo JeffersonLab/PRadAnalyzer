@@ -68,7 +68,7 @@ public:
     void SavePedestal(const std::string &path) const;
     void SaveHistograms(const std::string &path) const;
 
-    PRadGEMCluster *GetClusterMethod() {return &gem_recon;};
+    PRadGEMCluster *GetClusterMethod() {return &gem_recon;}
     PRadGEMDetector *GetDetector(const int &id) const;
     PRadGEMDetector *GetDetector(const std::string &name) const;
     PRadGEMFEC *GetFEC(const int &id) const;
