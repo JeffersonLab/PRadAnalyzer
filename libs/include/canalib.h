@@ -54,7 +54,7 @@ namespace cana
         while(i++ < Nbins)
         {
             result += 2.*func(x) + 4.*func(x + s);
-            x += s;
+            x += 2.*s;
         }
 
         return result*s/3.;

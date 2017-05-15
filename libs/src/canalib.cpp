@@ -60,7 +60,7 @@ double cana::landau(double x)
                 {
                     return std::sin(pi*t)*std::exp(-t*(x + std::log(t)));
                 };
-    return simpson(1e-22, 500, 500000, expr)/2./pi;
+    return simpson(1e-22, 500, 500000, expr)/pi;
 }
 
 // a fit method to calculate landau distribution
