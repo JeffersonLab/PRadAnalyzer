@@ -1,5 +1,6 @@
 #include "ConfigParser.h"
 #include "canalib.h"
+#include "PRadBenchMark.h"
 #include "time.h"
 
 using namespace std;
@@ -98,6 +99,8 @@ void monte_carlo_generator(size_t event_number)
     string target_file = prad_path + "/database/target_comsol/empty_target.dat";
     vector<TarDistPoint> data = fill_points(target_file);
 
+    PRadBenchMark timer;
+
     TFile f("z_target.root", "RECREATE");
     TH1D z_hist("Z_TAR", "Target Z", 1600, -800, 800);
     TRandom3 rnd_gen(time(NULL));
@@ -119,9 +122,9 @@ void monte_carlo_generator(size_t event_number)
             z_target = res.first->z;
         } else {
             // linear interpolation
-            z_target = (res.second->z * (rnd_val - res.first->cdf)
-                        + res.first->z * (res.second->cdf - rnd_val));
-            z_target /= res.second->cdf - res.first->cdf;
+            z_target = cana::linear_interp(res.first->cdf, res.first->z,
+                                           res.second->cdf, res.second->z,
+                                           rnd_val);
         }
 
         z_hist.Fill(z_target);
@@ -129,4 +132,5 @@ void monte_carlo_generator(size_t event_number)
 
     z_hist.Write();
     f.Close();
+    cout << timer.GetElapsedTimeStr() << endl;
 }

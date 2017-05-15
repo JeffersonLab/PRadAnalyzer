@@ -31,12 +31,21 @@ namespace cana
     double spence(double z, double res = 1e-15);
     inline double spence_tr(double z, double res, int nmax);
 
+    // clamp values to be restricted inside [min, max]
     template<typename T>
     inline T clamp(T val, T min, T max)
     {
         if(val < min) return min;
         if(val > max) return max;
         return val;
+    }
+
+    // linear interpolation of two points (x1, y1), (x2, y2)
+    // input val must be within [x1, x2]
+    template<typename T>
+    inline T linear_interp(T x1, T y1, T x2, T y2, T val)
+    {
+        return ((val - x1)*y2 + (x2 - val)*y1)/(x2 - x1);
     }
 
     // simpson integration
