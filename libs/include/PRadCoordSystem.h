@@ -148,19 +148,12 @@ public:
     static void Projection(Point &p, const Point &pi, const float &zf);
     static void Projection(float &x, float &y, float &z, const float &zf);
     static void Projection(float &x, float &y, float &z, const Point &pi, const float &zf);
-    static float ProjectionDistance(Point p1, Point p2);
-
-    // static templates
-    template<class T>
-    static float ProjectionDistance(const T &t1, const T &t2)
-    {
-        return ProjectionDistance(Point(t1.x, t1.y, t1.z), Point(t2.x, t2.y, t2.z));
-    }
+    static float ProjectionDistance(Point p1, Point p2, double proj_z = 5817);
 
     template<class T1, class T2>
-    static float ProjectionDistance(const T1 &t1, const T2 &t2)
+    static float ProjectionDistance(const T1 &t1, const T2 &t2, double proj_z = 5817)
     {
-        return ProjectionDistance(Point(t1.x, t1.y, t1.z), Point(t2.x, t2.y, t2.z));
+        return ProjectionDistance(Point(t1.x, t1.y, t1.z), Point(t2.x, t2.y, t2.z), proj_z);
     }
 
     template<class T>
