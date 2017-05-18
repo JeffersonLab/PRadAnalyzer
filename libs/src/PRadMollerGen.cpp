@@ -10,12 +10,13 @@
 // Code Developer: Chao Peng                                                  //
 //============================================================================//
 
-// TODO not finished, now only has the non-radiative part
-// v_min is not used because it is to separate the radiative part
+// TODO not finished, now only has the cross sections part
+// need to implement the sampling part
 
 #include "PRadMollerGen.h"
 #include "canalib.h"
 #include <cmath>
+#include <random>
 #include <iostream>
 #include <iomanip>
 
@@ -30,6 +31,8 @@ const double alp2 = cana::alpha*cana::alpha;
 const double alp3 = alp2*cana::alpha;
 // convert MeV^-2 to nbarn
 const double unit = cana::hbarc2*1e7;
+
+// some inlines
 // square
 inline double pow2(double val) {return val*val;}
 // cubic
@@ -37,6 +40,23 @@ inline double pow3(double val) {return val*val*val;}
 // power of 4
 inline double pow4(double val) {double val2 = pow2(val); return val2*val2;}
 
+// get the symmetric Moller pair angle in Lab frame
+inline double get_sym_angle(double Es)
+{
+    return acos(sqrt((Es + m)/(Es + 3*m)))*cana::rad2deg;
+}
+
+// get the polar angle of the other Moller electron in Lab frame
+inline double get_other_polar(double Es, double angle)
+{
+    double theta = angle*cana::deg2rad;
+    double cos2 = pow2(cos(theta));
+    double rm = (Es - m)/(Es + m);
+    double E1 = m*(1. + rm*cos2)/(1. - rm*cos2);
+    double k2p = sqrt(pow2(E1) - pow2(m));
+    double k1p = sqrt(pow2(Es) - pow2(m));
+    return atan(k2p*sin(theta)/(k1p - k2p*cos(theta)))*cana::rad2deg;
+}
 
 
 
@@ -53,6 +73,87 @@ PRadMollerGen::~PRadMollerGen()
     // place holder
 }
 
+// generate Moller events, unit is in MeV, degree
+void PRadMollerGen::Generate(double Es, double min_angle, double max_angle, int nevents)
+const
+{
+    // sanity check
+    if(min_angle > max_angle || nevents < 1 || Es < 0.) {
+        std::cerr << "Invalid input(s), please make sure these inputs are correct:\n"
+                  << "Es = " << Es << " MeV\n"
+                  << "Angle range = " << min_angle << " ~ " << max_angle << "\n"
+                  << "Number of events: " << nevents
+                  << std::endl;
+        return;
+    }
+
+    // set up random number generator
+    // a "true" random number engine, good for seed
+    std::random_device rd;
+    // Mersenne Twister pseudo-randome number generator
+    std::mt19937 rng{rd()};
+    // uniform distribution
+    std::uniform_real_distribution<double> uni_dist(0., 1.);
+
+    // since the cross section has already covered both t and u channels
+    // we should calculate the if the angle ranges include the symmetric point
+    // if it does, then the angle beyond symmetric point should not be generated
+    // to avoid duplicating Moller pairs
+    double sym_angle = get_sym_angle(Es);
+
+    // choose lower angle side to generate
+    if(sym_angle > min_angle && sym_angle < max_angle) {
+        // update min angle so it can cover the input max_angle
+        double min_angle2 = get_other_polar(Es, max_angle);
+        if(min_angle > min_angle2) min_angle = min_angle2;
+        max_angle = sym_angle;
+    }
+
+    // prepare grid for interpolation of angle
+    int abins = 100;
+    double angle_step = (max_angle - min_angle)/(double)abins;
+    struct CDF_Angle {double cdf, angle, sig_born, sig_nrad, sig_rad;};
+    std::vector<CDF_Angle> angle_dist(abins + 1);
+
+    // first point
+    CDF_Angle &fp = angle_dist[0];
+    fp.angle = min_angle;
+    fp.cdf = 0.;
+    GetXS(Es, fp.angle, fp.sig_born, fp.sig_nrad, fp.sig_rad);
+    for(int i = 1; i <= abins; ++i)
+    {
+        CDF_Angle &point = angle_dist[i];
+        CDF_Angle &prev = angle_dist[i - 1];
+        point.angle = min_angle + angle_step*i;
+        GetXS(Es, point.angle, point.sig_born, point.sig_nrad, point.sig_rad);
+        point.cdf = prev.cdf + angle_step*(point.sig_nrad + point.sig_rad + prev.sig_nrad + prev.sig_rad)/2.;
+    }
+
+    // normalize cdf values
+    for(auto &point : angle_dist)
+    {
+        point.cdf /= angle_dist.back().cdf;
+    }
+
+    // convert uniform distribution to cross-section vs. angle distribution
+    auto comp = [](const CDF_Angle &point, const double &val)
+                {
+                    return point.cdf - val;
+                };
+
+    for(int i = 0; i < nevents; ++i)
+    {
+        double rnd = uni_dist(rng);
+        auto interval = cana::binary_search_interval(angle_dist.begin(), angle_dist.end(), rnd, comp);
+
+        // should not happen
+        if(interval.first == angle_dist.end() || interval.second == angle_dist.end()) {
+            std::cerr << "Could not find CDF value at " << rnd << std::endl;
+            continue;
+        }
+    }
+}
+
 // get cross section
 // input beam energy (MeV), angle (deg)
 // output Born, non-radiative, radiative cross sections (nb)
@@ -62,19 +163,18 @@ const
     double theta = angle*cana::deg2rad;
     // conversion from dsigma/dy (y = -t/s) to dsigma/dOmega
     double jacob = 4.*m*(Es - m)/pow2(Es + m -(Es - m)*pow2(cos(theta)))/2./cana::pi;
-    double p_tot = sqrt(pow2(Es) - pow2(m));
+    double k1p = sqrt(pow2(Es) - pow2(m));
 
     // incident electron kinematics
-    double k1[4] = {Es, 0., 0., p_tot};
+    double k1[4] = {Es, 0., 0., k1p};
     double p1[4] = {m, 0., 0., 0.};
-
 
     // Energy of the scattered electron k1
     double cos_E = (Es - m)*pow2(cos(theta));
     double E1 = m*(Es + m + cos_E)/(Es + m - cos_E);
-    double k1_tot = sqrt(pow2(E1) - pow2(m));
+    double k2p = sqrt(pow2(E1) - pow2(m));
 
-    double k2[4] = {E1, k1_tot*sin(theta), 0., k1_tot*cos(theta)};
+    double k2[4] = {E1, k2p*sin(theta), 0., k2p*cos(theta)};
 
     // Mandelstam variables
     double s, t, u0;
@@ -349,7 +449,7 @@ const
                              }
                          }
 
-                         result += s_3/2./slamda_3*(/*term*/ + sum_term)*Sk[k];
+                         result += s_3/2./slamda_3*(term + sum_term)*Sk[k];
                      }
                      return result;
                  };
@@ -391,9 +491,13 @@ const
     // equation (63)
     double J_0_URA = -4.*(1. + log(m2*s/t/u0));
 
-    std::cout << s << ", " << t << ", "
-              << S_phi(-(xi_u02 + 1.)*u0, (xi_s2 + 1.)*s, -(xi_t2 + 1.)*t) << ", "
-              << S_phi((xi_s2 + 1.)*s, -(xi_u02 + 1.)*u0, -(xi_t2 + 1.)*t)
+    double s1 = -(xi_u02 + 1.)*u0;
+    double s2 = (xi_s2 + 1.)*s;
+    double s3 = -(xi_t2 + 1.)*t;
+
+    std::cout << s1 << ", " << s2 << ", " << s3 << ", "
+              << S_phi(s1, s2, s3) << ", "
+              << S_phi(s2, s1, s3)
               << std::endl;
 
     std::cout << " | d_1H: "

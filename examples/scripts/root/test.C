@@ -92,20 +92,8 @@ void moller_test()
     g3->Draw("AC");
 }
 
-void landau_test()
+void moller_gen_test()
 {
-    TGraph *g1 = new TGraph();
-    TGraph *g2 = new TGraph();
-    for(double x = -5; x < 15; x += 0.1)
-    {
-        g1->SetPoint(g1->GetN(), x, cana::landau_straggle(x, 1, 0, false));
-        g2->SetPoint(g2->GetN(), x, ROOT::Math::landau_pdf(x));
-    }
-    TCanvas *c1 = new TCanvas("Landau dist", "Landau dist", 200, 10, 1200, 500);
-    g1->SetMarkerStyle(21);
-    g1->Draw("AP");
-
-    g2->SetMarkerStyle(22);
-    g2->SetMarkerColor(2);
-    g2->Draw("P");
+    PRadMollerGen moller;
+    moller.Generate(2142, 0.3, 3.0, 10000000);
 }

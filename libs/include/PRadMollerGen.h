@@ -35,6 +35,7 @@ public:
     PRadMollerGen(double vmin = 1, double vmax = 400);
     virtual ~PRadMollerGen();
 
+    void Generate(double Es, double min_angle, double max_angle, int nevents) const;
     void GetXS(double Es, double angle, double &sig_born, double &sig_nrad, double &sig_rad) const;
 
 private:

@@ -202,7 +202,7 @@ const
     // need to check which one matches better
     if(h.gem1.size() && h.gem2.size()) {
         const GEMHit &hit1 = h.gem1.front(), &hit2 = h.gem2.front();
-        float gem_dist = PRadCoordSystem::ProjectionDistance(hit1, hit2);
+        float gem_dist = PRadCoordSystem::ProjectionDistance(hit1, hit2, hit1.z);
         // not overlapping match
         if(gem_dist > overlapSigma * gemRes) {
             float dist1 = PRadCoordSystem::ProjectionDistance(h, hit1);
