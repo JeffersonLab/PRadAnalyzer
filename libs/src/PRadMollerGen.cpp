@@ -58,6 +58,30 @@ inline double get_other_polar(double Es, double angle)
     return atan(k2p*sin(theta)/(k1p - k2p*cos(theta)))*cana::rad2deg;
 }
 
+// linear interpolation from two arrays (one for distribution, one for value)
+inline double interp_dist(double rnd, double *dist, double *val, int np)
+{
+    double rdist = rnd*dist[np - 1];
+    auto itv = cana::binary_search_interval(&dist[0], &dist[np], rdist);
+    // should not happen
+    if(itv.first == &dist[np] || itv.second == &dist[np])
+    {
+        std::cerr << "Interpolation error for random value = " << rdist
+                  << ", distribution CDF starts at " << dist[0]
+                  << ", ends at " << dist[np - 1]
+                  << std::endl;
+        return 0.;
+    }
+
+    int i1 = itv.first - dist;
+    int i2 = itv.second - dist;
+
+    if(i1 == i2) {
+        return val[i1];
+    } else {
+        return cana::linear_interp(dist[i1], val[i1], dist[i2], val[i2], rdist);
+    }
+}
 
 
 // constructor
@@ -112,7 +136,7 @@ const
     // prepare grid for interpolation of angle
     int abins = 100;
     double angle_step = (max_angle - min_angle)/(double)abins;
-    struct CDF_Angle {double cdf, angle, sig_born, sig_nrad, sig_rad;};
+    struct CDF_Angle {double cdf, angle, sig_born, sig_nrad, sig_rad, v_cdf[MERAD_NV], v_val[MERAD_NV];};
     std::vector<CDF_Angle> angle_dist(abins + 1);
 
     // first point
@@ -125,14 +149,17 @@ const
         CDF_Angle &point = angle_dist[i];
         CDF_Angle &prev = angle_dist[i - 1];
         point.angle = min_angle + angle_step*i;
+        // calculate cross sections
         GetXS(Es, point.angle, point.sig_born, point.sig_nrad, point.sig_rad);
-        point.cdf = prev.cdf + angle_step*(point.sig_nrad + point.sig_rad + prev.sig_nrad + prev.sig_rad)/2.;
-    }
 
-    // normalize cdf values
-    for(auto &point : angle_dist)
-    {
-        point.cdf /= angle_dist.back().cdf;
+        point.cdf = prev.cdf + angle_step*(point.sig_nrad + point.sig_rad + prev.sig_nrad + prev.sig_rad)/2.;
+
+        // copy v distribution that calculated in MERADGEN
+        for(int j = 0; j < MERAD_NV; ++j)
+        {
+            point.v_cdf[j] = merad_dist_.distsiv[j];
+            point.v_val[j] = merad_dist_.distarv[j];
+        }
     }
 
     // convert uniform distribution to cross-section vs. angle distribution
@@ -141,16 +168,37 @@ const
                     return point.cdf - val;
                 };
 
+    double scat_angle, v;
+
     for(int i = 0; i < nevents; ++i)
     {
-        double rnd = uni_dist(rng);
+        double rnd = uni_dist(rng)*angle_dist.back().cdf;
         auto interval = cana::binary_search_interval(angle_dist.begin(), angle_dist.end(), rnd, comp);
 
         // should not happen
         if(interval.first == angle_dist.end() || interval.second == angle_dist.end()) {
             std::cerr << "Could not find CDF value at " << rnd << std::endl;
+            i--;
             continue;
         }
+
+        if(interval.first == interval.second) {
+            scat_angle = interval.first->angle;
+            v = interp_dist(uni_dist(rng), interval.first->v_cdf, interval.first->v_val, MERAD_NV);
+        } else {
+            scat_angle = cana::linear_interp(interval.first->cdf, interval.first->angle,
+                                             interval.second->cdf, interval.second->angle,
+                                             rnd);
+            double rnd2 = uni_dist(rng);
+            double v1 = interp_dist(rnd2, interval.first->v_cdf, interval.first->v_val, MERAD_NV);
+            double v2 = interp_dist(rnd2, interval.second->v_cdf, interval.second->v_val, MERAD_NV);
+
+            v = cana::linear_interp(interval.first->cdf, v1,
+                                    interval.second->cdf, v2,
+                                    rnd);
+        }
+
+        std::cout << i << ", " << scat_angle << ", " << v << std::endl;
     }
 }
 

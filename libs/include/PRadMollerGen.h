@@ -32,7 +32,7 @@ extern "C"
 class PRadMollerGen
 {
 public:
-    PRadMollerGen(double vmin = 1, double vmax = 400);
+    PRadMollerGen(double vmin = 5, double vmax = 400);
     virtual ~PRadMollerGen();
 
     void Generate(double Es, double min_angle, double max_angle, int nevents) const;
