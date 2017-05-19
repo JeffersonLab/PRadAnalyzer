@@ -233,12 +233,20 @@ void PRadCoordSystem::Projection(float &x, float &y, float &z, const Point &pi, 
     Projection(x, y, z, pi.x, pi.y, pi.z, zf);
 }
 
-float PRadCoordSystem::ProjectionDistance(Point p1, Point p2, double proj_z)
+float PRadCoordSystem::ProjectionDistance(Point p1, Point p2, Point ori, float proj_z)
 {
-    Projection(p1, target(), proj_z);
-    Projection(p2, target(), proj_z);
+    Projection(p1, ori, proj_z);
+    Projection(p2, ori, proj_z);
 
     return sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y));
+}
+
+Point PRadCoordSystem::ProjectionCoordDiff(Point p1, Point p2, Point ori, float proj_z)
+{
+    Projection(p1, ori, proj_z);
+    Projection(p1, ori, proj_z);
+
+    return Point(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
 }
 
 std::ostream &operator <<(std::ostream &os, const DetCoord &det)

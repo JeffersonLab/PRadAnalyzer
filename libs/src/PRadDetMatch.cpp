@@ -50,6 +50,7 @@ void PRadDetMatch::Configure(const std::string &path)
     gemRes = getDefConfig<float>("GEM_Resolution", 0.08, verbose);
     matchSigma = getDefConfig<float>("Match_Factor", 5, verbose);
     overlapSigma = getDefConfig<float>("GEM_Overlap_Factor", 10, verbose);
+    squareSel = getDefConfig<bool>("Square_Selection", true, verbose);
 }
 
 template<typename T>
@@ -144,30 +145,38 @@ bool PRadDetMatch::PreMatch(const HyCalHit &hycal, const GEMHit &gem)
 const
 {
     // determine the resolution from hycal hit information
-    double base_range;
+    double range;
 
     // transition region
     if(TEST_BIT(hycal.flag, kTransition)) {
-        base_range = transitionRes/std::sqrt(hycal.E/1000.);
+        range = transitionRes/std::sqrt(hycal.E/1000.);
     // crystal region
     } else if(TEST_BIT(hycal.flag, kPbWO4)) {
-        //base_range = crystalRes/std::sqrt(hycal.E/1000.);
+        //range = crystalRes/std::sqrt(hycal.E/1000.);
         // hard coded from fit of real data
-        base_range = 2.44436/std::sqrt(hycal.E/1000.) + 1.09709e-1/(hycal.E/1000.) - 1.76315e-2;
+        range = 2.44436/std::sqrt(hycal.E/1000.) + 1.09709e-1/(hycal.E/1000.) - 1.76315e-2;
     // lead glass part or undefined
     } else {
-        base_range = leadGlassRes/std::sqrt(hycal.E/1000.);
+        range = leadGlassRes/std::sqrt(hycal.E/1000.);
     }
 
-    // correct it by energy in GeV
-    base_range /= std::sqrt(hycal.E/1000.);
+    // how many sigma away from the maching range
+    range *= matchSigma;
 
-    float dist = PRadCoordSystem::ProjectionDistance(hycal, gem);
+    if(squareSel) {
+        Point diff = PRadCoordSystem::ProjectionCoordDiff(hycal, gem);
+        if(fabs(diff.x) > range || fabs(diff.y) > range)
+            return false;
+        else
+            return true;
+    } else {
+        float dist = PRadCoordSystem::ProjectionDistance(hycal, gem);
 
-    if(dist > matchSigma * base_range)
-        return false;
-    else
-        return true;
+        if(dist > range)
+            return false;
+        else
+            return true;
+    }
 }
 
 void PRadDetMatch::PostMatch(MatchHit &h)
@@ -202,7 +211,7 @@ const
     // need to check which one matches better
     if(h.gem1.size() && h.gem2.size()) {
         const GEMHit &hit1 = h.gem1.front(), &hit2 = h.gem2.front();
-        float gem_dist = PRadCoordSystem::ProjectionDistance(hit1, hit2, hit1.z);
+        float gem_dist = PRadCoordSystem::ProjectionDistance(hit1, hit2, PRadCoordSystem::target(), hit1.z);
         // not overlapping match
         if(gem_dist > overlapSigma * gemRes) {
             float dist1 = PRadCoordSystem::ProjectionDistance(h, hit1);
