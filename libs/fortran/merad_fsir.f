@@ -5,20 +5,19 @@
 ! Chao Peng, 05/13/2017
 
 !===============================================================================
-      subroutine merad_init(elab)
-! Initialize MERADGEN by beam energy, input is in MeV
+      subroutine merad_init(si)
+! Initialize MERADGEN by Mandelstam variable s in MeV^2
      &bind(C, name = "merad_init")
       use, intrinsic :: ISO_C_BINDING
 !-------------------------------------------------------------------------------
       implicit none
-      real(C_DOUBLE), intent(IN), VALUE :: elab
+      real(C_DOUBLE), intent(IN), VALUE :: si
       include 'merad_const.inc'
       data pi/3.14159265359d0/, alfa/.7297352568d-2/,
      .     m/0.510998918d0/
 
-      m2 = m*m
-      En=elab
-      s=2d0*(En*m+m2)
+      m2=m*m
+      s=si
       als=s*(s-4d0*m2)
       coeb=4d0*pi*alfa**2*(s-2d0*m2)/als
       coer=alfa**3/als/pi*(s - 2d0*m2)/4d0
@@ -101,7 +100,7 @@
 
 !===============================================================================
       real(C_DOUBLE) function merad_sample_t1(t, vgen, plin, rnd)
-! return the sampled t1 for hard photon emission
+! return the sampled t1 for hard photon emission (MeV^2)
 ! t: Mandelstam variable t (MeV^2)
 ! vgen: kinematics variable v for photon (MeV^2)
 ! plin: degree of polarization
@@ -112,7 +111,7 @@
       real(C_DOUBLE), intent(IN), VALUE :: t, vgen, plin, rnd
       real*8 fsir, u, t1min, t1max, tt1b, tt1a, sia, sib
       real*8 t1z, t1z1, t1z2, t1p, sirad, sirand
-      integer nn, i, it1
+      integer nn, i, it1, idx
       dimension t1p(5)
       include 'merad_const.inc'
       include 'merad_grid.inc'
@@ -142,8 +141,13 @@
           tt1b=t1p(i)+(t1p(i+1)-t1p(i))*grt1(it1)
           call zd(t,tt1b,vgen)
           sib=fsir(t,tt1b,vgen,0d0,plin,nn,1,0d0)
-          distsit1((i-1)*nt1+it1)=distsit1((i-1)*nt1+it1-1)
-     .                            +(sib+sia)*(tt1b-tt1a)/2d0
+          idx=(i-1)*nt1+it1
+          if(idx.eq.1) then
+            distsit1(idx)=0d0
+          else
+            distsit1((i-1)*nt1+it1)=distsit1((i-1)*nt1+it1-1)
+     .                              +(sib+sia)*(tt1b-tt1a)/2d0
+          endif
           distart1((i-1)*nt1+it1)=tt1b
         enddo
       enddo
@@ -151,12 +155,12 @@
       ! convert random number to sampled t1 value
       sirad=distsit1(4*nt1)
       sirand=rnd*sirad
-      do it1=1,4*nt1
+      do it1=2,4*nt1
         if(distsit1(it1).gt.sirand) then
-          merad_sample_t1=distart1(it1-1)+(distart1(it1)-distart1(it1-1))
-     .                    *(sirand-distsit1(it1-1))
+          merad_sample_t1=distart1(it1-1) + (distart1(it1) - distart1(it1-1))
+     .                    *(sirand - distsit1(it1-1))
      .                    /(distsit1(it1)-distsit1(it1-1))
-        return
+          return
         endif
       enddo
 
@@ -164,8 +168,9 @@
 
 !===============================================================================
       real(C_DOUBLE) function merad_sample_z(t, t1gen, vgen, plin, rnd)
-! return the sampled t1 for hard photon emission
+! return the sampled z for hard photon emission (MeV^2)
 ! t: Mandelstam variable t (MeV^2)
+! t1gen: sampled t1 (MeV^2)
 ! vgen: kinematics variable v for photon (MeV^2)
 ! plin: degree of polarization
 ! rnd: a random number from 0 to 1
@@ -193,14 +198,18 @@
         sia=sib
         zzb=zmin+(zmax-zmin)*grz(iz)
         sib=fsir(t,t1gen,vgen,zzb,plin,nn,0,0d0)
-        distsiz(iz)=distsiz(iz-1)+(sib+sia)*(zzb-zza)/2d0
+        if(iz.eq.1) then
+          distsiz(iz)=0d0
+        else
+          distsiz(iz)=distsiz(iz-1)+(sib+sia)*(zzb-zza)/2d0
+        endif
         distarz(iz)=zzb
       enddo
 
       sirad=distsiz(nz)
       sirand=rnd*sirad
 
-      do iz=1,nz
+      do iz=2,nz
         if(distsiz(iz).gt.sirand) then
           merad_sample_z=distarz(iz-1)+(distarz(iz)-distarz(iz-1))
      .                   *(sirand-distsiz(iz-1))
