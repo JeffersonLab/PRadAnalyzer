@@ -33,6 +33,7 @@ private:
     float transitionRes;
     float matchSigma;
     float overlapSigma;
+    bool squareSel;
 };
 
 #endif
