@@ -182,20 +182,43 @@ const
             continue;
         }
 
+        // check if this event has a hard photon emission
+        double rnd2 = uni_dist(rng);
+        double sig_rad, sig_nrad, rnd_rad;
+
+        // exact matched one point
         if(interval.first == interval.second) {
             scat_angle = interval.first->angle;
-            v = interp_dist(uni_dist(rng), interval.first->v_cdf, interval.first->v_val, MERAD_NV);
+            sig_rad = interval.first->sig_rad;
+            sig_nrad = interval.first->sig_nrad;
+            rnd_rad = (rnd2*(sig_nrad + sig_rad) - sig_nrad)/sig_rad;
+            if(rnd_rad <= 0.) {
+                v = 0.;
+            } else {
+                v = interp_dist(rnd_rad, interval.first->v_cdf, interval.first->v_val, MERAD_NV);
+            }
+        // in an interval, interpolate everything between two points
         } else {
             scat_angle = cana::linear_interp(interval.first->cdf, interval.first->angle,
                                              interval.second->cdf, interval.second->angle,
                                              rnd);
-            double rnd2 = uni_dist(rng);
-            double v1 = interp_dist(rnd2, interval.first->v_cdf, interval.first->v_val, MERAD_NV);
-            double v2 = interp_dist(rnd2, interval.second->v_cdf, interval.second->v_val, MERAD_NV);
+            sig_nrad = cana::linear_interp(interval.first->cdf, interval.first->sig_nrad,
+                                                  interval.second->cdf, interval.second->sig_nrad,
+                                                  rnd);
+            sig_rad = cana::linear_interp(interval.first->cdf, interval.first->sig_rad,
+                                                 interval.second->cdf, interval.second->sig_rad,
+                                                 rnd);
+            rnd_rad = (rnd2*(sig_nrad + sig_rad) - sig_nrad)/sig_rad;
+            if(rnd_rad <= 0.) {
+                v = 0.;
+            } else {
+                double v1 = interp_dist(rnd_rad, interval.first->v_cdf, interval.first->v_val, MERAD_NV);
+                double v2 = interp_dist(rnd_rad, interval.second->v_cdf, interval.second->v_val, MERAD_NV);
 
-            v = cana::linear_interp(interval.first->cdf, v1,
-                                    interval.second->cdf, v2,
-                                    rnd);
+                v = cana::linear_interp(interval.first->cdf, v1,
+                                        interval.second->cdf, v2,
+                                        rnd);
+            }
         }
 
         std::cout << i << ", " << scat_angle << ", " << v << std::endl;

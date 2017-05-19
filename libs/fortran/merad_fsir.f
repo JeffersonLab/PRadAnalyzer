@@ -24,7 +24,7 @@
       coer=alfa**3/als/pi*(s - 2d0*m2)/4d0
       call grid_init
 
-      end
+      end subroutine merad_init
 
 !===============================================================================
       real(C_DOUBLE) function merad_sigfs(vmin, tin, plin)
@@ -49,7 +49,7 @@
       call simpsx(1d-22,vmin,10000,1d-3,fsirsoft,xs)
       merad_sigfs = xs
 
-      end
+      end function merad_sigfs
 
 !===============================================================================
       real*8 function fsirsoft(v)
@@ -62,7 +62,7 @@
 
       fsirsoft=fsir(t,0d0,v,0d0,pl,nn,-1,sig0)
 
-      end
+      end function fsirsoft
 
 !===============================================================================
       real(C_DOUBLE) function merad_sigfh(vmin, vmax, tin, plin)
@@ -97,10 +97,122 @@
       enddo
       merad_sigfh = distsiv(nv)
 
-      end
+      end function merad_sigfh
 
 !===============================================================================
-      double precision function sigborn(t,pl)
+      real(C_DOUBLE) function merad_sample_t1(t, vgen, plin, rnd)
+! return the sampled t1 for hard photon emission
+! t: Mandelstam variable t (MeV^2)
+! vgen: kinematics variable v for photon (MeV^2)
+! plin: degree of polarization
+! rnd: a random number from 0 to 1
+     &bind(C, name = "merad_sample_t1")
+      use, intrinsic :: ISO_C_BINDING
+      implicit none
+      real(C_DOUBLE), intent(IN), VALUE :: t, vgen, plin, rnd
+      real*8 fsir, u, t1min, t1max, tt1b, tt1a, sia, sib
+      real*8 t1z, t1z1, t1z2, t1p, sirad, sirand
+      integer nn, i, it1
+      dimension t1p(5)
+      include 'merad_const.inc'
+      include 'merad_grid.inc'
+
+      ! prepare distribution
+      u=4d0*m2+vgen-s-t
+      t1min=(2d0*m2*t+vgen*(t-vgen-sqrt((t-vgen)**2-4d0*m2*t)))
+     .      /(2d0*(m2+vgen))
+      t1max=m2*t**2/(m2+vgen)/t1min
+      t1z=(-s*t*(t+u)+2d0*m2*vgen**2)/((s-vgen)**2-4d0*m2*s)
+      t1z1=(-u*t*(t+s)+2d0*m2*vgen**2)/((u-vgen)**2-4d0*m2*u)
+      t1z2=(-s*vgen*(t+s)-2d0*m2*(2d0*t*u+(u-2d0*(s+vgen))*vgen))
+     .     /((u-vgen)**2-4d0*m2*u)
+      t1p(1)=t1min
+      t1p(2)=t1z
+      t1p(3)=min(t1z1,t1z2)
+      t1p(4)=max(t1z1,t1z2)
+      t1p(5)=t1max
+
+      ! calculate distribution
+      tt1b=t1min
+      sib=0d0
+      do i=1,4
+        do it1=1,nt1
+          tt1a=tt1b
+          sia=sib
+          tt1b=t1p(i)+(t1p(i+1)-t1p(i))*grt1(it1)
+          call zd(t,tt1b,vgen)
+          sib=fsir(t,tt1b,vgen,0d0,plin,nn,1,0d0)
+          distsit1((i-1)*nt1+it1)=distsit1((i-1)*nt1+it1-1)
+     .                            +(sib+sia)*(tt1b-tt1a)/2d0
+          distart1((i-1)*nt1+it1)=tt1b
+        enddo
+      enddo
+
+      ! convert random number to sampled t1 value
+      sirad=distsit1(4*nt1)
+      sirand=rnd*sirad
+      do it1=1,4*nt1
+        if(distsit1(it1).gt.sirand) then
+          merad_sample_t1=distart1(it1-1)+(distart1(it1)-distart1(it1-1))
+     .                    *(sirand-distsit1(it1-1))
+     .                    /(distsit1(it1)-distsit1(it1-1))
+        return
+        endif
+      enddo
+
+      end function merad_sample_t1
+
+!===============================================================================
+      real(C_DOUBLE) function merad_sample_z(t, t1gen, vgen, plin, rnd)
+! return the sampled t1 for hard photon emission
+! t: Mandelstam variable t (MeV^2)
+! vgen: kinematics variable v for photon (MeV^2)
+! plin: degree of polarization
+! rnd: a random number from 0 to 1
+     &bind(C, name = "merad_sample_z")
+      use, intrinsic :: ISO_C_BINDING
+      implicit none
+      real(C_DOUBLE), intent(IN), VALUE :: t, t1gen, vgen, plin, rnd
+      real*8 fsir, sia, sib, zza, zzb, det, zmax, zmin
+      real*8 sirad, sirand
+      integer nn, iz
+      include 'merad_const.inc'
+      include 'merad_grid.inc'
+      include 'merad_gr.inc'
+
+      ! prepare for distribution
+      call zd(t,t1gen,vgen)
+      det=(bz**2-az*cz)
+      zmax=(-bz+dsqrt(det))/az
+      zmin=cz/az/zmax
+
+      zzb=zmin
+      sib=0d0
+      do iz=1,nz
+        zza=zzb
+        sia=sib
+        zzb=zmin+(zmax-zmin)*grz(iz)
+        sib=fsir(t,t1gen,vgen,zzb,plin,nn,0,0d0)
+        distsiz(iz)=distsiz(iz-1)+(sib+sia)*(zzb-zza)/2d0
+        distarz(iz)=zzb
+      enddo
+
+      sirad=distsiz(nz)
+      sirand=rnd*sirad
+
+      do iz=1,nz
+        if(distsiz(iz).gt.sirand) then
+          merad_sample_z=distarz(iz-1)+(distarz(iz)-distarz(iz-1))
+     .                   *(sirand-distsiz(iz-1))
+     .                   /(distsiz(iz)-distsiz(iz-1))
+          return
+        endif
+      enddo
+
+      end function merad_sample_z
+
+!===============================================================================
+      real*8 function sigborn(t,pl)
 ! retrun the Born cross section
 ! t: the Mandelstam variable t (MeV^2)
 ! pl: degree of polarization
@@ -118,7 +230,7 @@
       pl3=-(ss**4+4d0*m2*(ss**2*t+m2*(-ss**2+2d0*t**2-4d0*m2*t)))/als
       sigborn=coeb*(u1/t**2+u2/u**2+u3/u/t+pl*(pl1/t**2+pl2/u**2+pl3/u/t))
 
-      end
+      end function sigborn
 
 !===============================================================================
       subroutine zd(t,t1,v)
@@ -150,10 +262,10 @@
      .    +(16d0*m2**2+t1**2-4d0*m2*(s+2d0*t1))*u)
      .    -2d0*(2d0*m2-t1)*(4d0*m2-s-t1)*u*v+(s+t1-4d0*m2)**2*v**2
 
-      end
+      end subroutine zd
 
 !===============================================================================
-      double precision function fsir(t,t1,v,z,pl,nn,ikey,sig0)
+      real*8 function fsir(t,t1,v,z,pl,nn,ikey,sig0)
 ! The cross section of real photon emission
 ! t,t1,v,z are kinematic invariant
 ! pl is degree of polarization
@@ -1003,9 +1115,9 @@
 !     print *,'fsir',fsir
       if(fsir.lt.0)nn=nn+1
       if(ikey.eq.-1)then
-       fir=-4d0*((aj5+aj7+m2*aj1*vv**2+aj14)+(t-2d0*m2)*
-     .      (aj23+aj13*vv)+(s-2d0*m2)*
-     .      (aj36+vv*aj4)-(s+t-2d0*m2)*(vv*aj6+aj24))
-       fsir=fsir-alfa/4d0/pi**2*fir*sig0
+        fir=-4d0*((aj5+aj7+m2*aj1*vv**2+aj14)+(t-2d0*m2)
+     .      *(aj23+aj13*vv)+(s-2d0*m2)
+     .      *(aj36+vv*aj4)-(s+t-2d0*m2)*(vv*aj6+aj24))
+        fsir=fsir-alfa/4d0/pi**2*fir*sig0
       endif
-      end
+      end function fsir
