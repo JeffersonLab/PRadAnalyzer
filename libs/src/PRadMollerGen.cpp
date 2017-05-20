@@ -20,7 +20,8 @@
 #include <iomanip>
 #include "PRadBenchMark.h"
 
-#define PROGRESS_COUNT 1000
+#define PROGRESS_EVENT_COUNT 1000
+#define PROGRESS_BIN_COUNT 10
 
 //#define MOLLER_TEST_URA
 
@@ -143,8 +144,8 @@ inline double calc_azimuthal(double *p)
 
 
 // constructor
-PRadMollerGen::PRadMollerGen(double vmin, double vmax)
-: v_min(vmin), v_cut(vmax)
+PRadMollerGen::PRadMollerGen(double vmin, double vmax, int bins)
+: v_min(vmin), v_cut(vmax), theta_bins(bins)
 {
     // place holder
 }
@@ -171,7 +172,7 @@ const
     }
 
     PRadBenchMark timer;
-    std::cout << "Preparing distributions to sample events..." << std::endl;
+    std::cout << "Preparing distributions in theta bins to sample events..." << std::endl;
 
     // set up random number generator
     // a "true" random number engine, good for seed
@@ -196,18 +197,25 @@ const
     }
 
     // prepare grid for interpolation of angle
-    int abins = 100;
-    double angle_step = (max_angle - min_angle)/(double)abins;
+    double angle_step = (max_angle - min_angle)/(double)theta_bins;
     struct CDF_Angle {double cdf, angle, sig_born, sig_nrad, sig_rad, v_cdf[MERAD_NV], v_val[MERAD_NV];};
-    std::vector<CDF_Angle> angle_dist(abins + 1);
+    std::vector<CDF_Angle> angle_dist(theta_bins + 1);
 
     // first point
     CDF_Angle &fp = angle_dist[0];
     fp.angle = min_angle;
     fp.cdf = 0.;
     GetXS(Es, fp.angle, fp.sig_born, fp.sig_nrad, fp.sig_rad);
-    for(int i = 1; i <= abins; ++i)
+    for(int i = 1; i <= theta_bins; ++i)
     {
+        // show progress
+        if(i%PROGRESS_BIN_COUNT == 0) {
+            std::cout <<"------[ bin " << i << "/" << theta_bins << " ]---"
+                      << "---[ " << timer.GetElapsedTimeStr() << " ]---"
+                      << "---[ " << timer.GetElapsedTime()/(double)i << " ms/bin ]------"
+                      << "\r" << std::flush;
+        }
+
         CDF_Angle &point = angle_dist[i];
         CDF_Angle &prev = angle_dist[i - 1];
         point.angle = min_angle + angle_step*i;
@@ -224,7 +232,11 @@ const
         }
     }
 
-    std::cout << "Preparation done! " << timer.GetElapsedTimeStr() << std::endl;
+    std::cout <<"------[ bin " << theta_bins << "/" << theta_bins << " ]---"
+              << "---[ " << timer.GetElapsedTimeStr() << " ]---"
+              << "---[ " << timer.GetElapsedTime()/(double)theta_bins << " ms/bin ]------"
+              << "\n"
+              << "Preparation done! Now start events generation..." << std::endl;
     timer.Reset();
 
     // convert uniform distribution to cross-section vs. angle distribution
@@ -297,7 +309,7 @@ const
             }
         }
 
-        MomentumRec(k2_CM, p2_CM, k_CM, s, t, t1, v, z, uni_dist(rng)*2.*cana::pi);
+        MomentumRec(k2_CM, p2_CM, k_CM, s, t, t1, v, z, uni_dist(rng), uni_dist(rng));
         four_momentum_boost_z(k2, k2_CM, -beta_CM);
         four_momentum_boost_z(p2, p2_CM, -beta_CM);
         four_momentum_boost_z(k, k_CM, -beta_CM);
@@ -311,7 +323,7 @@ const
         }
 
         // show progress
-        if(i%PROGRESS_COUNT == 0) {
+        if(i%PROGRESS_EVENT_COUNT == 0) {
             std::cout <<"------[ ev " << i << "/" << nevents << " ]---"
                       << "---[ " << timer.GetElapsedTimeStr() << " ]---"
                       << "---[ " << timer.GetElapsedTime()/(double)i << " ms/ev ]------"
@@ -345,7 +357,8 @@ const
     std::cout <<"------[ ev " << nevents << "/" << nevents << " ]---"
               << "---[ " << timer.GetElapsedTimeStr() << " ]---"
               << "---[ " << timer.GetElapsedTime()/(double)nevents << " ms/ev ]------"
-              << std::endl;
+              << "\n"
+              << "Events generation done!" << std::endl;
 }
 
 // get cross section
@@ -708,12 +721,17 @@ const
 
 
 // reconstruct the four momentum of outgoing particles by invariants and azimuthal angle
-// units are in MeV and rad
+// units are in MeV
 // incident particles are in CM frame
 // k1[0] = p1[0] = sqrt(s)/2, k1p = p1p = sqrt(lamda_s/s)/2
+// rnd1 is a random number (0, 1) to sample azimuthal angle phi
+// rnd2 is a random number (0, 1) to switch sign
 void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
-                                double s, double t, double t1, double v, double z, double phi)
+                                double s, double t, double t1, double v, double z,
+                                double rnd1, double rnd2)
 {
+    double phi = rnd1*cana::pi*2.;
+
     // frequently used variables
     double lamda_s = s*(s - 4.*m2);
     double lamda_1 = pow2(s - v) - 4.*s*m2;
@@ -728,9 +746,13 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     double lamda_34 = lamda_3*lamda_4;
     double lamda_27 = lamda_2*lamda_7;
     double lamda_36 = lamda_3*lamda_6;
-    double lamda_s18 = lamda_s*lamda_1*lamda_8;
     double lamda_1_s3 = lamda_1*sqrt(lamda_s*lamda_3);
 
+    // TODO, this sign change is from MERADGEN's code
+    // it probably is related to t/u channel photon emission
+    double slamda_s18 = sqrt(lamda_s*lamda_1*lamda_8);
+    if(rnd2 > 0.5)
+        slamda_s18 *= -1.;
 /*
     // outgoing electron 1
     k2[0] = (s - v)/sqrt(s)/2.;
@@ -740,22 +762,22 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
 
     // outgoing electron 2
     p2[0] = (s - z)/sqrt(s)/2.;
-    p2[1] = -(sqrt(lamda_s18)*sin(phi) + (4.*lamda_34 + s*lamda_27)*cos(phi))/4./lamda_1_s3;
-    p2[2] = (sqrt(lamda_s18)*cos(phi) - (4.*lamda_34 + s*lamda_27)*sin(phi))/4./lamda_1_s3;
+    p2[1] = -(slamda_s18*sin(phi) + (4.*lamda_34 + s*lamda_27)*cos(phi))/4./lamda_1_s3;
+    p2[2] = (slamda_s18*cos(phi) - (4.*lamda_34 + s*lamda_27)*sin(phi))/4./lamda_1_s3;
     p2[3] = sqrt(s/lamda_s)*(lamda_7 - lamda_2*lamda_4)/lamda_1/2.;
 */
 
     // outgoing photon
     k[0] = (v + z)/sqrt(s)/2.;
-    k[1] = (sqrt(lamda_s18)*sin(phi) + (4.*lamda_36 - s*lamda_27)*cos(phi))/4./lamda_1_s3;
-    k[2] = (-sqrt(lamda_s18)*cos(phi) + (4.*lamda_36 - s*lamda_27)*sin(phi))/4./lamda_1_s3;
+    k[1] = (slamda_s18*sin(phi) + (4.*lamda_36 - s*lamda_27)*cos(phi))/4./lamda_1_s3;
+    k[2] = (-slamda_s18*cos(phi) + (4.*lamda_36 - s*lamda_27)*sin(phi))/4./lamda_1_s3;
     k[3] = sqrt(s/lamda_s)*(lamda_7 + lamda_2*lamda_6)/lamda_1/2.;
 
     // p2 - p1
     double vp[4];
     vp[0] = -z/sqrt(s)/2.;
-    vp[1] = -(sqrt(lamda_s18)*sin(phi) + (4.*lamda_34 + s*lamda_27)*cos(phi))/4./lamda_1_s3;
-    vp[2] = (sqrt(lamda_s18)*cos(phi) - (4.*lamda_34 + s*lamda_27)*sin(phi))/4./lamda_1_s3;
+    vp[1] = -(slamda_s18*sin(phi) + (4.*lamda_34 + s*lamda_27)*cos(phi))/4./lamda_1_s3;
+    vp[2] = (slamda_s18*cos(phi) - (4.*lamda_34 + s*lamda_27)*sin(phi))/4./lamda_1_s3;
     vp[3] = (lamda_s*lamda_1 - s*(lamda_7 + lamda_2*lamda_4))/2./sqrt(s*lamda_s)/lamda_1;
 
     // outgoing electron 1

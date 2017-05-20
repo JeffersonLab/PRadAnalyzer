@@ -13,7 +13,7 @@ extern "C"
     // the grid used in meradgen declared in
     // fortran/include/merad_grid.inc
     // dimension must be changed accordingly
-#define MERAD_NV 60
+#define MERAD_NV 300
 #define MERAD_NT1 30
 #define MERAD_NZ 60
 
@@ -34,7 +34,7 @@ extern "C"
 class PRadMollerGen
 {
 public:
-    PRadMollerGen(double vmin = 5, double vmax = 400);
+    PRadMollerGen(double vmin = 5, double vmax = 400, int nbins = 10000);
     virtual ~PRadMollerGen();
 
     void Generate(double Es, double min_angle, double max_angle, int nevents,
@@ -42,7 +42,8 @@ public:
     void GetXS(double Es, double angle,
                double &sig_born, double &sig_nrad, double &sig_rad) const;
     static void MomentumRec(double *k2, double *p2, double *k,
-                            double s, double t, double t1, double v, double z, double phi);
+                            double s, double t, double t1, double v, double z,
+                            double rnd1 = 0., double rnd2 = 0.);
 
 private:
     void moller_Vph(double s, double t,
@@ -56,6 +57,8 @@ private:
     // v_min defines the minimum photon energy that to be generated (hard photons)
     // v_cut defines the integration range to the highest photon energy
     double v_min, v_cut;
+    // theta_bins defines the sampling precision in theta
+    int theta_bins;
 };
 
 #endif

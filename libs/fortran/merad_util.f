@@ -1,29 +1,37 @@
       subroutine grid_init
       implicit none
-      integer i
+      integer i, n1, n2
       include 'merad_grid.inc'
-      do i=1,30
-        grv(i)=dble(i-1)/dble(29)/4d0
+      ! for grid v
+      n1 = nv/2
+      n2 = n1 + nv/4
+      do i=1,n1
+        grv(i)=dble(i-1)/dble(n1-1)/4d0
       enddo
-      do i=31,45
-        grv(i)=0.25d0+dble(i-30)/dble(45-30)/4d0
+      do i=n1+1,n2
+        grv(i)=0.25d0+dble(i-n1)/dble(n2-n1)/4d0
       enddo
-      do i=46,nv
-        grv(i)=0.5d0+dble(i-45)/dble(nv-45)/2d0
+      do i=n2+1,nv
+        grv(i)=0.5d0+dble(i-n2)/dble(nv-n2)/2d0
       enddo
-      do i=1,7
-        grt1(i)=0.1d0*dble(i)**2/49d0/2d0
-        grt1(31-i)=1d0+grt1(1)-grt1(i)
+      ! for grid nt1
+      n1 = nt1/4
+      n2 = nt1/2
+      do i=1,n1
+        grt1(i)=0.1d0*dble(i**2)/dble(n1**2)/2d0
+        grt1(nt1+1-i)=1d0+grt1(1)-grt1(i)
       enddo
-      do i=8,15
-        grt1(i)=(0.1d0+0.9d0*(dble(i-7))/8d0)/2d0
-        grt1(31-i)=1d0+grt1(1)-grt1(i)
+      do i=n1+1,n2
+        grt1(i)=(0.1d0+0.9d0*(dble(i-n1))/dble(n2-n1))/2d0
+        grt1(nt1+1-i)=1d0+grt1(1)-grt1(i)
       enddo
-      do i=1,30
-        grz(i)=0.5d0*dble(i**2)/30d0**2
+      ! for grid nz
+      n1 = nz/2
+      do i=1,n1
+        grz(i)=0.5d0*dble(i**2)/dble(n1**2)
       enddo
-      do i=1,30
-        grz(61-i)=1d0-0.49d0*dble(i**2)/30d0**2
+      do i=1,n1
+        grz(nz+1-i)=1d0-0.49d0*dble(i**2)/dble(n1**2)
       enddo
       end
 

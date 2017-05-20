@@ -94,7 +94,7 @@ void moller_test()
 
 void moller_gen_test(int Nevents, const char *path = "moller_test.dat")
 {
-    PRadMollerGen moller;
+    PRadMollerGen moller(5, 1000);
     moller.Generate(2142, 0.3, 3.0, Nevents, path);
 }
 
@@ -104,7 +104,7 @@ void show_moller_gen(const char *path)
     c_parser.OpenFile(path);
 
     double p1, p2, p, th1, th2, th, ph1, ph2, ph;
-    TH2F *hist = new TH2F("Moller dist", "Moller dist", 1000, 0, 3, 1000, 0, 2200);
+    TH2F *hist = new TH2F("Moller dist", "Moller dist", 200, 0, 3, 200, 0, 2200);
     double m = cana::ele_mass;
     while(c_parser.ParseLine())
     {
@@ -115,6 +115,6 @@ void show_moller_gen(const char *path)
             hist->Fill(th*cana::rad2deg, sqrt(p*p + m*m));
     }
 
-    TCanvas *c1 = new TCanvas("Moller XS", "Moller XS", 200, 10, 1200, 500);
+    TCanvas *c1 = new TCanvas("Moller XS", "Moller XS", 200, 10, 700, 500);
     hist->Draw("colz");
 }
