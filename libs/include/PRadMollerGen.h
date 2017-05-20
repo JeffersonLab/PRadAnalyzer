@@ -37,9 +37,10 @@ public:
     PRadMollerGen(double vmin = 5, double vmax = 400);
     virtual ~PRadMollerGen();
 
-    void Generate(double Es, double min_angle, double max_angle, int nevents) const;
-    void GetXS(double Es, double angle, double &sig_born, double &sig_nrad, double &sig_rad) const;
-
+    void Generate(double Es, double min_angle, double max_angle, int nevents,
+                  const char *path) const;
+    void GetXS(double Es, double angle,
+               double &sig_born, double &sig_nrad, double &sig_rad) const;
     static void MomentumRec(double *k2, double *p2, double *k,
                             double s, double t, double t1, double v, double z, double phi);
 

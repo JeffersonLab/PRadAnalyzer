@@ -92,120 +92,29 @@ void moller_test()
     g3->Draw("AC");
 }
 
-void moller_gen_test()
+void moller_gen_test(int Nevents, const char *path = "moller_test.dat")
 {
     PRadMollerGen moller;
-    moller.Generate(2142, 0.3, 3.0, 10000000);
+    moller.Generate(2142, 0.3, 3.0, Nevents, path);
 }
 
-void four_momentum_boost_z(double *p, double *pp, double beta)
+void show_moller_gen(const char *path)
 {
-    double gamma = sqrt(1./(1. - beta*beta));
-    p[0] = pp[0];
-    p[1] = pp[1];
-    p[2] = gamma*(pp[2] - beta*pp[3]);
-    p[3] = gamma*(pp[3] - beta*pp[2]);
-}
+    ConfigParser c_parser;
+    c_parser.OpenFile(path);
 
-void Lorentz_test(double energy = 1100., double angle_CM = 90)
-{
+    double p1, p2, p, th1, th2, th, ph1, ph2, ph;
+    TH2F *hist = new TH2F("Moller dist", "Moller dist", 1000, 0, 3, 1000, 0, 2200);
     double m = cana::ele_mass;
-    double theta_CM = angle_CM*cana::deg2rad;
-    double beta_CM = sqrt((energy - m)/(energy + m));
-
-    double p1[4] = {0., 0., sqrt(energy*energy - m*m), energy};
-    double k1[4] = {0., 0., 0., m};
-    double p1_CM[4], k1_CM[4];
-    four_momentum_boost_z(p1_CM, p1, beta_CM);
-    four_momentum_boost_z(k1_CM, k1, beta_CM);
-
-    double p_CM = sqrt(p1_CM[0]*p1_CM[0] + p1_CM[1]*p1_CM[1] + p1_CM[2]*p1_CM[2]);
-    double E_CM = p1_CM[3];
-
-    cout << p_CM << ", " << sqrt(m*(energy - m)/2.) << ", "
-         << E_CM << ", " << sqrt(m*(energy + m)/2.)
-         << endl;
-
-    double p2_CM[4] = {-sin(theta_CM)*p_CM, 0., -cos(theta_CM)*p_CM, E_CM};
-    double k2_CM[4] = {sin(theta_CM)*p_CM, 0., cos(theta_CM)*p_CM, E_CM};
-    double p2[4], k2[4];
-
-    four_momentum_boost_z(k2, k2_CM, -beta_CM);
-    four_momentum_boost_z(p2, p2_CM, -beta_CM);
-
-    double tangent1 = sqrt((k2[0]*k2[0] + k2[1]*k2[1])/k2[2]/k2[2]);
-    double tangent2 = sqrt((p2[0]*p2[0] + p2[1]*p2[1])/p2[2]/p2[2]);
-    double angle1 = atan(tangent1)*cana::rad2deg;
-    double angle2 = atan(tangent2)*cana::rad2deg;
-    cout << angle1 << ", " << angle2 << ", "
-         << acos(sqrt((energy + m)/(energy + 3.*m)))*cana::rad2deg
-         << endl;
-}
-
-    // equation (A.14) - (A.15)
-double S_phi(const double &s_1, const double &s_2, const double &s_3)
-{
-    double m = cana::ele_mass, m2 = m*m;
-    double lamda_1 = s_1*s_1 - 16.*m2*m2, slamda_1 = sqrt(lamda_1);
-    double lamda_2 = s_2*s_2 - 16.*m2*m2, slamda_2 = sqrt(lamda_2);
-    double lamda_3 = s_3*s_3 - 16.*m2*m2, slamda_3 = sqrt(lamda_3);
-    // z_u and z_d
-    double z_ud[2] = {slamda_1/slamda_2 - 1., (s_1*s_2 - 4.*m2*s_3)/lamda_2 - 1.};
-    // z_1, z_2, z_3, z_4
-    double z[4] = {1./slamda_2*(4.*m2*(s_3 - slamda_3)/(s_2 - slamda_2) - s_1 - slamda_2),
-                   1./slamda_2*(4.*m2*(s_3 + slamda_3)/(s_2 - slamda_2) - s_1 - slamda_2),
-                   1./slamda_2*(s_1 - slamda_2 - 4.*m2*(s_3 + slamda_3)/(s_2 + slamda_2)),
-                   1./slamda_2*(s_1 - slamda_2 - 4.*m2*(s_3 - slamda_3)/(s_2 + slamda_2))};
-
-    // Sj
-    double Sj[4] = {1, 1, -1, -1};
-    // (-1)^(i + 1), i from 1 to 4 but index is from 0 to 3
-    double Si[4] = {1, -1, 1, -1};
-    // z_u term - z_d term
-    double Sk[2] = {1, -1};
-
-    double result = 0.;
-    for(int k = 0; k < 2; ++k)
+    while(c_parser.ParseLine())
     {
-        // first term
-        double term = log((s_2 - slamda_2)/(s_2 + slamda_2))
-                      * log((z_ud[k] - z[0])*(z_ud[k] - z[2])/(z_ud[k] - z[1])/(z_ud[k] - z[3]));
-
-        // second term
-        double sum_term = 0.;
-        for(int i = 0; i < 4; ++i)
-        {
-            for(int j = 0; j < 4; ++j)
-            {
-                double inner_term;
-                double logzi = log(fabs(z_ud[k] - z[i]));
-                if(i == j) {
-                    inner_term = logzi;
-                } else {
-                    // the input to log may be negative and thus
-                    // the result may be a complex number
-                    // TODO check with authors for this part
-                    double log_term = logzi*log(fabs(z[j] - z[i]));
-                    double spence_term = cana::spence((z_ud[k] - z[i])/(z[j] - z[i]));
-                    inner_term = log_term - spence_term;
-                }
-                sum_term += Sj[j]*Si[i]*inner_term;
-                cout << i+1 << ", " << j+1 << ", " << Sj[j]*Si[i]*inner_term << ", " << sum_term << endl;
-            }
-        }
-        cout << s_3/2./slamda_3*sum_term << endl;
-
-        result += s_3/2./slamda_3*(term + sum_term)*Sk[k];
+        c_parser >> p1 >> th1 >> ph1 >> p2 >> th2 >> ph2 >> p >> th >> ph;
+        hist->Fill(th1*cana::rad2deg, sqrt(p1*p1 + m*m));
+        hist->Fill(th2*cana::rad2deg, sqrt(p2*p2 + m*m));
+        if(p > 0.)
+            hist->Fill(th*cana::rad2deg, sqrt(p*p + m*m));
     }
-    return result;
+
+    TCanvas *c1 = new TCanvas("Moller XS", "Moller XS", 200, 10, 1200, 500);
+    hist->Draw("colz");
 }
-
-void S_phi_test()
-{
-    double s1 = 961.632;
-    double s2 = 2248.4;
-    double s3 = 1287.81;
-
-    cout << S_phi(s1, s2, s3) << ", " << S_phi(s2, s1, s3) << endl;
-}
-

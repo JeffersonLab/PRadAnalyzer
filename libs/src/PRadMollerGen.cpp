@@ -10,15 +10,17 @@
 // Code Developer: Chao Peng                                                  //
 //============================================================================//
 
-// TODO not finished, now only has the cross sections part
-// need to implement the sampling part
 
 #include "PRadMollerGen.h"
 #include "canalib.h"
 #include <cmath>
 #include <random>
 #include <iostream>
+#include <fstream>
 #include <iomanip>
+#include "PRadBenchMark.h"
+
+#define PROGRESS_COUNT 1000
 
 //#define MOLLER_TEST_URA
 
@@ -114,6 +116,31 @@ inline void get_moller_stu(double Es, double angle, double &s, double &t, double
     u = 4.*m2 - s - t;
 }
 
+// calculate momentum square from four momentum
+inline double calc_p2(double *p)
+{
+    return p[1]*p[1] + p[2]*p[2] + p[3]*p[3];
+}
+
+// calculate mass square from four momentum
+inline double calc_mass2(double *p)
+{
+    return p[0]*p[0] - calc_p2(p);
+}
+
+// calculate the polar angle from four momentum
+inline double calc_polar(double *p)
+{
+    return atan(sqrt((p[1]*p[1] + p[2]*p[2])/(p[3]*p[3])));
+}
+
+// calculate the azimuthal angle from four momentum
+inline double calc_azimuthal(double *p)
+{
+    return atan2(p[1], p[2]);
+}
+
+
 
 // constructor
 PRadMollerGen::PRadMollerGen(double vmin, double vmax)
@@ -129,7 +156,8 @@ PRadMollerGen::~PRadMollerGen()
 }
 
 // generate Moller events, unit is in MeV, degree
-void PRadMollerGen::Generate(double Es, double min_angle, double max_angle, int nevents)
+void PRadMollerGen::Generate(double Es, double min_angle, double max_angle,
+                             int nevents, const char *save_path)
 const
 {
     // sanity check
@@ -141,6 +169,9 @@ const
                   << std::endl;
         return;
     }
+
+    PRadBenchMark timer;
+    std::cout << "Preparing distributions to sample events..." << std::endl;
 
     // set up random number generator
     // a "true" random number engine, good for seed
@@ -193,6 +224,9 @@ const
         }
     }
 
+    std::cout << "Preparation done! " << timer.GetElapsedTimeStr() << std::endl;
+    timer.Reset();
+
     // convert uniform distribution to cross-section vs. angle distribution
     auto comp = [](const CDF_Angle &point, const double &val)
                 {
@@ -202,6 +236,7 @@ const
     double beta_CM = get_CM_beta(Es);
     double angle, s, t, u, v, t1, z;
     double k2[4], p2[4], k[4], k2_CM[4], p2_CM[4], k_CM[4];
+    std::ofstream fout(save_path);
 
     for(int i = 0; i < nevents; ++i)
     {
@@ -267,8 +302,50 @@ const
         four_momentum_boost_z(p2, p2_CM, -beta_CM);
         four_momentum_boost_z(k, k_CM, -beta_CM);
 
-        std::cout << i << ", " << angle << ", " << k2[0] << ", " << p2[0] << ", " << k[0] << std::endl;
+        fout << sqrt(calc_p2(k2)) << "   " << calc_polar(k2) << "   " << calc_azimuthal(k2) << "   "
+             << sqrt(calc_p2(p2)) << "   " << calc_polar(p2) << "   " << calc_azimuthal(p2) << "   ";
+        if(rnd_rad > 0.) {
+            fout << sqrt(calc_p2(k)) << "   " << calc_polar(k) << "   " << calc_azimuthal(k) << std::endl;
+        } else {
+            fout << 0. << "   " << 0. << "   " << 0. << std::endl;
+        }
+
+        // show progress
+        if(i%PROGRESS_COUNT == 0) {
+            std::cout <<"------[ ev " << i << "/" << nevents << " ]---"
+                      << "---[ " << timer.GetElapsedTimeStr() << " ]---"
+                      << "---[ " << timer.GetElapsedTime()/(double)i << " ms/ev ]------"
+                      << "\r" << std::flush;
+        }
+
+/*
+        std::cout << i << ", " << angle << ", "
+                  << k2[0] << ", " << calc_mass2(k2) << ", "
+                  << p2[0] << ", " << calc_mass2(p2) << ", "
+                  << k[0] << ", " << calc_mass2(k) << ", "
+                  << z << ", " << 2.*(k[0]*k2[0] - k[1]*k2[1] - k[2]*k2[2] - k[3]*k2[3]) << ", "
+                  << t1 << ", " << pow2(p2[0] - m) - p2[1]*p2[1] - p2[2]*p2[2] - p2[3]*p2[3] << ", "
+                  << pow2(Es - k2[0] - k[0]) - pow2(k2[1] + k[1]) - pow2(k2[2] + k[2]) - pow2(sqrt(Es*Es - m*m) - k2[3] - k[3])
+                  << std::endl;
+        std::cout << sqrt(s) << ", "
+                  << k2_CM[0] + p2_CM[0] + k_CM[0] << ", "
+                  << k2_CM[1] + p2_CM[1] + k_CM[1] << ", "
+                  << k2_CM[2] + p2_CM[2] + k_CM[2] << ", "
+                  << k2_CM[3] + p2_CM[3] + k_CM[3]
+                  << std::endl;
+        std::cout << Es + m << ", "
+                  << k2[0] + p2[0] + k[0] << ", "
+                  << k2[1] + p2[1] + k[1] << ", "
+                  << k2[2] + p2[2] + k[2] << ", "
+                  << k2[3] + p2[3] + k[3]
+                  << std::endl;
+*/
     }
+
+    std::cout <<"------[ ev " << nevents << "/" << nevents << " ]---"
+              << "---[ " << timer.GetElapsedTimeStr() << " ]---"
+              << "---[ " << timer.GetElapsedTime()/(double)nevents << " ms/ev ]------"
+              << std::endl;
 }
 
 // get cross section
@@ -532,7 +609,7 @@ const
                              {
                                  double sign = Sj[j]*Si[i];
                                  if(i == j) {
-                                     sum_term += sign*log(pow2(z_ud[k] - z[i]))/2.;
+                                     sum_term += sign*pow2(log(fabs(z_ud[k] - z[i])))/2.;
                                  } else {
                                      // the input to log may be negative and thus
                                      // the result may be a complex number
@@ -543,7 +620,7 @@ const
                              }
                          }
 
-                         result += s_3/2./slamda_3*(/*term*/ + sum_term)*Sk[k];
+                         result += s_3/2./slamda_3*(term + sum_term)*Sk[k];
                      }
                      return result;
                  };
@@ -654,6 +731,7 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     double lamda_s18 = lamda_s*lamda_1*lamda_8;
     double lamda_1_s3 = lamda_1*sqrt(lamda_s*lamda_3);
 
+/*
     // outgoing electron 1
     k2[0] = (s - v)/sqrt(s)/2.;
     k2[1] = sqrt(lamda_3/lamda_s)*cos(phi);
@@ -665,10 +743,33 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     p2[1] = -(sqrt(lamda_s18)*sin(phi) + (4.*lamda_34 + s*lamda_27)*cos(phi))/4./lamda_1_s3;
     p2[2] = (sqrt(lamda_s18)*cos(phi) - (4.*lamda_34 + s*lamda_27)*sin(phi))/4./lamda_1_s3;
     p2[3] = sqrt(s/lamda_s)*(lamda_7 - lamda_2*lamda_4)/lamda_1/2.;
+*/
 
     // outgoing photon
     k[0] = (v + z)/sqrt(s)/2.;
     k[1] = (sqrt(lamda_s18)*sin(phi) + (4.*lamda_36 - s*lamda_27)*cos(phi))/4./lamda_1_s3;
     k[2] = (-sqrt(lamda_s18)*cos(phi) + (4.*lamda_36 - s*lamda_27)*sin(phi))/4./lamda_1_s3;
     k[3] = sqrt(s/lamda_s)*(lamda_7 + lamda_2*lamda_6)/lamda_1/2.;
+
+    // p2 - p1
+    double vp[4];
+    vp[0] = -z/sqrt(s)/2.;
+    vp[1] = -(sqrt(lamda_s18)*sin(phi) + (4.*lamda_34 + s*lamda_27)*cos(phi))/4./lamda_1_s3;
+    vp[2] = (sqrt(lamda_s18)*cos(phi) - (4.*lamda_34 + s*lamda_27)*sin(phi))/4./lamda_1_s3;
+    vp[3] = (lamda_s*lamda_1 - s*(lamda_7 + lamda_2*lamda_4))/2./sqrt(s*lamda_s)/lamda_1;
+
+    // outgoing electron 1
+    // p2 - p1 = k1 - k2 - k
+    // k2 = k1 - k - vp
+    k2[0] = sqrt(s)/2. - vp[0] - k[0];
+    k2[1] = -vp[1] - k[1];
+    k2[2] = -vp[2] - k[2];
+    k2[3] = sqrt(lamda_s/s)/2. - vp[3] - k[3];
+
+    // outgoing electron 2
+    // p2 = vp + p1
+    p2[0] = vp[0] + sqrt(s)/2.;
+    p2[1] = vp[1];
+    p2[2] = vp[2];
+    p2[3] = vp[3] - sqrt(lamda_s/s)/2.;
 }
