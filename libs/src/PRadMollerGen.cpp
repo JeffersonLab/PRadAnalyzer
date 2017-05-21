@@ -266,7 +266,7 @@ const
         double rnd2 = uni_dist(rng);
         double sig_rad, sig_nrad, rnd_rad;
 
-        // exact matched one point
+        // exactly matched one point
         if(interval.first == interval.second) {
             angle = interval.first->angle;
             get_moller_stu(Es, angle, s, t, u);
@@ -358,7 +358,12 @@ const
               << "---[ " << timer.GetElapsedTimeStr() << " ]---"
               << "---[ " << timer.GetElapsedTime()/(double)nevents << " ms/ev ]------"
               << "\n"
-              << "Events generation done!" << std::endl;
+              << "Events generation done! Saved in file \"" << save_path << "\".\n"
+              << "Integrated luminosity = " << (double)nevents/angle_dist.back().cdf
+              << " nb^-1."
+              << std::endl;
+
+
 }
 
 // get cross section
