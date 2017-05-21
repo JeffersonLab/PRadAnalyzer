@@ -1,13 +1,26 @@
 //============================================================================//
-// Calculate UNPOLARIZED Moller cross section with radiation effect           //
+// Monte Carlo event generator for UNPOLARIZED Moller scattering beyond       //
+// ultra-relativistic approximation (URA)                                     //
+//----------------------------------------------------------------------------//
+// References:                                                                //
+// [1] Eur. Phys. J. A51, 1 (2015)                                            //
+//     Radiative corrections beyond the ultra relativistic limit in           //
+//     unpolarized ep elastic and Moller scatterings for the PRad Experiment  //
+//     at Jefferson Laboratory                                                //
+//     I. Akushevich, H. Gao, A. Ilyichev, and M. Meziane                     //
 //                                                                            //
-// Main Reference: Eur. Phys. J. A (2015) 51: 1                               //
-// Radiative corrections beyond the ultra relativistic limit in unpolarized   //
-// ep elastic and Moller scatterings for the PRad Experiment at Jefferson     //
-// Laboratory                                                                 //
-// I. Akushevich, H. Gao, A. Ilyichev, and M. Meziane                         //
+// [2] Comput. Phys. Commun. 176, 218 (2007)                                  //
+//     MERADGEN 1.0: Monte Carlo generator for the simulation of radiative    //
+//     events in parity conserving doubly-polarized Møller scattering         //
+//     A. Afanasev, E. Chudakov, A. Ilyichev, V. Zykunov                      //
 //                                                                            //
+// [3] Journal of Physics G: Nuclear and Particle Physics 26, 2, 113 (2000)   //
+//     The QED lowest-order radiative corrections to the two polarized        //
+//     identical fermion scattering                                           //
+//     N.M. Shumeiko and J.G. Suarez                                          //
+//----------------------------------------------------------------------------//
 // Code Developer: Chao Peng                                                  //
+// Thanks to A. Ilyichev and C. Gu who helped review the formula              //
 //============================================================================//
 
 
@@ -24,6 +37,7 @@
 #define PROGRESS_BIN_COUNT 10
 
 //#define MOLLER_TEST_URA
+//#define MOLLER_TEST_KIN
 
 // some constant values to be used
 const double m = cana::ele_mass;
@@ -330,7 +344,7 @@ const
                       << "\r" << std::flush;
         }
 
-/*
+#ifdef MOLLER_TEST_KIN
         std::cout << i << ", " << angle << ", "
                   << k2[0] << ", " << calc_mass2(k2) << ", "
                   << p2[0] << ", " << calc_mass2(p2) << ", "
@@ -351,7 +365,7 @@ const
                   << k2[2] + p2[2] + k[2] << ", "
                   << k2[3] + p2[3] + k[3]
                   << std::endl;
-*/
+#endif
     }
 
     std::cout <<"------[ ev " << nevents << "/" << nevents << " ]---"
@@ -427,11 +441,9 @@ const
     double xi_t2 = xi_t*xi_t, xi_t4 = xi_t2*xi_t2;
     double xi_u02 = xi_u0*xi_u0, xi_u04 = xi_u02*xi_u02;
 
-    // equation (49), Born Level
+    // equation (49) in [1], Born Level
     // we found that the equation in the paper is wrong in dimension
-    // By comparing with the equation (8) in Ref.
-    // N.M. Shumeiko and J.G. Suarez,
-    // Journal of Physics G: Nuclear and Particle Physics 26, 2, 113 (2000).
+    // By comparing with the equation (8) in [3]
     // There is a factor of (s - 2.0*m^2) missing due to misprint
     sig_0 = (u0*u0/xi_s2/4./s*(4.*xi_u04 - pow2(1. - xi_u02)*(2. + t/u0)) - s*s*xi_s4/u0)
             * 2.*cana::pi*alp2/t/t/s*(s - 2.*m2);
@@ -442,7 +454,7 @@ const
     double log_m = 0.; // log(lamda/m), where lamda is the infinitesimal photon mass
 
     // other frequently used variables
-    // Q^2 (-t) related, equation (27) - (29)
+    // Q^2 (-t) related, equation (27) - (29) in [1]
     double Q2_m = -t + 2.*m2;
     double lamda_m = t*t - 4.*m2*t;
     double slamda_m = sqrt(lamda_m);
@@ -467,7 +479,7 @@ const
     double Li2_u0 = cana::spence((1. + xi_u0)/2./xi_u0);
 
     // vacuum polarization for all leptons, factorized part
-    // equation (41) with Q^2 -> -t
+    // equation (41) in [1] with Q^2 -> -t
     double delta_vac = 0.;
     double lepton_mass[3] = {cana::ele_mass, cana::mu_mass, cana::tau_mass};
     for(auto &vac_m : lepton_mass)
@@ -478,28 +490,28 @@ const
         delta_vac += 2./3.*(-t + 2*vac_m2)*vac_L_m - 10./9. - 8./3.*vac_m2/t*(1. - 2.*vac_m2*vac_L_m);
     }
 
-    // equation (50)
+    // equation (50) in [1]
     sig_S = alp_pi*delta_vac*sig_0;
 
     // vertex correction, factorized part
-    // equation (36) with Q^2 -> -t
+    // equation (36) in [1] with Q^2 -> -t
     double delta_vert = 2.*(Q2_m*L_m - 1.)*log_m + (4.*m2 - 3./2.*t)*L_m - 2.
                         - Q2_m/slamda_m*(lamda_m*L_m*L_m/2. + 2.*cana::spence(2.*slamda_m/(slamda_m - t)) - pi2/2.);
 
     // vertex correction, non-factorized part, anomalous magnetic moment
-    // euqation (52)
+    // equation (52) in [1]
     double sig_AMM = 4.*alp3/st2/xi_t*m2*log_t*(3.*(s - 2.*m2)/u0 + (10.*m2 - 3.*u0)/(s - 4.*m2));
 
-    // equation (51)
+    // equation (51) in [1]
     sig_vert = 2.*alp_pi*delta_vert*sig_0 + sig_AMM;
 
     // box diagram, factorized part
-    // equation (54)
+    // equation (54) in [1]
     double delta_box = (1. + xi_s2)/xi_s*(-4.*log_s*log_m + log_s*log_s - 2*pi2 + 4.*Li2_sp)
                        + (1 + xi_u02)/xi_u0*(4.*log_u0*log_m - log_u0*log_u0 + 2.*log_2u0p*log_2u0p - pi2/3. + 4*Li2_u0);
 
     // box diagram, non-factorized part
-    // equation (A.1) and (A.2)
+    // equation (A.1) and (A.2) in [1]
     double sig_B1, sig_B2;
 
     sig_B1 = 1./12./xi_s/t * ((xi_s2 + 1.)*(xi_s4 - 6.*xi_s2 - 3.)*s2t
@@ -522,7 +534,7 @@ const
              + log_4t*(2.*u0/xi_t2*(xi_t2*t + t + 2.*u0) + (t - u0)*(2.*t + xi_u02*u0 + u0))
              - 1./xi_u0*log_u0*(xi_u02*(t - u0) - 2.*t)*(2.*t + xi_u02*u0 + u0);
 
-    // equation (53)
+    // equation (53) in [1]
     sig_B = alp_pi/2.*delta_box*sig_0 + alp3/xi_s2/s2t/u0*(sig_B1 + sig_B2);
 }
 
@@ -546,7 +558,7 @@ const
     double log_t = log((1. + xi_t)/(xi_t - 1.));
     double log_u0 = log((1. + xi_u0)/(xi_u0 - 1.));
 
-    // equation (A.5) - (A.13)
+    // equation (A.5) - (A.13) in [1]
     double v_limit = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
     double v_max = (v_cut > v_limit) ? v_limit : v_cut;
     double z_u1 = sqrt((xi_u02*(v_max + u0) - v_max)/u0)/xi_u0;
@@ -572,7 +584,7 @@ const
                  return (xi_ch2 + 1.)/2./xi_ch * (Li2_z1 + Li2_z2 - Li2_z3 - Li2_z4 - log_term);
              };
 
-    // equation (A.3)
+    // equation (A.3) in [1]
     delta_1H = log(1. + v_max/m2) + H(s) - H(t)
                + (xi_u02 + 1.)/2./xi_u0
                   * (cana::spence(4.* xi_u0/pow2(xi_u0 + 1.))
@@ -590,7 +602,7 @@ const
                      + 2.*log_u0*log((xi_u02*z_u2*z_u2 - 1.)/(xi_u02 - 1.)));
 
 
-    // equation (A.14) - (A.15)
+    // equation (A.14) - (A.15) in [1]
     auto S_phi = [](const double &s_1, const double &s_2, const double &s_3)
                  {
                      double lamda_1 = s_1*s_1 - 16.*m2*m2, slamda_1 = sqrt(lamda_1);
@@ -643,7 +655,7 @@ const
                      return result;
                  };
 
-    // equation (A.4)
+    // equation (A.4) in [1]
     delta_1S = (xi_s2 + 1.)/2./xi_s*(log_s*log_s + log_s + cana::spence(4.*xi_s/pow2(xi_s + 1.)))
                - (xi_t2 + 1.)/2./xi_t*(log_t*log_t - log_t + cana::spence(4.*xi_t/pow2(xi_t + 1.)))
                - (xi_u02 + 1.)/2./xi_u0*(log_u0*log_u0 - log_u0 + cana::spence(4.*xi_u0/pow2(xi_u0 + 1.)))
@@ -652,15 +664,15 @@ const
                - S_phi(-(xi_t2 + 1.)*t, (xi_s2 + 1.)*s, -(xi_u02 + 1.)*u0) + 1.;
 
 
-    // equation (60)
+    // equation (60) in [1]
     double J_0 = -2.*((xi_s2 + 1.)/xi_s*log_s - (xi_t2 + 1.)/xi_t*log_t
                       - (xi_u02 + 1.)/xi_u0*log_u0 + 2.);
-    // equation (66)
+    // equation (66) in [1]
     delta_1inf = J_0*log(v_max/m2);
 
 // test difference with URA
 #ifdef MOLLER_TEST_URA
-    // equation (61)
+    // equation (61) in [1]
     double delta_1H_URA = log(-t/m2)*(log(pow2(t*(s + t))*(s - v_max)/s/v_max/(v_max - t)/pow2(s + t - v_max)) + 1.)
                           - pow2(log(-t/m2))/2.
                           + 2.*(-cana::spence(v_max/(s + t)) + cana::spence(v_max/s) - cana::spence(v_max/t))
@@ -672,12 +684,12 @@ const
                           - pow2(log(1. - v_max/t))
                           + log(-v_max/t) - pi2/6.;
 
-    // equation (62)
+    // equation (62) in [1]
     double delta_1S_URA = 1. - (log(-t/m2) - 1.)*log(s*(s + t)/t/t)
                           + log(-t/m2)*(3. - 2.*log((s + t)/s))
                           - 5./2.*pow2(log(-t/m2)) - pow2(log((s + t)/s))/2. - pi2/3.;
 
-    // equation (63)
+    // equation (63) in [1]
     double J_0_URA = -4.*(1. + log(m2*s/t/u0));
 
     double s1 = -(xi_u02 + 1.)*u0;
@@ -725,7 +737,8 @@ const
 }
 
 
-// reconstruct the four momentum of outgoing particles by invariants and azimuthal angle
+// reconstruct the four momentum of outgoing particles by invariants and
+// azimuthal angle based on the Appendix A in ref. [2]
 // units are in MeV
 // incident particles are in CM frame
 // k1[0] = p1[0] = sqrt(s)/2, k1p = p1p = sqrt(lamda_s/s)/2
@@ -753,7 +766,8 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     double lamda_36 = lamda_3*lamda_6;
     double lamda_1_s3 = lamda_1*sqrt(lamda_s*lamda_3);
 
-    // TODO, this sign change is from MERADGEN's code
+    // NOTICE, this sign change is from MERADGEN's code but it is not mentioned
+    // in ref. [2]
     // it probably is related to t/u channel photon emission
     double slamda_s18 = sqrt(lamda_s*lamda_1*lamda_8);
     if(rnd2 > 0.5)
@@ -766,12 +780,14 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     k2[3] = sqrt(s/lamda_s)*lamda_2/2.;
 
     // outgoing electron 2
+    // NOTE that the formula in ref. [2] cannot satisfy energy and momentum
+    // conservation, changing the sign before terms have lamda_7 will recover
+    // the conservation laws, thanks to C. Gu who pointed out this
     p2[0] = (s - z)/sqrt(s)/2.;
-    p2[1] = -(slamda_s18*sin(phi) + (4.*lamda_34 + s*lamda_27)*cos(phi))/4./lamda_1_s3;
-    p2[2] = (slamda_s18*cos(phi) - (4.*lamda_34 + s*lamda_27)*sin(phi))/4./lamda_1_s3;
-    p2[3] = sqrt(s/lamda_s)*(lamda_7 - lamda_2*lamda_4)/lamda_1/2.;
+    p2[1] = -(slamda_s18*sin(phi) + (4.*lamda_34 - s*lamda_27)*cos(phi))/4./lamda_1_s3;
+    p2[2] = (slamda_s18*cos(phi) - (4.*lamda_34 - s*lamda_27)*sin(phi))/4./lamda_1_s3;
+    p2[3] = sqrt(s/lamda_s)*(-lamda_7 - lamda_2*lamda_4)/lamda_1/2.;
 */
-
     // outgoing photon
     k[0] = (v + z)/sqrt(s)/2.;
     k[1] = (slamda_s18*sin(phi) + (4.*lamda_36 - s*lamda_27)*cos(phi))/4./lamda_1_s3;
@@ -781,8 +797,8 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     // p2 - p1
     double vp[4];
     vp[0] = -z/sqrt(s)/2.;
-    vp[1] = -(slamda_s18*sin(phi) + (4.*lamda_34 + s*lamda_27)*cos(phi))/4./lamda_1_s3;
-    vp[2] = (slamda_s18*cos(phi) - (4.*lamda_34 + s*lamda_27)*sin(phi))/4./lamda_1_s3;
+    vp[1] = -(slamda_s18*sin(phi) + (4.*lamda_34 - s*lamda_27)*cos(phi))/4./lamda_1_s3;
+    vp[2] = (slamda_s18*cos(phi) - (4.*lamda_34 - s*lamda_27)*sin(phi))/4./lamda_1_s3;
     vp[3] = (lamda_s*lamda_1 - s*(lamda_7 + lamda_2*lamda_4))/2./sqrt(s*lamda_s)/lamda_1;
 
     // outgoing electron 1
@@ -799,4 +815,5 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     p2[1] = vp[1];
     p2[2] = vp[2];
     p2[3] = vp[3] - sqrt(lamda_s/s)/2.;
+
 }
