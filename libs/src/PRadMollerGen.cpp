@@ -236,7 +236,10 @@ const
         // calculate cross sections
         GetXS(Es, point.angle, point.sig_born, point.sig_nrad, point.sig_rad);
 
-        point.cdf = prev.cdf + angle_step*(point.sig_nrad + point.sig_rad + prev.sig_nrad + prev.sig_rad)/2.;
+        // solid angle coverage
+        double solid = 2.*cana::pi*(cos(prev.angle*cana::deg2rad) - cos(point.angle*cana::deg2rad));
+
+        point.cdf = prev.cdf + solid*(point.sig_nrad + point.sig_rad + prev.sig_nrad + prev.sig_rad)/2.;
 
         // copy v distribution that calculated in MERADGEN
         for(int j = 0; j < MERAD_NV; ++j)

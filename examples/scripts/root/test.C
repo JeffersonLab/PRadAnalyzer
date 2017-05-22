@@ -70,7 +70,7 @@ void moller_test()
     TGraph *g2 = new TGraph();
     TGraph *g3 = new TGraph();
     PRadMollerGen moller(4.69, 100);
-    for(double angle = 0.05; angle < 3.8; angle += 0.01)
+    for(double angle = 0.7; angle < 3.0; angle += 0.01)
     {
         double born, non_rad, rad;
         moller.GetXS(energy, angle, born, non_rad, rad);
@@ -104,17 +104,26 @@ void show_moller_gen(const char *path)
     c_parser.OpenFile(path);
 
     double p1, p2, p, th1, th2, th, ph1, ph2, ph;
-    TH2F *hist = new TH2F("Moller dist", "Moller dist", 200, 0, 3, 200, 0, 2200);
+    TH1F *hist_th = new TH1F("theta dist", "theta dist", 200, 0, 3);
+    TH2F *hist_2d = new TH2F("2d dist", "theta vs. energy", 200, 0, 3, 200, 0, 2200);
     double m = cana::ele_mass;
     while(c_parser.ParseLine())
     {
         c_parser >> p1 >> th1 >> ph1 >> p2 >> th2 >> ph2 >> p >> th >> ph;
-        hist->Fill(th1*cana::rad2deg, sqrt(p1*p1 + m*m));
-        hist->Fill(th2*cana::rad2deg, sqrt(p2*p2 + m*m));
-        if(p > 0.)
-            hist->Fill(th*cana::rad2deg, sqrt(p*p + m*m));
+        hist_2d->Fill(th1*cana::rad2deg, sqrt(p1*p1 + m*m));
+        hist_2d->Fill(th2*cana::rad2deg, sqrt(p2*p2 + m*m));
+        hist_th->Fill(th1*cana::rad2deg);
+        hist_th->Fill(th2*cana::rad2deg);
+        if(p > 0.) {
+            hist_2d->Fill(th*cana::rad2deg, sqrt(p*p + m*m));
+        }
     }
 
-    TCanvas *c1 = new TCanvas("Moller XS", "Moller XS", 200, 10, 700, 500);
-    hist->Draw("colz");
+    TCanvas *c1 = new TCanvas("Moller XS", "Moller XS", 200, 10, 1200, 500);
+    c1->Divide(2, 1);
+    c1->cd(1);
+    hist_2d->Draw("colz");
+
+    c1->cd(2);
+    hist_th->Draw("colz");
 }
