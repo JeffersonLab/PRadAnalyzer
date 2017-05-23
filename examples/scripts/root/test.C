@@ -94,7 +94,7 @@ void moller_test()
 
 void moller_gen_test(int Nevents, const char *path = "moller_test.dat")
 {
-    PRadMollerGen moller(5, 1000);
+    PRadMollerGen moller(5, 3000);
     moller.Generate(2142, 0.3, 3.0, Nevents, path);
 }
 

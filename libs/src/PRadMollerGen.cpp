@@ -405,9 +405,11 @@ const
     // u0 channel
     SigmaVph(s, u0, sig_0u, sig_Su, sig_vertu, sig_Bu);
 
+    // limitation on variable v, - 1. to prevent undefined behavior in code
+    double v_limit = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2 - 1.;
+
     // infrared divergent part of real photon emission
     // NOTE that the t and u channels are not separated
-    double v_limit = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
     double v_ir = (v_min > v_limit) ? v_limit : v_min;
     double delta_1H, delta_1S, delta_1inf;
     SigmaIR(s, t, v_ir, delta_1H, delta_1S, delta_1inf);
