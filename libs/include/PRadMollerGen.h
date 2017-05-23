@@ -41,17 +41,17 @@ public:
                   const char *path) const;
     void GetXS(double Es, double angle,
                double &sig_born, double &sig_nrad, double &sig_rad) const;
+
+    // static functions
+    static void SigmaVph(double s, double t,
+                         double &sig_0, double &sig_S, double &sig_vert, double &sig_B);
+    static void SigmaIR(double s, double t, double v_max,
+                        double &delta_1H, double &delta_1S, double &delta_1inf);
+    static void SigmaF(double s, double t, double v_min, double v_max,
+                       double &sig_Fs, double &sig_Fh);
     static void MomentumRec(double *k2, double *p2, double *k,
                             double s, double t, double t1, double v, double z,
                             double rnd1 = 0., double rnd2 = 0.);
-
-private:
-    void moller_Vph(double s, double t,
-                    double &sig_0, double &sig_S, double &sig_vert, double &sig_B) const;
-    void moller_IR(double s, double t,
-                   double &delta_1H, double &delta_1S, double &delta_1inf) const;
-    void moller_IRF(double s, double t, double v_min, double v_max,
-                    double &sig_Fs, double &sig_Fh) const;
 
 private:
     // v_min defines the minimum photon energy that to be generated (hard photons)

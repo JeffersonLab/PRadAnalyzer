@@ -401,20 +401,21 @@ const
     // the t and u channels should be calculated separately
     double sig_0t, sig_0u, sig_St, sig_Su, sig_vertt, sig_vertu, sig_Bt, sig_Bu;
     // t channel
-    moller_Vph(s, t, sig_0t, sig_St, sig_vertt, sig_Bt);
+    SigmaVph(s, t, sig_0t, sig_St, sig_vertt, sig_Bt);
     // u0 channel
-    moller_Vph(s, u0, sig_0u, sig_Su, sig_vertu, sig_Bu);
+    SigmaVph(s, u0, sig_0u, sig_Su, sig_vertu, sig_Bu);
 
     // infrared divergent part of real photon emission
     // NOTE that the t and u channels are not separated
+    double v_limit = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
+    double v_ir = (v_min > v_limit) ? v_limit : v_min;
     double delta_1H, delta_1S, delta_1inf;
-    moller_IR(s, t, delta_1H, delta_1S, delta_1inf);
+    SigmaIR(s, t, v_ir, delta_1H, delta_1S, delta_1inf);
 
     // infrared free part of real photon emission
     double sig_Fs, sig_Fh;
-    double v_limit = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
-    double v_max = (v_limit > v_cut) ? v_cut : v_limit;
-    moller_IRF(s, t, v_min, v_max, sig_Fs, sig_Fh);
+    double v_f = (v_cut > v_limit) ? v_limit : v_cut;
+    SigmaF(s, t, v_ir, v_f, sig_Fs, sig_Fh);
 
     // t and u channels together
     // born level cross section
@@ -425,12 +426,13 @@ const
     sig_rad = sig_Fh*jacob*unit;
 }
 
+
+
 // Cross section including virtual photon part for Moller scattering
 // input Mandelstam variables s, t, u0
 // output cross section including virtual photon effects
-void PRadMollerGen::moller_Vph(double s, double t,
-                               double &sig_0, double &sig_S, double &sig_vert, double &sig_B)
-const
+void PRadMollerGen::SigmaVph(double s, double t,
+                             double &sig_0, double &sig_S, double &sig_vert, double &sig_B)
 {
     double u0 = 4.*m2 - s - t;
     double s2t = s*s*t, st2 = s*t*t, s3 = pow3(s);
@@ -545,9 +547,8 @@ const
 // input Mandelstam variables s, t
 // NOTE that the t and u0 channel are not separated
 // output 3 factorized part for the infrared part of the radiative cross section
-void PRadMollerGen::moller_IR(double s, double t,
-                              double &delta_1H, double &delta_1S, double &delta_1inf)
-const
+void PRadMollerGen::SigmaIR(double s, double t, double v_max,
+                            double &delta_1H, double &delta_1S, double &delta_1inf)
 {
     double u0 = 4.*m2 - s - t;
     // frequently used variables
@@ -562,8 +563,6 @@ const
     double log_u0 = log((1. + xi_u0)/(xi_u0 - 1.));
 
     // equation (A.5) - (A.13) in [1]
-    double v_limit = (s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
-    double v_max = (v_cut > v_limit) ? v_limit : v_cut;
     double z_u1 = sqrt((xi_u02*(v_max + u0) - v_max)/u0)/xi_u0;
     double z_u2 = sqrt((v_max + xi_u02*u0)/(v_max + u0))/xi_u0;
     auto H = [v_max](const double &ch)
@@ -725,9 +724,8 @@ const
 // v_max: input, the upper limit v of the Bremsstrahlung integration
 // sig_Fs: output, "soft" Bremsstrahlung cross section
 // sig_Fh: output, "hard" Bremsstrahlung cross section
-void PRadMollerGen::moller_IRF(double s, double t, double v_min, double v_max,
-                               double &sig_Fs, double &sig_Fh)
-const
+void PRadMollerGen::SigmaF(double s, double t, double v_min, double v_max,
+                           double &sig_Fs, double &sig_Fh)
 {
     // initialize MERADGEN
     merad_init(s);
