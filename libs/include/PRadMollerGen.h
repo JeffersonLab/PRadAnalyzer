@@ -37,8 +37,8 @@ public:
     PRadMollerGen(double vmin = 5, double vmax = 400, int nbins = 10000);
     virtual ~PRadMollerGen();
 
-    void Generate(double Es, double min_angle, double max_angle, int nevents,
-                  const char *path) const;
+    double Generate(double Es, double min_angle, double max_angle, int nevents,
+                    const char *path, bool verbose = true) const;
     void GetXS(double Es, double angle,
                double &sig_born, double &sig_nrad, double &sig_rad) const;
 

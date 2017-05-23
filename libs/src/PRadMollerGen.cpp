@@ -171,8 +171,9 @@ PRadMollerGen::~PRadMollerGen()
 }
 
 // generate Moller events, unit is in MeV, degree
-void PRadMollerGen::Generate(double Es, double min_angle, double max_angle,
-                             int nevents, const char *save_path)
+// return integrated luminosity in the unit of nb^-1
+double PRadMollerGen::Generate(double Es, double min_angle, double max_angle,
+                               int nevents, const char *save_path, bool verbose)
 const
 {
     // sanity check
@@ -182,11 +183,14 @@ const
                   << "Angle range = " << min_angle << " ~ " << max_angle << "\n"
                   << "Number of events: " << nevents
                   << std::endl;
-        return;
+        return 0.;
     }
 
     PRadBenchMark timer;
-    std::cout << "Preparing distributions in theta bins to sample events..." << std::endl;
+    if(verbose) {
+        std::cout << "Preparing distributions in theta bins to sample events..."
+                  << std::endl;
+    }
 
     // set up random number generator
     // a "true" random number engine, good for seed
@@ -223,11 +227,12 @@ const
     for(int i = 1; i <= theta_bins; ++i)
     {
         // show progress
-        if(i%PROGRESS_BIN_COUNT == 0) {
+        if(verbose && i%PROGRESS_BIN_COUNT == 0) {
             std::cout <<"------[ bin " << i << "/" << theta_bins << " ]---"
                       << "---[ " << timer.GetElapsedTimeStr() << " ]---"
-                      << "---[ " << timer.GetElapsedTime()/(double)i << " ms/bin ]------"
-                      << "\r" << std::flush;
+                      << "---[ " << timer.GetElapsedTime()/(double)i
+                      << " ms/bin ]------\r"
+                      << std::flush;
         }
 
         CDF_Angle &point = angle_dist[i];
@@ -236,10 +241,12 @@ const
         // calculate cross sections
         GetXS(Es, point.angle, point.sig_born, point.sig_nrad, point.sig_rad);
 
-        // solid angle coverage
-        double solid = 2.*cana::pi*(cos(prev.angle*cana::deg2rad) - cos(point.angle*cana::deg2rad));
+        // solid angle d_Omega = sin(theta)*d_theta*d_phi
+        double curr_xs = 2.*cana::pi*sin(point.angle*cana::deg2rad)*(point.sig_nrad + point.sig_rad);
+        double prev_xs = 2.*cana::pi*sin(prev.angle*cana::deg2rad)*(prev.sig_nrad + prev.sig_rad);
 
-        point.cdf = prev.cdf + solid*(point.sig_nrad + point.sig_rad + prev.sig_nrad + prev.sig_rad)/2.;
+        // trapezoid rule for integration
+        point.cdf = angle_step*cana::deg2rad*(curr_xs + prev_xs)/2. + prev.cdf;
 
         // copy v distribution that calculated in MERADGEN
         for(int j = 0; j < MERAD_NV; ++j)
@@ -249,24 +256,27 @@ const
         }
     }
 
-    std::cout <<"------[ bin " << theta_bins << "/" << theta_bins << " ]---"
-              << "---[ " << timer.GetElapsedTimeStr() << " ]---"
-              << "---[ " << timer.GetElapsedTime()/(double)theta_bins << " ms/bin ]------"
-              << "\n"
-              << "Preparation done! Now start events generation..." << std::endl;
+    if(verbose) {
+        std::cout <<"------[ bin " << theta_bins << "/" << theta_bins << " ]---"
+                  << "---[ " << timer.GetElapsedTimeStr() << " ]---"
+                  << "---[ " << timer.GetElapsedTime()/(double)theta_bins
+                  << " ms/bin ]------\n"
+                  << "Preparation done! Now start events generation..."
+                  << std::endl;
+    }
     timer.Reset();
 
-    // convert uniform distribution to cross-section vs. angle distribution
-    auto comp = [](const CDF_Angle &point, const double &val)
-                {
-                    return point.cdf - val;
-                };
-
+    // prepare variables
     double beta_CM = get_CM_beta(Es);
     double angle, s, t, u, v, t1, z;
     double k2[4], p2[4], k[4], k2_CM[4], p2_CM[4], k_CM[4];
     std::ofstream fout(save_path);
 
+    // convert uniform distribution to cross-section vs. angle distribution
+    // lamda function for binary search
+    auto comp = [](CDF_Angle point, double val) { return point.cdf - val;};
+
+    // event sampling
     for(int i = 0; i < nevents; ++i)
     {
         double rnd = uni_dist(rng)*angle_dist.back().cdf;
@@ -340,11 +350,12 @@ const
         }
 
         // show progress
-        if(i%PROGRESS_EVENT_COUNT == 0) {
+        if(verbose && i%PROGRESS_EVENT_COUNT == 0) {
             std::cout <<"------[ ev " << i << "/" << nevents << " ]---"
                       << "---[ " << timer.GetElapsedTimeStr() << " ]---"
-                      << "---[ " << timer.GetElapsedTime()/(double)i << " ms/ev ]------"
-                      << "\r" << std::flush;
+                      << "---[ " << timer.GetElapsedTime()/(double)i
+                      << " ms/ev ]------\r"
+                      << std::flush;
         }
 
 #ifdef MOLLER_TEST_KIN
@@ -371,16 +382,18 @@ const
 #endif
     }
 
-    std::cout <<"------[ ev " << nevents << "/" << nevents << " ]---"
-              << "---[ " << timer.GetElapsedTimeStr() << " ]---"
-              << "---[ " << timer.GetElapsedTime()/(double)nevents << " ms/ev ]------"
-              << "\n"
-              << "Events generation done! Saved in file \"" << save_path << "\".\n"
-              << "Integrated luminosity = " << (double)nevents/angle_dist.back().cdf
-              << " nb^-1."
-              << std::endl;
+    if(verbose) {
+        std::cout <<"------[ ev " << nevents << "/" << nevents << " ]---"
+                  << "---[ " << timer.GetElapsedTimeStr() << " ]---"
+                  << "---[ " << timer.GetElapsedTime()/(double)nevents
+                  << " ms/ev ]------\n"
+                  << "Events generation done! Saved in file \"" << save_path << "\".\n"
+                  << "Integrated luminosity = " << (double)nevents/angle_dist.back().cdf
+                  << " nb^-1."
+                  << std::endl;
+    }
 
-
+    return (double)nevents/angle_dist.back().cdf;
 }
 
 // get cross section
