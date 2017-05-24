@@ -244,7 +244,7 @@ float PRadCoordSystem::ProjectionDistance(Point p1, Point p2, Point ori, float p
 Point PRadCoordSystem::ProjectionCoordDiff(Point p1, Point p2, Point ori, float proj_z)
 {
     Projection(p1, ori, proj_z);
-    Projection(p1, ori, proj_z);
+    Projection(p2, ori, proj_z);
 
     return Point(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
 }
