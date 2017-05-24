@@ -200,6 +200,8 @@ const
     // uniform distribution
     std::uniform_real_distribution<double> uni_dist(0., 1.);
 
+    /* TODO, this method was trying to avoid duplicating events, but it fails
+     * with radiation effects
     // since the cross section has already covered both t and u channels
     // we should calculate the if the angle ranges include the symmetric point
     // if it does, then the angle beyond symmetric point should not be generated
@@ -213,6 +215,7 @@ const
         if(min_angle > min_angle2) min_angle = min_angle2;
         max_angle = sym_angle;
     }
+    */
 
     // prepare grid for interpolation of angle
     double angle_step = (max_angle - min_angle)/(double)theta_bins;
