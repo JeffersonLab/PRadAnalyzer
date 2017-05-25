@@ -438,7 +438,7 @@ const
     // t and u channels together
     // born level cross section
     sig_born = (sig_0t + sig_0u)*jacob*unit;
-    sig_nrad = ((1. + alp_pi*(delta_1H + delta_1S))*exp(alp_pi*delta_1inf)*(sig_0t + sig_0u)
+    sig_nrad = ((1. + alp_pi*(delta_1H + delta_1S + delta_1inf))*(sig_0t + sig_0u)
                 + sig_St + sig_Su + sig_vertt + sig_vertu + sig_Bt + sig_Bu + sig_Fs)
                * jacob*unit;
     sig_rad = sig_Fh*jacob*unit;

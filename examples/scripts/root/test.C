@@ -63,13 +63,12 @@ void test_block_read(const string &path = "block_test.conf")
     }
 }
 
-void moller_test()
+void moller_test(double energy = 2142, double v_min = 1, double v_max = 100)
 {
-    double energy = 1100;
     TGraph *g1 = new TGraph();
     TGraph *g2 = new TGraph();
     TGraph *g3 = new TGraph();
-    PRadMollerGen moller(4.69, 100);
+    PRadMollerGen moller(v_min, v_max);
     for(double angle = 0.7; angle < 3.0; angle += 0.01)
     {
         double born, non_rad, rad;
