@@ -770,15 +770,33 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     double phi = rnd1*cana::pi*2.;
 
     // frequently used variables
+    double lamda_1, lamda_2, lamda_3, lamda_4, lamda_5, lamda_6, lamda_7, lamda_8;
+
     double lamda_s = s*(s - 4.*m2);
-    double lamda_1 = pow2(s - v) - 4.*s*m2;
-    double lamda_2 = 2.*t + s - v - 4.*m2;
-    double lamda_3 = -s*t*(s + t - v - 4.*m2) - pow2(m*v);
-    double lamda_4 = s*(s - v - 4.*m2) - (s + v)*z;
-    double lamda_5 = v*z*(s - v - z) - pow2(m*(v + z));
-    double lamda_6 = s*(v - z) - v*(v + z);
-    double lamda_7 = (s + 2.*t1 - z - 4.*m2)*lamda_1 - lamda_2*lamda_4;
-    double lamda_8 = 16.*lamda_3*lamda_5 - lamda_7*lamda_7;
+
+    // when it is non-radiative, some of the lamda is exactly 0
+    // but due to the precision of real number, it may get a very small negative
+    // number in the end, which destroy the momentum reconstruction
+    // thus separate two cases here
+    if(v == 0.) {
+        lamda_1 = s*s - 4.*s*m2;
+        lamda_2 = 2.*t + s - 4.*m2;
+        lamda_3 = -s*t*(s + t - 4.*m2);
+        lamda_4 = s*(s - 4.*m2);
+        lamda_5 = 0.;
+        lamda_6 = 0.;
+        lamda_7 = (s + 2.*t1 - 4.*m2)*lamda_1 - lamda_2*lamda_4;
+        lamda_8 = 0.;
+    } else {
+        lamda_1 = pow2(s - v) - 4.*s*m2;
+        lamda_2 = 2.*t + s - v - 4.*m2;
+        lamda_3 = -s*t*(s + t - v - 4.*m2) - pow2(m*v);
+        lamda_4 = s*(s - v - 4.*m2) - (s + v)*z;
+        lamda_5 = v*z*(s - v - z) - pow2(m*(v + z));
+        lamda_6 = s*(v - z) - v*(v + z);
+        lamda_7 = (s + 2.*t1 - z - 4.*m2)*lamda_1 - lamda_2*lamda_4;
+        lamda_8 = 16.*lamda_3*lamda_5 - lamda_7*lamda_7;
+    }
 
     double lamda_34 = lamda_3*lamda_4;
     double lamda_27 = lamda_2*lamda_7;

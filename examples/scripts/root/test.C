@@ -93,7 +93,7 @@ void moller_test(double energy = 2142, double v_min = 1, double v_max = 100)
 
 void moller_gen_test(int Nevents, const char *path = "moller_test.dat")
 {
-    PRadMollerGen moller(5, 3000);
+    PRadMollerGen moller(1, 3000);
     moller.Generate(2142, 0.3, 3.0, Nevents, path);
 }
 
