@@ -785,7 +785,7 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
         lamda_4 = s*(s - 4.*m2);
         lamda_5 = 0.;
         lamda_6 = 0.;
-        lamda_7 = (s + 2.*t1 - 4.*m2)*lamda_1 - lamda_2*lamda_4;
+        lamda_7 = 0.;
         lamda_8 = 0.;
     } else {
         lamda_1 = pow2(s - v) - 4.*s*m2;
