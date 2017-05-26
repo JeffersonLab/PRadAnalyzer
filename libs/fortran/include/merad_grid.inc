@@ -1,5 +1,5 @@
       integer nv,nt1,nz
-      parameter(nv=300)
+      parameter(nv=3000)
       parameter(nt1=30)
       parameter(nz=60)
       common/merad_grid/grv(nv),grt1(nt1),grz(nz)

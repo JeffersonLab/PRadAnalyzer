@@ -126,3 +126,52 @@ void show_moller_gen(const char *path)
     c1->cd(2);
     hist_th->Draw("colz");
 }
+
+void moller_vmin_test(double energy = 2142, double v_max = 1000)
+{
+    TGraph *g1 = new TGraph();
+    TGraph *g2 = new TGraph();
+    TGraph *g3 = new TGraph();
+    TGraph *g4 = new TGraph();
+    TGraph *g5 = new TGraph();
+
+    PRadMollerGen moller1(1., v_max);
+    PRadMollerGen moller2(5., v_max);
+    PRadMollerGen moller3(20., v_max);
+
+    for(double angle = 0.3; angle < 3.0; angle += 0.01)
+    {
+        double born, non_rad, rad, xs1, xs2, xs3;
+        moller1.GetXS(energy, angle, born, non_rad, rad);
+        xs1 = non_rad + rad;
+        moller2.GetXS(energy, angle, born, non_rad, rad);
+        xs2 = non_rad + rad;
+        moller3.GetXS(energy, angle, born, non_rad, rad);
+        xs3 = non_rad + rad;
+
+        g1->SetPoint(g1->GetN(), angle, xs1);
+        g2->SetPoint(g2->GetN(), angle, xs2);
+        g3->SetPoint(g3->GetN(), angle, xs3);
+        g4->SetPoint(g4->GetN(), angle, (xs2 - xs1)/xs1*100.);
+        g5->SetPoint(g5->GetN(), angle, (xs3 - xs1)/xs1*100.);
+    }
+
+    TCanvas *c1 = new TCanvas("v_min test", "v_min test", 200, 10, 1200, 500);
+    c1->Divide(2, 1);
+    c1->SetGrid();
+
+    g2->SetLineColor(2);
+    g4->SetLineColor(2);
+    g3->SetLineColor(4);
+    g5->SetLineColor(4);
+
+    c1->cd(1);
+    g1->Draw("AC");
+    g2->Draw("C");
+    g3->Draw("C");
+
+    c1->cd(2);
+    g5->Draw("AC");
+    g4->Draw("C");
+}
+

@@ -13,7 +13,7 @@ extern "C"
     // the grid used in meradgen declared in
     // fortran/include/merad_grid.inc
     // dimension must be changed accordingly
-#define MERAD_NV 300
+#define MERAD_NV 3000
 #define MERAD_NT1 30
 #define MERAD_NZ 60
 
