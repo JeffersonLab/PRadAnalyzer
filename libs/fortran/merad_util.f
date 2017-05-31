@@ -1,7 +1,16 @@
+! Subroutines copied from MERADGEN 1.0
+! Reference: A. Afanasev, E. Chudakov, A. Ilyichev, V. Zykunov,
+!            Comput. Phys. Commun. 176, 218 (2007)
+! Added C interfaces, changed unit from GeV to MeV
+! Chao Peng, 05/13/2017
+
+!===============================================================================
       subroutine grid_init
+! grid initialization
       implicit none
       integer i, n1, n2
       include 'merad_grid.inc'
+
       ! for grid v
       n1 = nv/2
       n2 = n1 + nv/4
@@ -33,10 +42,57 @@
       do i=1,n1
         grz(nz+1-i)=1d0-0.49d0*dble(i**2)/dble(n1**2)
       enddo
-      end
 
+      end subroutine grid_init
+
+!===============================================================================
+      real*8 function fspen(x)
+! spence function
+      implicit real*8(a-h,o-z)
+      data f1/1.644934d0/
+
+      if(x) 8,1,1
+    1 if(x-.5d0) 2,2,3
+    2 fspen=fspens(x)
+      return
+    3 if(x-1d0) 4,4,5
+    4 fspen=f1-dlog(x)*dlog(1d0-x+1d-10)-fspens(1d0-x)
+      return
+    5 if(x-2d0) 6,6,7
+    6 fspen=f1-.5*dlog(x)*dlog((x-1d0)**2/x)+fspens(1d0-1d0/x)
+      return
+    7 fspen=2d0*f1-.5d0*dlog(x)**2-fspens(1d0/x)
+      return
+    8 if(x+1d0) 10,9,9
+    9 fspen=-.5d0*dlog(1d0-x)**2-fspens(x/(x-1d0))
+      return
+   10 fspen=-.5*dlog(1.-x)*dlog(x**2/(1d0-x))-f1+fspens(1d0/(1d0-x))
+      return
+
+      end function fspen
+
+!===============================================================================
+      real*8 function fspens(x)
+! core calculation for fspen
+      implicit real*8(a-h,o-z)
+
+      f=0.d0
+      a=1.d0
+      an=0.d0
+      tch=1.d-16
+    1 an=an+1.d0
+      a=a*x
+      b=a/an**2
+      f=f+b
+      if(b-tch) 2,2,1
+    2 fspens=f
+      return
+
+      end function fspens
+
+!===============================================================================
       subroutine simps(a1,b1,h1,reps1,aeps1,funct,x,ai,aih,aiabs)
-! simps
+! simpson integration
 ! a1,b1 -the limits of integration
 ! h1 -an initial step of integration
 ! reps1,aeps1 - relative and absolute precision of integration
@@ -55,6 +111,7 @@
 !
       implicit real*8(a-h,o-z)
       dimension f(7),p(5)
+
       h=dsign(h1,b1-a1)
       s=dsign(1.d0,h)
       a=a1
@@ -70,7 +127,7 @@
     1 reps=dabs(reps1)
       aeps=dabs(aeps1)
       do 3 k=1,7
-  3   f(k)=10.d16
+    3 f(k)=10.d16
       x=a
       c=0.d0
       f(1)=funct(x)/3.
@@ -79,7 +136,7 @@
     6 h=(b-x0)/4.
       if(h) 7,2,7
     7 do 8 k=2,7
-  8   f(k)=10.d16
+    8 f(k)=10.d16
       c=1.d0
     5 di2=f(1)
       di3=dabs(f(1))
@@ -107,7 +164,7 @@
       f(2)=f(6)
       f(3)=f(7)
       do 19 k=4,7
-  19  f(k)=10.d16
+   19 f(k)=10.d16
       go to 18
    14 f(1)=f(5)
       f(3)=f(6)
@@ -133,12 +190,16 @@
       go to 5
    22 if(c) 2,4,2
     2 return
-      end
 
+      end subroutine simps
+
+!===============================================================================
       subroutine simpsx(a,b,np,ep,func,res)
+! interface for simpson integration
       implicit real*8 (a-h,o-z)
       external func
       step=(b-a)/np
       call simps(a,b,step,ep,1d-18,func,ra,res,r2,r3)
-      end
+
+      end subroutine simpsx
 

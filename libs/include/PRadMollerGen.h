@@ -6,6 +6,7 @@ extern "C"
     // interface to visit meradgen
     void merad_init(double Elab);
     double merad_sig(double t, double pl, int type);
+    double merad_sigir(double vmin, double t, double pl);
     double merad_sigfs(double vmin, double t, double pl);
     double merad_sigfh(double vmin, double vmax, double t, double pl);
     double merad_sample_t1(double t, double vgen, double plin, double rnd);
@@ -42,8 +43,8 @@ public:
                     const char *path, bool verbose = true) const;
     void GetXS(double Es, double angle,
                double &sig_born, double &sig_nrad, double &sig_rad) const;
-    void GetXSdy(double s, double t,
-                 double &sig_born, double &sig_nrad, double &sig_rad) const;
+    void GetXSdQsq(double s, double t,
+                   double &sig_born, double &sig_nrad, double &sig_rad) const;
 
     // static functions
     static void SigmaVph(double s, double t,

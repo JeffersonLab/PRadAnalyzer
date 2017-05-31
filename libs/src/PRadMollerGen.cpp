@@ -36,6 +36,7 @@
 #define PROGRESS_EVENT_COUNT 1000
 #define PROGRESS_BIN_COUNT 10
 
+//#define MOLLER_TEST_MERA
 //#define MOLLER_TEST_URA
 //#define MOLLER_TEST_KIN
 
@@ -406,13 +407,14 @@ void PRadMollerGen::GetXS(double Es, double angle, double &sig_born, double &sig
 const
 {
     double theta = angle*cana::deg2rad;
-    // conversion from dsigma/dy (y = -t/s) to dsigma/dOmega
-    double jacob = 4.*m*(Es - m)/pow2(Es + m -(Es - m)*pow2(cos(theta)))/2./cana::pi;
 
     // Mandelstam variables
     double s, t, u0;
     get_moller_stu(Es, angle, s, t, u0);
-    GetXSdy(s, t, sig_born, sig_nrad, sig_rad);
+    // conversion from dsigma/dQsq (Q^2 = -t) to dsigma/dOmega
+    double jacob = (s - 2.*m2)*4.*m*(Es - m)/pow2(Es + m -(Es - m)*pow2(cos(theta)))/2./cana::pi;
+
+    GetXSdQsq(s, t, sig_born, sig_nrad, sig_rad);
 
     // convert to dsigma/dOmega, using unit nb
     sig_born *= jacob*unit;
@@ -420,10 +422,10 @@ const
     sig_rad *= jacob*unit;
 }
 
-// get differential cross section dsigma/dy
+// get differential cross section dsigma/dQ2
 // input Mandelstam variables s, t (MeV^2)
-// output Born, non-radiative, radiative cross sections (MeV^-2)
-void PRadMollerGen::GetXSdy(double s, double t, double &sig_born, double &sig_nrad, double &sig_rad)
+// output Born, non-radiative, radiative cross sections (MeV^-4)
+void PRadMollerGen::GetXSdQsq(double s, double t, double &sig_born, double &sig_nrad, double &sig_rad)
 const
 {
     double u0 = 4.*m2 - s -t;
@@ -449,16 +451,12 @@ const
     double v_f = (v_cut > v_limit) ? v_limit : v_cut;
     SigmaF(s, t, v_ir, v_f, sig_Fs, sig_Fh);
 
-/*
-    merad_init(s);
-    double sig_vr = merad_sig(t, 0., 1);
-    std::cout << sig_vertt + sig_vertu + sig_St + sig_Su << ", " << sig_vr << std::endl;
-*/
-
     // t and u channels together
     // born level cross section
     sig_born = sig_0t + sig_0u;
 
+
+    // non-radiative cross section
     double sig_S = sig_St + sig_Su;
     double sig_vert = sig_vertt + sig_vertu;
     double sig_B = sig_Bt + sig_Bu;
@@ -466,6 +464,18 @@ const
     sig_nrad = (1. + alp_pi*(delta_1H + delta_1S + delta_1inf))*sig_born
                + sig_S + sig_vert + sig_B + sig_Fs;
 
+#ifdef MOLLER_TEST_MERA
+    merad_init(s);
+    double sig_vr = merad_sig(t, 0., 1);
+    double sig_B2 = merad_sig(t, 0., 2);
+    double sig_IR = merad_sigir(v_ir, t, 0.);
+
+    double sig_nrad2 = sig_born + sig_IR + sig_vr + sig_B2 + sig_Fs;
+    std::cout << "PRADMOLL: " << s << ", " << t << ", " << sig_nrad/sig_born << std::endl;
+    std::cout << "MERADGEN: " << s << ", " << t << ", " << sig_nrad2/sig_born << std::endl;
+#endif //MOLLER_TEST_MERA
+
+    // radiative cross section
     sig_rad = sig_Fh;
 }
 
@@ -488,11 +498,8 @@ void PRadMollerGen::SigmaVph(double s, double t,
     double xi_u02 = xi_u0*xi_u0, xi_u04 = xi_u02*xi_u02;
 
     // equation (49) in [1], Born Level
-    // we found that the equation in the paper is wrong in dimension
-    // By comparing with the equation (8) in [3]
-    // There is a factor of (s - 2.0*m^2) missing due to misprint
     sig_0 = (u0*u0/xi_s2/4./s*(4.*xi_u04 - pow2(1. - xi_u02)*(2. + t/u0)) - s*s*xi_s4/u0)
-            * 2.*cana::pi*alp2/t/t/s*(s - 2.*m2);
+            * 2.*cana::pi*alp2/t/t/s;
 
     // singularity term, appears in delta_ver and delta_box
     // we only need the divergence free part of the sigma_ver and simga_box,
@@ -553,8 +560,8 @@ void PRadMollerGen::SigmaVph(double s, double t,
 
     // box diagram, factorized part
     // equation (54) in [1]
-    double delta_box = (1. + xi_s2)/xi_s*(-4.*log_s*log_m + log_s*log_s - 2*pi2 + 4.*Li2_sp)
-                       + (1 + xi_u02)/xi_u0*(4.*log_u0*log_m - log_u0*log_u0 + 2.*log_2u0p*log_2u0p - pi2/3. + 4*Li2_u0);
+    double delta_box = (1. + xi_s2)/xi_s*(-4.*log_s*log_m + log_s*log_s - 2.*pi2 + 4.*Li2_sp)
+                       + (1. + xi_u02)/xi_u0*(4.*log_u0*log_m - log_u0*log_u0 + 2.*log_2u0p*log_2u0p - pi2/3. + 4.*Li2_u0);
 
     // box diagram, non-factorized part
     // equation (A.1) and (A.2) in [1]
@@ -746,9 +753,6 @@ void PRadMollerGen::SigmaIR(double s, double t, double v_max,
               << std::setw(10) << J_0_URA << " |"
               << std::endl;
 
-    delta_1H = delta_1H_URA;
-    delta_1S = delta_1S_URA;
-    delta_1inf = J_0_URA*log(v_max/m2);
 #endif // MOLLER_TEST_URA
 // end test
 }

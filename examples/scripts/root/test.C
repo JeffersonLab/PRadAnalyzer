@@ -98,19 +98,19 @@ void moller_test(double v_min = 0.5)
         double t = -q2*1e6;
         double born = 0., non_rad = 0., rad = 0.;
         if(4.*cana::ele_mass*cana::ele_mass - s1 - t < -120.) {
-            moller1.GetXSdy(s1, t, born, non_rad, rad);
+            moller1.GetXSdQsq(s1, t, born, non_rad, rad);
             g1a->SetPoint(g1a->GetN(), q2, ((non_rad)/born - 1.)*100.);
-            moller2.GetXSdy(s1, t, born, non_rad, rad);
+            moller2.GetXSdQsq(s1, t, born, non_rad, rad);
             g2a->SetPoint(g2a->GetN(), q2, ((non_rad)/born - 1.)*100.);
-            moller3.GetXSdy(s1, t, born, non_rad, rad);
+            moller3.GetXSdQsq(s1, t, born, non_rad, rad);
             g3a->SetPoint(g3a->GetN(), q2, ((non_rad)/born - 1.)*100.);
         }
         if(4.*cana::ele_mass*cana::ele_mass - s2 - t < -120.) {
-            moller1.GetXSdy(s2, t, born, non_rad, rad);
+            moller1.GetXSdQsq(s2, t, born, non_rad, rad);
             g1b->SetPoint(g1b->GetN(), q2, ((non_rad)/born - 1.)*100.);
-            moller2.GetXSdy(s2, t, born, non_rad, rad);
+            moller2.GetXSdQsq(s2, t, born, non_rad, rad);
             g2b->SetPoint(g2b->GetN(), q2, ((non_rad)/born - 1.)*100.);
-            moller3.GetXSdy(s2, t, born, non_rad, rad);
+            moller3.GetXSdQsq(s2, t, born, non_rad, rad);
             g3b->SetPoint(g3b->GetN(), q2, ((non_rad)/born - 1.)*100.);
         }
         cout << logq2 << endl;

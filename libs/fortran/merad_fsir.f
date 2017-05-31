@@ -5,27 +5,6 @@
 ! Chao Peng, 05/13/2017
 
 !===============================================================================
-      subroutine merad_init(si)
-! Initialize MERADGEN by Mandelstam variable s in MeV^2
-     &bind(C, name = "merad_init")
-      use, intrinsic :: ISO_C_BINDING
-!-------------------------------------------------------------------------------
-      implicit none
-      real(C_DOUBLE), intent(IN), VALUE :: si
-      include 'merad_const.inc'
-      data pi/3.14159265359d0/, alfa/.7297352568d-2/,
-     .     m/0.510998918d0/
-
-      m2=m*m
-      s=si
-      als=s*(s-4d0*m2)
-      coeb=4d0*pi*alfa**2*(s-2d0*m2)/als
-      coer=alfa**3/als/pi*(s - 2d0*m2)/4d0
-      call grid_init
-
-      end subroutine merad_init
-
-!===============================================================================
       real(C_DOUBLE) function merad_sigfs(vmin, tin, plin)
 ! return the "soft" Bremsstrahlung cross section
 ! vmin: the minimum v for photons to be detected (MeV^2)
@@ -47,6 +26,7 @@
       xs = fsirsoft(vmin)
       call simpsx(1d-22,vmin,10000,1d-3,fsirsoft,xs)
       merad_sigfs = xs
+      return
 
       end function merad_sigfs
 
@@ -60,6 +40,7 @@
       include 'merad_tv.inc'
 
       fsirsoft=fsir(t,0d0,v,0d0,pl,nn,-1,sig0)
+      return
 
       end function fsirsoft
 
@@ -95,6 +76,7 @@
         distarv(iv) = vb
       enddo
       merad_sigfh = distsiv(nv)
+      return
 
       end function merad_sigfh
 
@@ -219,27 +201,6 @@
       enddo
 
       end function merad_sample_z
-
-!===============================================================================
-      real*8 function sigborn(t,pl)
-! retrun the Born cross section
-! t: the Mandelstam variable t (MeV^2)
-! pl: degree of polarization
-      implicit none
-      real*8 t,pl,u,ss,u1,u2,u3,pl1,pl2,pl3
-      include 'merad_const.inc'
-
-      u=4d0*m2-s-t
-      ss=s-2d0*m2
-      u1=(ss**2+u**2)/2d0+2d0*m2*(s+2d0*t-3d0*m2)
-      u2=(ss**2+t**2)/2d0+2d0*m2*(s+2d0*u-3d0*m2)
-      u3=(s-2d0*m2)*(s-6d0*m2)
-      pl1=-t*(-t*s**2/2d0/als-ss)
-      pl2=-t*(-t*s**2/2d0/als-2d0*m2)+als/2d0-ss*s
-      pl3=-(ss**4+4d0*m2*(ss**2*t+m2*(-ss**2+2d0*t**2-4d0*m2*t)))/als
-      sigborn=coeb*(u1/t**2+u2/u**2+u3/u/t+pl*(pl1/t**2+pl2/u**2+pl3/u/t))
-
-      end function sigborn
 
 !===============================================================================
       subroutine zd(t,t1,v)
@@ -1129,4 +1090,6 @@
      .      *(aj36+vv*aj4)-(s+t-2d0*m2)*(vv*aj6+aj24))
         fsir=fsir-alfa/4d0/pi**2*fir*sig0
       endif
+      return
+
       end function fsir
