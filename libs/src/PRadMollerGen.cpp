@@ -449,11 +449,23 @@ const
     double v_f = (v_cut > v_limit) ? v_limit : v_cut;
     SigmaF(s, t, v_ir, v_f, sig_Fs, sig_Fh);
 
+/*
+    merad_init(s);
+    double sig_vr = merad_sig(t, 0., 1);
+    std::cout << sig_vertt + sig_vertu + sig_St + sig_Su << ", " << sig_vr << std::endl;
+*/
+
     // t and u channels together
     // born level cross section
     sig_born = sig_0t + sig_0u;
+
+    double sig_S = sig_St + sig_Su;
+    double sig_vert = sig_vertt + sig_vertu;
+    double sig_B = sig_Bt + sig_Bu;
+
     sig_nrad = (1. + alp_pi*(delta_1H + delta_1S + delta_1inf))*sig_born
-                + sig_St + sig_Su + sig_vertt + sig_vertu + sig_Bt + sig_Bu + sig_Fs;
+               + sig_S + sig_vert + sig_B + sig_Fs;
+
     sig_rad = sig_Fh;
 }
 
@@ -520,7 +532,7 @@ void PRadMollerGen::SigmaVph(double s, double t,
     {
         double vac_m2 = vac_m*vac_m;
         double vac_slamda_m = sqrt(t*t - 4.*vac_m2*t);
-        double vac_L_m = 1./vac_slamda_m*log((vac_slamda_m - t)/(vac_slamda_m + t));
+        double vac_L_m = log((vac_slamda_m - t)/(vac_slamda_m + t))/vac_slamda_m;
         delta_vac += 2./3.*(-t + 2*vac_m2)*vac_L_m - 10./9. - 8./3.*vac_m2/t*(1. - 2.*vac_m2*vac_L_m);
     }
 
@@ -534,7 +546,7 @@ void PRadMollerGen::SigmaVph(double s, double t,
 
     // vertex correction, non-factorized part, anomalous magnetic moment
     // equation (52) in [1]
-    double sig_AMM = 4.*alp3/st2/xi_t*m2*log_t*(3.*(s - 2.*m2)/u0 + (10.*m2 - 3.*u0)/(s - 4.*m2));
+    double sig_AMM = -4.*alp3/st2/xi_t*m2*log_t*(3.*(s - 2.*m2)/u0 + (10.*m2 - 3.*u0)/(s - 4.*m2));
 
     // equation (51) in [1]
     sig_vert = 2.*alp_pi*delta_vert*sig_0 + sig_AMM;
@@ -723,16 +735,6 @@ void PRadMollerGen::SigmaIR(double s, double t, double v_max,
     // equation (63) in [1]
     double J_0_URA = -4.*(1. + log(m2*s/t/u0));
 
-    double s1 = -(xi_u02 + 1.)*u0;
-    double s2 = (xi_s2 + 1.)*s;
-    double s3 = -(xi_t2 + 1.)*t;
-
-    std::cout << "S_phi test: "
-              << s1 << ", " << s2 << ", " << s3 << ", "
-              << S_phi(s1, s2, s3) << ", "
-              << S_phi(s2, s1, s3)
-              << std::endl;
-
     std::cout << " | d_1H: "
               << std::setw(10) << delta_1H << ", "
               << std::setw(10) << delta_1H_URA
@@ -743,6 +745,10 @@ void PRadMollerGen::SigmaIR(double s, double t, double v_max,
               << std::setw(10) << J_0 << ", "
               << std::setw(10) << J_0_URA << " |"
               << std::endl;
+
+    delta_1H = delta_1H_URA;
+    delta_1S = delta_1S_URA;
+    delta_1inf = J_0_URA*log(v_max/m2);
 #endif // MOLLER_TEST_URA
 // end test
 }

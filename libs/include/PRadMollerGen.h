@@ -5,6 +5,7 @@ extern "C"
 {
     // interface to visit meradgen
     void merad_init(double Elab);
+    double merad_sig(double t, double pl, int type);
     double merad_sigfs(double vmin, double t, double pl);
     double merad_sigfh(double vmin, double vmax, double t, double pl);
     double merad_sample_t1(double t, double vgen, double plin, double rnd);

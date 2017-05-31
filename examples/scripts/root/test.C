@@ -79,42 +79,62 @@ inline void get_moller_stu(double Es, double angle, double &s, double &t, double
     u = 4.*m2 - s - t;
 }
 
-void moller_test(double energy = 2200, double v_min = 0.5)
+void moller_test(double v_min = 0.5)
 {
-    TGraph *g1 = new TGraph();
-    TGraph *g2 = new TGraph();
-    TGraph *g3 = new TGraph();
-    PRadMollerGen moller1(v_min, 1);
-    PRadMollerGen moller2(v_min, 10);
-    PRadMollerGen moller3(v_min, 100);
-    for(double angle = 0.01; angle < 3.5; angle += 0.01)
+    TGraph *g1a = new TGraph();
+    TGraph *g2a = new TGraph();
+    TGraph *g3a = new TGraph();
+    TGraph *g1b = new TGraph();
+    TGraph *g2b = new TGraph();
+    TGraph *g3b = new TGraph();
+    PRadMollerGen moller1(1, 1000);
+    PRadMollerGen moller2(10, 1000);
+    PRadMollerGen moller3(100, 1000);
+    double s1 = 2.*cana::ele_mass*(1100. + cana::ele_mass);
+    double s2 = 2.*cana::ele_mass*(2200. + cana::ele_mass);
+    for(double logq2 = -6; logq2 < -2; logq2 += 0.01)
     {
-        double s, t, u;
-        get_moller_stu(energy, angle, s, t, u);
-
-        double born, non_rad, rad;
-        moller1.GetXS(energy, angle, born, non_rad, rad);
-        g1->SetPoint(g1->GetN(), -t/1e6, ((non_rad + rad)/born - 1.)*100.);
-        moller2.GetXS(energy, angle, born, non_rad, rad);
-        g2->SetPoint(g2->GetN(), -t/1e6, ((non_rad + rad)/born - 1.)*100.);
-        moller3.GetXS(energy, angle, born, non_rad, rad);
-        g3->SetPoint(g3->GetN(), -t/1e6, ((non_rad + rad)/born - 1.)*100.);
-        cout << angle << ", " << born << ", " << non_rad + rad << ", " << non_rad << ", " << rad << endl;
+        double q2 = std::pow(10., logq2);
+        double t = -q2*1e6;
+        double born = 0., non_rad = 0., rad = 0.;
+        if(4.*cana::ele_mass*cana::ele_mass - s1 - t < -120.) {
+            moller1.GetXSdy(s1, t, born, non_rad, rad);
+            g1a->SetPoint(g1a->GetN(), q2, ((non_rad)/born - 1.)*100.);
+            moller2.GetXSdy(s1, t, born, non_rad, rad);
+            g2a->SetPoint(g2a->GetN(), q2, ((non_rad)/born - 1.)*100.);
+            moller3.GetXSdy(s1, t, born, non_rad, rad);
+            g3a->SetPoint(g3a->GetN(), q2, ((non_rad)/born - 1.)*100.);
+        }
+        if(4.*cana::ele_mass*cana::ele_mass - s2 - t < -120.) {
+            moller1.GetXSdy(s2, t, born, non_rad, rad);
+            g1b->SetPoint(g1b->GetN(), q2, ((non_rad)/born - 1.)*100.);
+            moller2.GetXSdy(s2, t, born, non_rad, rad);
+            g2b->SetPoint(g2b->GetN(), q2, ((non_rad)/born - 1.)*100.);
+            moller3.GetXSdy(s2, t, born, non_rad, rad);
+            g3b->SetPoint(g3b->GetN(), q2, ((non_rad)/born - 1.)*100.);
+        }
+        cout << logq2 << endl;
     }
 
-    g1->SetLineStyle(9);
-    g2->SetLineStyle(9);
-    g3->SetLineStyle(9);
-    g1->SetLineColor(2);
-    g2->SetLineColor(1);
-    g3->SetLineColor(8);
+    g1b->SetLineStyle(9);
+    g2b->SetLineStyle(9);
+    g3b->SetLineStyle(9);
+    g1a->SetLineColor(2);
+    g2a->SetLineColor(1);
+    g3a->SetLineColor(8);
+    g1b->SetLineColor(2);
+    g2b->SetLineColor(1);
+    g3b->SetLineColor(8);
     TCanvas *c1 = new TCanvas("Moller XS", "MollerXS", 200, 10, 700, 500);
     c1->SetGrid();
-    c1->DrawFrame(1e-6, -45, 1e-2, 5);
+    c1->DrawFrame(1e-6, -25, 1e-2, 5);
     c1->SetLogx();
-    g1->Draw("C");
-    g2->Draw("C");
-    g3->Draw("C");
+    g1a->Draw("C");
+    g2a->Draw("C");
+    g3a->Draw("C");
+    g1b->Draw("C");
+    g2b->Draw("C");
+    g3b->Draw("C");
 }
 
 void moller_gen_test(int Nevents, const char *path = "moller_test.dat")
