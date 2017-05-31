@@ -41,6 +41,8 @@ public:
                     const char *path, bool verbose = true) const;
     void GetXS(double Es, double angle,
                double &sig_born, double &sig_nrad, double &sig_rad) const;
+    void GetXSdy(double s, double t,
+                 double &sig_born, double &sig_nrad, double &sig_rad) const;
 
     // static functions
     static void SigmaVph(double s, double t,

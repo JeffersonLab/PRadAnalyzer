@@ -399,7 +399,7 @@ const
     return (double)nevents/angle_dist.back().cdf;
 }
 
-// get cross section
+// get differential cross section dsigma/dOmega
 // input beam energy (MeV), angle (deg)
 // output Born, non-radiative, radiative cross sections (nb)
 void PRadMollerGen::GetXS(double Es, double angle, double &sig_born, double &sig_nrad, double &sig_rad)
@@ -412,7 +412,21 @@ const
     // Mandelstam variables
     double s, t, u0;
     get_moller_stu(Es, angle, s, t, u0);
+    GetXSdy(s, t, sig_born, sig_nrad, sig_rad);
 
+    // convert to dsigma/dOmega, using unit nb
+    sig_born *= jacob*unit;
+    sig_nrad *= jacob*unit;
+    sig_rad *= jacob*unit;
+}
+
+// get differential cross section dsigma/dy
+// input Mandelstam variables s, t (MeV^2)
+// output Born, non-radiative, radiative cross sections (MeV^-2)
+void PRadMollerGen::GetXSdy(double s, double t, double &sig_born, double &sig_nrad, double &sig_rad)
+const
+{
+    double u0 = 4.*m2 - s -t;
     // virtual photon part of Moller cross section
     // the t and u channels should be calculated separately
     double sig_0t, sig_0u, sig_St, sig_Su, sig_vertt, sig_vertu, sig_Bt, sig_Bu;
@@ -437,14 +451,11 @@ const
 
     // t and u channels together
     // born level cross section
-    sig_born = (sig_0t + sig_0u)*jacob*unit;
-    sig_nrad = ((1. + alp_pi*(delta_1H + delta_1S + delta_1inf))*(sig_0t + sig_0u)
-                + sig_St + sig_Su + sig_vertt + sig_vertu + sig_Bt + sig_Bu + sig_Fs)
-               * jacob*unit;
-    sig_rad = sig_Fh*jacob*unit;
+    sig_born = sig_0t + sig_0u;
+    sig_nrad = (1. + alp_pi*(delta_1H + delta_1S + delta_1inf))*sig_born
+                + sig_St + sig_Su + sig_vertt + sig_vertu + sig_Bt + sig_Bu + sig_Fs;
+    sig_rad = sig_Fh;
 }
-
-
 
 // Cross section including virtual photon part for Moller scattering
 // input Mandelstam variables s, t, u0
