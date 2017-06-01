@@ -383,7 +383,7 @@ const
                   << k2[2] + p2[2] + k[2] << ", "
                   << k2[3] + p2[3] + k[3]
                   << std::endl;
-#endif
+#endif //MOLLER_TEST_KIN
     }
 
     if(verbose) {
@@ -460,19 +460,27 @@ const
     double sig_S = sig_St + sig_Su;
     double sig_vert = sig_vertt + sig_vertu;
     double sig_B = sig_Bt + sig_Bu;
+    double sig_IR = alp_pi*(delta_1H + delta_1S + delta_1inf)*sig_born;
 
-    sig_nrad = (1. + alp_pi*(delta_1H + delta_1S + delta_1inf))*sig_born
-               + sig_S + sig_vert + sig_B + sig_Fs;
+    sig_nrad = sig_born + sig_IR + sig_S + sig_vert + sig_B + sig_Fs;
 
 #ifdef MOLLER_TEST_MERA
     merad_init(s);
     double sig_vr = merad_sig(t, 0., 1);
     double sig_B2 = merad_sig(t, 0., 2);
-    double sig_IR = merad_sigir(v_ir, t, 0.);
+    double sig_IR2 = merad_sigir(v_ir, t, 0.);
 
-    double sig_nrad2 = sig_born + sig_IR + sig_vr + sig_B2 + sig_Fs;
-    std::cout << "PRADMOLL: " << s << ", " << t << ", " << sig_nrad/sig_born << std::endl;
-    std::cout << "MERADGEN: " << s << ", " << t << ", " << sig_nrad2/sig_born << std::endl;
+    double sig_nrad2 = sig_born + sig_IR2 + sig_vr + sig_B2 + sig_Fs;
+
+    std::cout << "PRADMOLL: " << s << ", " << t << ", " << (sig_vert + sig_S)/sig_born << ", "
+              << sig_B/sig_born << ", " << sig_IR/sig_born << ", "
+              << sig_nrad/sig_born << std::endl;
+    std::cout << "MERADGEN: " << s << ", " << t << ", " << sig_vr/sig_born << ", "
+              << sig_B2/sig_born << ", " << sig_IR2/sig_born << ", "
+              << sig_nrad2/sig_born << std::endl;
+
+    sig_nrad = sig_nrad2;
+
 #endif //MOLLER_TEST_MERA
 
     // radiative cross section
