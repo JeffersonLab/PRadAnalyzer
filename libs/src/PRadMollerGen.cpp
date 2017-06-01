@@ -573,6 +573,7 @@ void PRadMollerGen::SigmaVph(double s, double t,
 
     // box diagram, non-factorized part
     // equation (A.1) and (A.2) in [1]
+    // NOTICE there is a misprint in the (A.2) and we fixed it here
     double sig_B1, sig_B2;
 
     sig_B1 = 1./12./xi_s/t * ((xi_s2 + 1.)*(xi_s4 - 6.*xi_s2 - 3.)*s2t
@@ -587,7 +588,7 @@ void PRadMollerGen::SigmaVph(double s, double t,
 
     sig_B2 = 1./12./xi_u0/t * (4.*t3 - 2.*u0t2*(xi_u04 - 6.*xi_u02 - 1.)
                                + u02t*(-xi_u04*xi_u02 + xi_u04 + 9.*xi_u02 + 7.) + 2.*pow3(xi_u02 + 1.)*u03)
-             + (3.*log_u0*log_u0 - 6.*log_2u0*log_2u0 - 12.*Li2_u0 + 6.*log_u0*log(xi_u02*u0/t) + pi2)
+                            * (3.*log_u0*log_u0 - 6.*log_2u0*log_2u0 - 12.*Li2_u0 + 6.*log_u0*log(xi_u02*u0/t) + pi2)
              + 1./12./xi_t2/xi_t/t * (xi_t2*(-xi_t4 + 2.*xi_t2 + 3.)*t3
                                       + 2.*(xi_t4*xi_t2 - 4.*xi_t4 + 8.*xi_t2 + 1.)*u0t2
                                       + 4.*(3.*xi_t4 + 1.)*u02t + 16.*xi_t2*u03)
