@@ -1,8 +1,7 @@
 ! Subroutines copied from MERADGEN 1.0
 ! Reference: A. Afanasev, E. Chudakov, A. Ilyichev, V. Zykunov,
 !            Comput. Phys. Commun. 176, 218 (2007)
-! Added C interfaces, changed unit from GeV to MeV
-! Chao Peng, 05/13/2017
+! Added C interfaces, changed unit from GeV to MeV, Chao Peng, 05/13/2017
 
 !===============================================================================
       real(C_DOUBLE) function merad_sigfs(vmin, tin, plin)

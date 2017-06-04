@@ -466,20 +466,31 @@ const
 
 #ifdef MOLLER_TEST_MERA
     merad_init(s);
-    double sig_vr = merad_sig(t, 0., 1);
+    double sig_vr2 = merad_sig(t, 0., 1);
     double sig_B2 = merad_sig(t, 0., 2);
     double sig_IR2 = merad_sigir(v_ir, t, 0.);
 
-    double sig_nrad2 = sig_born + sig_IR2 + sig_vr + sig_B2 + sig_Fs;
+    double sig_nrad2 = sig_born + sig_IR2 + sig_vr2 + sig_B2 + sig_Fs;
 
-    std::cout << "PRADMOLL: " << s << ", " << t << ", " << (sig_vert + sig_S)/sig_born << ", "
+    double sig_vr3 = merad_sig2(t, 1);
+    double sig_B3 = merad_sig2(t, 2);
+    double sig_IR3 = merad_sigir2(v_ir, t);
+
+    double sig_nrad3 = sig_born + sig_IR3 + sig_vr3 + sig_B3 + sig_Fs;
+
+    std::cout << "KINEMATICS: " << s << ", " << t << std::endl;
+
+    std::cout << "PRADMOLL: " << (sig_vert + sig_S)/sig_born << ", "
               << sig_B/sig_born << ", " << sig_IR/sig_born << ", "
               << sig_nrad/sig_born << std::endl;
-    std::cout << "MERADGEN: " << s << ", " << t << ", " << sig_vr/sig_born << ", "
+
+    std::cout << "MERADGEN: " << sig_vr2/sig_born << ", "
               << sig_B2/sig_born << ", " << sig_IR2/sig_born << ", "
               << sig_nrad2/sig_born << std::endl;
 
-    sig_nrad = sig_nrad2;
+    std::cout << "MEHDIGEN: " << sig_vr3/sig_born << ", "
+              << sig_B3/sig_born << ", " << sig_IR3/sig_born << ", "
+              << sig_nrad3/sig_born << std::endl;
 
 #endif //MOLLER_TEST_MERA
 

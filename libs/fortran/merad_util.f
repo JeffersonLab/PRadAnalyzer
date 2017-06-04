@@ -1,8 +1,29 @@
 ! Subroutines copied from MERADGEN 1.0
 ! Reference: A. Afanasev, E. Chudakov, A. Ilyichev, V. Zykunov,
 !            Comput. Phys. Commun. 176, 218 (2007)
-! Added C interfaces, changed unit from GeV to MeV
-! Chao Peng, 05/13/2017
+! Adjusted grid_init, using nv, nt1, nz instead of numbers, Chao Peng, 05/13/2017
+
+!===============================================================================
+      subroutine merad_init(si)
+! Initialize MERADGEN by Mandelstam variable s in MeV^2
+     &bind(C, name = "merad_init")
+      use, intrinsic :: ISO_C_BINDING
+!-------------------------------------------------------------------------------
+      implicit none
+      real(C_DOUBLE), intent(IN), VALUE :: si
+      include 'merad_const.inc'
+      data pi/3.14159265359d0/, alfa/.7297352568d-2/,
+     .     m/0.510998918d0/
+
+      m2=m*m
+      s=si
+      als=s*(s-4d0*m2)
+      coeb=4d0*pi*alfa**2/als
+      coer=alfa**3/als/pi/4d0
+      call grid_init
+
+      end subroutine merad_init
+
 
 !===============================================================================
       subroutine grid_init
