@@ -81,7 +81,7 @@
 
       real*8 function sigF0(xs,xt,xu)
       implicit none
-      real*8 xs,xt,xu,fspen,dbornu
+      real*8 xs,xt,xu,fspen,sig2
       real*8 xsis,xsiu,xsit,au,as
       real*8 um,sm,tm
 
@@ -95,7 +95,8 @@
       tm=(xt-4d0*m2)
       sm=(xs-4d0*m2)
 
-      dbornu= (um**2 - 4d0*m2*m2*(2d0+xt/xu))/sm -sm**2/xu
+      ! CHANGED
+      ! using sig2 instead of calcuclating dbornu
 
       as= (1d0/xsis)*(xsis**2+1d0)*(-2d0*pi**2
      . +log((xsis+1d0)/(1d0-xsis))*log((xsis+1d0)/(1d0-xsis))
@@ -106,7 +107,7 @@
      . *log((xsiu+1d0)/(2d0*xsiu))+4d0*fspen((xsiu+1d0)/(2d0*xsiu))
      . -pi**2/3d0)
 
-      sigF0=alfa**3/(xs*xt**2)*dbornu*(as+au)
+      sigF0=alfa/pi/2d0*sig2(xs,xt,xu)*(as+au)
       return
 
       end function sigF0
