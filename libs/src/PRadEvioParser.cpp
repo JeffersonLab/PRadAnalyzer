@@ -459,11 +459,13 @@ void PRadEvioParser::parseTDCV1190(const uint32_t *data, const uint32_t &size, c
 
     for(uint32_t i = 0; i < size; ++i)
     {
+        // word type
         switch(data[i]>>27)
         {
         case V1190_GLOBAL_HEADER:
             if(roc_id == PRadTS) {
-                tdcData.addr.slot = 0; // geo address not supported in this crate
+                // geo address not supported in this crate
+                tdcData.addr.slot = 0;
             } else {
                 tdcData.addr.slot = data[i]&0x1f;
             }
@@ -476,7 +478,7 @@ void PRadEvioParser::parseTDCV1190(const uint32_t *data, const uint32_t &size, c
         case V1190_TDC_ERROR:
 /*
             cerr << "V1190 Error Word: "
-		 << "0x" << hex << setw(8) << setfill('0') << data[i]
+                 << "0x" << hex << setw(8) << setfill('0') << data[i]
                  << endl;
             break;
 */
