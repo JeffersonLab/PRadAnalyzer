@@ -127,7 +127,7 @@ void moller_test(double v_min = 0.5)
     g3b->SetLineColor(8);
     TCanvas *c1 = new TCanvas("Moller XS", "MollerXS", 200, 10, 700, 500);
     c1->SetGrid();
-    c1->DrawFrame(1e-6, -25, 1e-2, 5);
+    c1->DrawFrame(1e-6, -35, 1e-2, 5);
     c1->SetLogx();
     g1a->Draw("C");
     g2a->Draw("C");
@@ -180,6 +180,7 @@ void moller_vmin_test(double energy = 2142, double v_max = 1000)
     TGraph *g3 = new TGraph();
     TGraph *g4 = new TGraph();
     TGraph *g5 = new TGraph();
+    TGraph *g6 = new TGraph();
 
     PRadMollerGen moller1(1., v_max);
     PRadMollerGen moller2(5., v_max);
@@ -198,8 +199,10 @@ void moller_vmin_test(double energy = 2142, double v_max = 1000)
         g1->SetPoint(g1->GetN(), angle, xs1);
         g2->SetPoint(g2->GetN(), angle, xs2);
         g3->SetPoint(g3->GetN(), angle, xs3);
-        g4->SetPoint(g4->GetN(), angle, (xs2 - xs1)/xs1*100.);
-        g5->SetPoint(g5->GetN(), angle, (xs3 - xs1)/xs1*100.);
+
+        g4->SetPoint(g4->GetN(), angle, 0.);
+        g5->SetPoint(g5->GetN(), angle, (xs2 - xs1)/xs1*100.);
+        g6->SetPoint(g6->GetN(), angle, (xs3 - xs1)/xs1*100.);
     }
 
     TCanvas *c1 = new TCanvas("v_min test", "v_min test", 200, 10, 1200, 500);
@@ -207,9 +210,9 @@ void moller_vmin_test(double energy = 2142, double v_max = 1000)
     c1->SetGrid();
 
     g2->SetLineColor(2);
-    g4->SetLineColor(2);
+    g5->SetLineColor(2);
     g3->SetLineColor(4);
-    g5->SetLineColor(4);
+    g6->SetLineColor(4);
 
     c1->cd(1);
     g1->Draw("AC");
@@ -217,7 +220,8 @@ void moller_vmin_test(double energy = 2142, double v_max = 1000)
     g3->Draw("C");
 
     c1->cd(2);
-    g5->Draw("AC");
+    g6->Draw("AC");
+    g5->Draw("C");
     g4->Draw("C");
 }
 

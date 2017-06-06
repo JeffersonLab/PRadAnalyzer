@@ -1384,7 +1384,7 @@ void PRadEventViewer::showReconEvent()
         if(reconSetting->ShowMatchedDetector(PRadDetector::PRadGEM1)) {
             for(auto &m : matched)
             {
-                if(TEST_BIT(m.hycal.flag, kGEM1Match)) {
+                if(TEST_BIT(m.mflag, kGEM1Match)) {
                     QPointF p(CARTESIAN_TO_HYCALSCENE(m.gem1.front().x, m.gem1.front().y));
                     HyCal->AddHitsMark("GEM1 Hit", p, attr);
                 }
@@ -1405,7 +1405,7 @@ void PRadEventViewer::showReconEvent()
         if(reconSetting->ShowMatchedDetector(PRadDetector::PRadGEM2)) {
             for(auto &m : matched)
             {
-                if(TEST_BIT(m.hycal.flag, kGEM2Match)) {
+                if(TEST_BIT(m.mflag, kGEM2Match)) {
                     QPointF p(CARTESIAN_TO_HYCALSCENE(m.gem2.front().x, m.gem2.front().y));
                     HyCal->AddHitsMark("GEM2 Hit", p, attr);
                 }
