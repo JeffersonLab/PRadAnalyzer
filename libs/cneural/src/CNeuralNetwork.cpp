@@ -15,7 +15,7 @@
 
 // constructor
 CNeuralNetwork::CNeuralNetwork(double factor)
-: learn_factor(factor)
+: learn_factor(factor), output_norm(1.0)
 {
     // place holder
 }
