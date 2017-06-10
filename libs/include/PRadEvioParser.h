@@ -16,7 +16,7 @@ public:
     virtual ~PRadEvioParser();
 
     // public member functions
-    void ReadEvioFile(const char *filepath, int evt = -1, bool verbose = false);
+    int ReadEvioFile(const char *filepath, int evt = -1, bool verbose = false);
     int ReadEventBuffer(const void *buf);
 
     void SetHandler(PRadDataHandler *h) {myHandler = h;}

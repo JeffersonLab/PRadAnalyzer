@@ -49,7 +49,7 @@ PRadEvioParser::~PRadEvioParser()
 //============================================================================//
 
 // simple binary reading for evio format files
-void PRadEvioParser::ReadEvioFile(const char *filepath, int evt, bool verbose)
+int PRadEvioParser::ReadEvioFile(const char *filepath, int max_count, bool verbose)
 {
     // evio file is written in binary
     ifstream evio_in(filepath, ios::binary | ios::in);
@@ -58,7 +58,7 @@ void PRadEvioParser::ReadEvioFile(const char *filepath, int evt, bool verbose)
         cerr << "Cannot open evio file "
              << "\"" << filepath << "\""
              << endl;
-        return;
+        return 0;
     }
 
     // get the total length of file
@@ -74,12 +74,12 @@ void PRadEvioParser::ReadEvioFile(const char *filepath, int evt, bool verbose)
     }
 
     // parse block, stop when read enough event
-    // if evt <= 0, it reads all events
+    // if max_count <= 0, it reads all events
     int count = 0;
     while(evio_in.tellg() < length && evio_in.tellg() != -1)
     {
         try {
-            count += parseEvioBlock(evio_in, buffer, evt-count);
+            count += parseEvioBlock(evio_in, buffer, max_count-count);
         } catch (PRadException &e) {
             cerr << e.FailureType() << ": "
                  << e.FailureDesc() << endl;
@@ -87,13 +87,15 @@ void PRadEvioParser::ReadEvioFile(const char *filepath, int evt, bool verbose)
             break;
         }
 
-        if(evt > 0 && count >= evt)
+        if(max_count > 0 && count >= max_count)
             break;
     }
 
     delete [] buffer;
 
     evio_in.close();
+
+    return count;
 }
 
 // read a event buffer, return its type

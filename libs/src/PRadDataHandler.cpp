@@ -152,33 +152,36 @@ void PRadDataHandler::ReadFromDST(const std::string &path, unsigned int mode)
     } catch(PRadException &e) {
         std::cerr << e.FailureType() << ": "
                   << e.FailureDesc() << std::endl
-                  << "Write to DST Aborted!" << std::endl;
+                  << "Read from DST Aborted!" << std::endl;
     } catch(std::exception &e) {
         std::cerr << e.what() << std::endl
-                  << "Write to DST Aborted!" << std::endl;
+                  << "Read from DST Aborted!" << std::endl;
     }
     dst_parser.CloseInput();
  }
 
 
 // read fro evio file
-void PRadDataHandler::ReadFromEvio(const std::string &path, int evt, bool verbose)
+int PRadDataHandler::ReadFromEvio(const std::string &path, int evt, bool verbose)
 {
-    parser.ReadEvioFile(path.c_str(), evt, verbose);
+    int count = parser.ReadEvioFile(path.c_str(), evt, verbose);
     waitEventProcess();
+    return count;
 }
 
 // read from splitted evio file
-void PRadDataHandler::ReadFromSplitEvio(const std::string &path, int split, bool verbose)
+int PRadDataHandler::ReadFromSplitEvio(const std::string &path, int split, bool verbose)
 {
     if(split < 0) {// default input, no split
-        ReadFromEvio(path.c_str(), -1, verbose);
+        return ReadFromEvio(path.c_str(), -1, verbose);
     } else {
+        int count = 0;
         for(int i = 0; i <= split; ++i)
         {
             std::string split_path = path + "." + std::to_string(i);
-            ReadFromEvio(split_path.c_str(), -1, verbose);
+            count += ReadFromEvio(split_path.c_str(), -1, verbose);
         }
+        return count;
     }
 }
 
@@ -511,14 +514,15 @@ void PRadDataHandler::Replay(const std::string &r_path, int split, const std::st
 
     replayMode = true;
 
-    ReadFromSplitEvio(r_path, split);
+    int count = ReadFromSplitEvio(r_path, split);
 
     dst_parser.WriteRunInfo();
 
     replayMode = false;
 
     std::cout << "Replay done, took "
-              << timer.GetElapsedTime()/1000. << " s!"
+              << timer.GetElapsedTime()/1000. << " s! "
+              << "Replayed " << count << " events."
               << std::endl;
     dst_parser.CloseOutput();
 }

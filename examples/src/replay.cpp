@@ -90,9 +90,6 @@ int main(int argc, char * argv[])
 
 
     cout << "TIMER: Finished, took " << timer.GetElapsedTime() << " ms" << endl;
-    cout << "Read " << handler->GetEventCount() << " events and "
-         << epics->GetEventCount() << " EPICS events from file."
-         << endl;
     cout << PRadInfoCenter::GetBeamCharge() << endl;
     cout << PRadInfoCenter::GetLiveTime() << endl;
 
