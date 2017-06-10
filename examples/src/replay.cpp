@@ -24,9 +24,10 @@ using namespace std;
 void print_instruction()
 {
     cout << "usage: " << endl
-         << setw(10) << "-i : " << "input file path" << endl
-         << setw(10) << "-o : " << "output file path" << endl
-         << setw(10) << "-h : " << "show options" << endl
+         << setw(10) << "-i : " << "input file path\n"
+         << setw(10) << "-o : " << "output file path\n"
+         << setw(10) << "-s : " << "spliting file number, default -1 (no splitting)\n"
+         << setw(10) << "-h : " << "show options\n"
          << endl;
 }
 
@@ -39,6 +40,7 @@ int main(int argc, char * argv[])
 
     char *ptr;
     string output, input;
+    int split = -1;
 
     // -i input_file -o output_file
     for(int i = 1; i < argc; ++i)
@@ -52,6 +54,9 @@ int main(int argc, char * argv[])
                 break;
             case 'i':
                 input = argv[++i];
+                break;
+            case 's':
+                split = atoi(argv[++i]);
                 break;
             case 'h':
                 print_instruction();
@@ -80,7 +85,7 @@ int main(int argc, char * argv[])
 //    handler->ReadFromEvio("/work/prad/xbai/1323/prad_001323.evio.1");
 //    handler->ReadFromSplitEvio("/work/prad/xbai/1323/prad_001323.evio", 10);
     handler->InitializeByData(input+".0");
-    handler->Replay(input, 1500, output);
+    handler->Replay(input, split, output);
 //    handler->GetSRS()->SavePedestal("gem_ped.txt");
 
 
