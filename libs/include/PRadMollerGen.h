@@ -38,7 +38,7 @@ extern "C"
 class PRadMollerGen
 {
 public:
-    PRadMollerGen(double vmin = 5, double vmax = 400, int nbins = 10000);
+    PRadMollerGen(double vmin = 5, double vmax = 400, int mbins = 10000, double prec = 1e-6);
     virtual ~PRadMollerGen();
 
     double Generate(double Es, double min_angle, double max_angle, int nevents,
@@ -47,6 +47,11 @@ public:
                double &sig_born, double &sig_nrad, double &sig_rad) const;
     void GetXSdQsq(double s, double t,
                    double &sig_born, double &sig_nrad, double &sig_rad) const;
+
+    void SetMaxBins(int mbins) {max_bins = mbins;}
+    void SetPrecision(double prec) {req_prec = prec;}
+    int GetMaxBins() const {return max_bins;}
+    double GetPrecision() const {return req_prec;}
 
     // static functions
     static void SigmaVph(double s, double t,
@@ -63,8 +68,10 @@ private:
     // v_min defines the minimum photon energy that to be generated (hard photons)
     // v_cut defines the integration range to the highest photon energy
     double v_min, v_cut;
-    // theta_bins defines the sampling precision in theta
-    int theta_bins;
+    // maximum theta bins
+    int max_bins;
+    // required theta interpolation precision
+    double req_prec;
 };
 
 #endif

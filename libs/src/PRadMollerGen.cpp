@@ -40,6 +40,10 @@
 //#define MOLLER_TEST_URA
 //#define MOLLER_TEST_KIN
 
+//============================================================================//
+// Helper constants, structures and functions                                 //
+//============================================================================//
+
 // some constant values to be used
 const double m = cana::ele_mass;
 const double m2 = m*m;
@@ -49,6 +53,9 @@ const double alp2 = cana::alpha*cana::alpha;
 const double alp3 = alp2*cana::alpha;
 // convert MeV^-2 to nbarn
 const double unit = cana::hbarc2*1e7;
+
+// random number generator
+static cana::CRandom<> rng;
 
 // some inlines
 // square
@@ -79,6 +86,7 @@ inline double get_other_polar(double Es, double angle)
 // get the beta for CM frame
 inline double get_CM_beta(double Es)
 {
+    // (p1 + p2)/(gamma1*m1 + gamma2*m2) = sqrt(Es^2 - m^2)/(Es + m)
     return sqrt((Es - cana::ele_mass)/(Es + cana::ele_mass));
 }
 
@@ -90,31 +98,6 @@ inline void four_momentum_boost_z(double *p, double *pp, double beta)
     p[1] = pp[1];
     p[2] = pp[2];
     p[3] = gamma*(pp[3] - beta*pp[0]);
-}
-
-// linear interpolation from two arrays (one for distribution, one for value)
-inline double interp_dist(double rnd, double *dist, double *val, int np)
-{
-    double rdist = rnd*dist[np - 1];
-    auto itv = cana::binary_search_interval(&dist[0], &dist[np], rdist);
-    // should not happen
-    if(itv.first == &dist[np] || itv.second == &dist[np])
-    {
-        std::cerr << "Interpolation error for random value = " << rdist
-                  << ", distribution CDF starts at " << dist[0]
-                  << ", ends at " << dist[np - 1]
-                  << std::endl;
-        return 0.;
-    }
-
-    int i1 = itv.first - dist;
-    int i2 = itv.second - dist;
-
-    if(i1 == i2) {
-        return val[i1];
-    } else {
-        return cana::linear_interp(dist[i1], val[i1], dist[i2], val[i2], rdist);
-    }
 }
 
 // Mandelstam variables for Moller process
@@ -156,11 +139,144 @@ inline double calc_azimuthal(double *p)
     return atan2(p[1], p[2]);
 }
 
+// progress output
+void show_progress(const PRadBenchMark &timer, int count, int max, const char *str, bool end = false)
+{
+    std::cout << "------[ " << str << " " << count << "/" << max << " ]---"
+              << "---[ " << timer.GetElapsedTimeStr() << " ]---"
+              << "---[ " << timer.GetElapsedTime()/(double)count
+              << " ms/" << str << " ]------";
 
+    if(!end)
+        std::cout << "\r" << std::flush;
+    else
+        std::cout << std::endl;
+}
+
+// simple distribution structure
+struct ValDist
+{
+    double val, cdf;
+
+    // constructors
+    ValDist() {}
+    ValDist(double v, double c) : val(v), cdf(c) {}
+
+    // for binary search
+    bool operator ==(double v) const {return cdf == v;}
+    bool operator <(double v) const {return cdf < v;}
+    bool operator >(double v) const {return cdf > v;}
+    bool operator != (double v) const {return cdf != v;}
+};
+
+// angle distribution structure
+struct TDist : public ValDist
+{
+    // point information
+    double sig_born, sig_nrad, sig_rad;
+    // v related
+    std::vector<ValDist> v_dist;
+
+    // constructor
+    TDist(double s, double t, const PRadMollerGen &model)
+    : ValDist(t, 0.)
+    {
+        // calculate cross sections
+        model.GetXSdQsq(s, t, sig_born, sig_nrad, sig_rad);
+
+        v_dist.reserve(MERAD_NV);
+
+        // copy v distribution that calculated in MERADGEN
+        for(int i = 0; i < MERAD_NV; ++i)
+        {
+            v_dist.emplace_back(merad_dist_.distarv[i], merad_dist_.distsiv[i]);
+        }
+    }
+};
+
+// initialize theta grids for events generation
+std::vector<TDist> init_grid(const PRadMollerGen &model, double s,
+                                 double t_min, double t_max, bool verbose)
+{
+    std::vector<TDist> res;
+    PRadBenchMark timer;
+    int max_bins = model.GetMaxBins();
+
+    if(verbose) {
+        std::cout << "Preparing distributions in theta bins to sample events..."
+                  << std::endl;
+    }
+
+    double t_step = (t_max - t_min)/(double)max_bins;
+    res.reserve(max_bins + 1);
+
+    // first point
+    res.emplace_back(s, t_min, model);
+
+    for(int i = 1; i <= max_bins; ++i)
+    {
+        // show progress
+        if(verbose && (i%PROGRESS_BIN_COUNT == 0))
+            show_progress(timer, i, max_bins, "bin");
+
+        // previous point
+        TDist &prev = res.back();
+
+        // new point
+        res.emplace_back(s, t_min + t_step*i, model);
+        TDist &curr = res.back();
+
+        // cross section is dsigma/dQ2
+        double curr_xs = (curr.sig_nrad + curr.sig_rad);
+        double prev_xs = (prev.sig_nrad + prev.sig_rad);
+
+        // trapezoid rule for integration, Q2 = -t
+        curr.cdf = prev.cdf - t_step*(curr_xs + prev_xs)/2.;
+    }
+
+    if(verbose) {
+        show_progress(timer, max_bins, max_bins, "bin", true);
+        std::cout << "Preparation done! Now start events generation..."
+                  << std::endl;
+    }
+
+    return res;
+}
+
+// linear interpolation from two arrays (one for distribution, one for value)
+inline double interp_dist(std::vector<ValDist> &dist, double dist_val)
+{
+    double interp_val = dist_val*dist.back().cdf;
+    auto itv = cana::binary_search_interval(dist.begin(), dist.end(), interp_val);
+
+    // should not happen
+    if(itv.first == dist.end() || itv.second == dist.end())
+    {
+        std::cerr << "Interpolation error for value = " << interp_val
+                  << ", distribution CDF starts at " << dist.front().cdf
+                  << ", ends at " << dist.back().cdf
+                  << std::endl;
+        return 0.;
+    }
+
+    if(itv.first == itv.second) {
+        return itv.first->val;
+    } else {
+        return cana::linear_interp(itv.first->cdf, itv.first->val,
+                                   itv.second->cdf, itv.second->val,
+                                   interp_val);
+    }
+}
+
+
+
+//============================================================================//
+// Constructor, destructor                                                    //
+//============================================================================//
 
 // constructor
-PRadMollerGen::PRadMollerGen(double vmin, double vmax, int bins)
-: v_min(vmin), v_cut(vmax), theta_bins(bins)
+PRadMollerGen::PRadMollerGen(double vmin, double vmax, int nbins, double prec)
+: v_min(vmin), v_cut(vmax), max_bins(nbins), req_prec(prec)
 {
     // place holder
 }
@@ -171,6 +287,12 @@ PRadMollerGen::~PRadMollerGen()
     // place holder
 }
 
+
+
+//============================================================================//
+// Public functions                                                           //
+//============================================================================//
+
 // generate Moller events, unit is in MeV, degree
 // return integrated luminosity in the unit of nb^-1
 double PRadMollerGen::Generate(double Es, double min_angle, double max_angle,
@@ -179,7 +301,7 @@ const
 {
     // sanity check
     if(min_angle > max_angle || nevents < 1 || Es < 0.) {
-        std::cerr << "Invalid input(s), please make sure these inputs are correct:\n"
+        std::cerr << "Invalid inputs, please make sure these inputs are correct:\n"
                   << "Es = " << Es << " MeV\n"
                   << "Angle range = " << min_angle << " ~ " << max_angle << "\n"
                   << "Number of events: " << nevents
@@ -187,160 +309,81 @@ const
         return 0.;
     }
 
-    PRadBenchMark timer;
-    if(verbose) {
-        std::cout << "Preparing distributions in theta bins to sample events..."
-                  << std::endl;
-    }
+    // kinematic variables
+    double s, t, u, v, t1, z, t_min, t_max;
+    double beta_CM = get_CM_beta(Es);
 
-    // set up random number generator
-    // a "true" random number engine, good for seed
-    std::random_device rd;
-    // Mersenne Twister pseudo-randome number generator
-    std::mt19937 rng{rd()};
-    // uniform distribution
-    std::uniform_real_distribution<double> uni_dist(0., 1.);
-
-    /* TODO, this method was trying to avoid duplicating events, but it fails
-     * with radiation effects
-    // since the cross section has already covered both t and u channels
-    // we should calculate the if the angle ranges include the symmetric point
-    // if it does, then the angle beyond symmetric point should not be generated
-    // to avoid duplicating Moller pairs
-    double sym_angle = get_sym_angle(Es);
-
-    // choose lower angle side to generate
-    if(sym_angle > min_angle && sym_angle < max_angle) {
-        // update min angle so it can cover the input max_angle
-        double min_angle2 = get_other_polar(Es, max_angle);
-        if(min_angle > min_angle2) min_angle = min_angle2;
-        max_angle = sym_angle;
-    }
-    */
+    // determine t range
+    get_moller_stu(Es, min_angle, s, t_min, u);
+    get_moller_stu(Es, max_angle, s, t_max, u);
 
     // prepare grid for interpolation of angle
-    double angle_step = (max_angle - min_angle)/(double)theta_bins;
-    struct CDF_Angle {double cdf, angle, sig_born, sig_nrad, sig_rad, v_cdf[MERAD_NV], v_val[MERAD_NV];};
-    std::vector<CDF_Angle> angle_dist(theta_bins + 1);
-
-    // first point
-    CDF_Angle &fp = angle_dist[0];
-    fp.angle = min_angle;
-    fp.cdf = 0.;
-    GetXS(Es, fp.angle, fp.sig_born, fp.sig_nrad, fp.sig_rad);
-    for(int i = 1; i <= theta_bins; ++i)
-    {
-        // show progress
-        if(verbose && i%PROGRESS_BIN_COUNT == 0) {
-            std::cout <<"------[ bin " << i << "/" << theta_bins << " ]---"
-                      << "---[ " << timer.GetElapsedTimeStr() << " ]---"
-                      << "---[ " << timer.GetElapsedTime()/(double)i
-                      << " ms/bin ]------\r"
-                      << std::flush;
-        }
-
-        CDF_Angle &point = angle_dist[i];
-        CDF_Angle &prev = angle_dist[i - 1];
-        point.angle = min_angle + angle_step*i;
-        // calculate cross sections
-        GetXS(Es, point.angle, point.sig_born, point.sig_nrad, point.sig_rad);
-
-        // solid angle d_Omega = sin(theta)*d_theta*d_phi
-        double curr_xs = 2.*cana::pi*sin(point.angle*cana::deg2rad)*(point.sig_nrad + point.sig_rad);
-        double prev_xs = 2.*cana::pi*sin(prev.angle*cana::deg2rad)*(prev.sig_nrad + prev.sig_rad);
-
-        // trapezoid rule for integration
-        point.cdf = angle_step*cana::deg2rad*(curr_xs + prev_xs)/2. + prev.cdf;
-
-        // copy v distribution that calculated in MERADGEN
-        for(int j = 0; j < MERAD_NV; ++j)
-        {
-            point.v_cdf[j] = merad_dist_.distsiv[j];
-            point.v_val[j] = merad_dist_.distarv[j];
-        }
-    }
-
-    if(verbose) {
-        std::cout <<"------[ bin " << theta_bins << "/" << theta_bins << " ]---"
-                  << "---[ " << timer.GetElapsedTimeStr() << " ]---"
-                  << "---[ " << timer.GetElapsedTime()/(double)theta_bins
-                  << " ms/bin ]------\n"
-                  << "Preparation done! Now start events generation..."
-                  << std::endl;
-    }
-    timer.Reset();
+    std::vector<TDist> t_dist = init_grid(*this, s, t_min, t_max, verbose);
 
     // prepare variables
-    double beta_CM = get_CM_beta(Es);
-    double angle, s, t, u, v, t1, z;
     double k2[4], p2[4], k[4], k2_CM[4], p2_CM[4], k_CM[4];
     std::ofstream fout(save_path);
 
-    // convert uniform distribution to cross-section vs. angle distribution
-    // lamda function for binary search
-    auto comp = [](CDF_Angle point, double val) { return point.cdf - val;};
-
     // event sampling
+    PRadBenchMark timer;
     for(int i = 0; i < nevents; ++i)
     {
-        double rnd = uni_dist(rng)*angle_dist.back().cdf;
-        auto interval = cana::binary_search_interval(angle_dist.begin(), angle_dist.end(), rnd, comp);
+        double rnd = rng.Rand()*t_dist.back().cdf;
+        auto interval = cana::binary_search_interval(t_dist.begin(), t_dist.end(), rnd);
 
         // should not happen
-        if(interval.first == angle_dist.end() || interval.second == angle_dist.end()) {
+        if(interval.first == t_dist.end() || interval.second == t_dist.end()) {
             std::cerr << "Could not find CDF value at " << rnd << std::endl;
             i--;
             continue;
         }
 
         // check if this event has a hard photon emission
-        double rnd2 = uni_dist(rng);
+        double rnd2 = rng.Rand();
         double sig_rad, sig_nrad, rnd_rad;
 
         // exactly matched one point
         if(interval.first == interval.second) {
-            angle = interval.first->angle;
-            get_moller_stu(Es, angle, s, t, u);
+            t = interval.first->val;
 
             sig_rad = interval.first->sig_rad;
             sig_nrad = interval.first->sig_nrad;
             rnd_rad = (rnd2*(sig_nrad + sig_rad) - sig_nrad)/sig_rad;
             if(rnd_rad > 0.) {
-                v = interp_dist(rnd_rad, interval.first->v_cdf, interval.first->v_val, MERAD_NV);
-                t1 = merad_sample_t1(t, v, 0., uni_dist(rng));
-                z = merad_sample_z(t, t1, v, 0., uni_dist(rng));
+                v = interp_dist(interval.first->v_dist, rnd);
+                t1 = merad_sample_t1(t, v, 0., rng.Rand());
+                z = merad_sample_z(t, t1, v, 0., rng.Rand());
             } else {
                 v = 0., t1 = t, z = 0.;
             }
         // in an interval, interpolate everything between two points
         } else {
-            angle = cana::linear_interp(interval.first->cdf, interval.first->angle,
-                                             interval.second->cdf, interval.second->angle,
-                                             rnd);
-            get_moller_stu(Es, angle, s, t, u);
+            t = cana::linear_interp(interval.first->cdf, interval.first->val,
+                                    interval.second->cdf, interval.second->val,
+                                    rnd);
 
             sig_nrad = cana::linear_interp(interval.first->cdf, interval.first->sig_nrad,
-                                                  interval.second->cdf, interval.second->sig_nrad,
-                                                  rnd);
+                                           interval.second->cdf, interval.second->sig_nrad,
+                                           rnd);
             sig_rad = cana::linear_interp(interval.first->cdf, interval.first->sig_rad,
-                                                 interval.second->cdf, interval.second->sig_rad,
-                                                 rnd);
+                                          interval.second->cdf, interval.second->sig_rad,
+                                          rnd);
             rnd_rad = (rnd2*(sig_nrad + sig_rad) - sig_nrad)/sig_rad;
             if(rnd_rad > 0.) {
-                double v1 = interp_dist(rnd_rad, interval.first->v_cdf, interval.first->v_val, MERAD_NV);
-                double v2 = interp_dist(rnd_rad, interval.second->v_cdf, interval.second->v_val, MERAD_NV);
+                double v1 = interp_dist(interval.first->v_dist, rnd_rad);
+                double v2 = interp_dist(interval.second->v_dist, rnd_rad);
 
                 v = cana::linear_interp(interval.first->cdf, v1,
                                         interval.second->cdf, v2,
                                         rnd);
-                t1 = merad_sample_t1(t, v, 0., uni_dist(rng));
-                z = merad_sample_z(t, t1, v, 0., uni_dist(rng));
+                t1 = merad_sample_t1(t, v, 0., rng.Rand());
+                z = merad_sample_z(t, t1, v, 0., rng.Rand());
             } else {
                 v = 0., t1 = t, z = 0.;
             }
         }
 
-        MomentumRec(k2_CM, p2_CM, k_CM, s, t, t1, v, z, uni_dist(rng), uni_dist(rng));
+        MomentumRec(k2_CM, p2_CM, k_CM, s, t, t1, v, z, rng.Rand(), rng.Rand());
         four_momentum_boost_z(k2, k2_CM, -beta_CM);
         four_momentum_boost_z(p2, p2_CM, -beta_CM);
         four_momentum_boost_z(k, k_CM, -beta_CM);
@@ -354,13 +397,8 @@ const
         }
 
         // show progress
-        if(verbose && i%PROGRESS_EVENT_COUNT == 0) {
-            std::cout <<"------[ ev " << i << "/" << nevents << " ]---"
-                      << "---[ " << timer.GetElapsedTimeStr() << " ]---"
-                      << "---[ " << timer.GetElapsedTime()/(double)i
-                      << " ms/ev ]------\r"
-                      << std::flush;
-        }
+        if(verbose && (i%PROGRESS_EVENT_COUNT == 0))
+            show_progress(timer, i, nevents, "ev");
 
 #ifdef MOLLER_TEST_KIN
         std::cout << i << ", " << angle << ", "
@@ -387,17 +425,15 @@ const
     }
 
     if(verbose) {
-        std::cout <<"------[ ev " << nevents << "/" << nevents << " ]---"
-                  << "---[ " << timer.GetElapsedTimeStr() << " ]---"
-                  << "---[ " << timer.GetElapsedTime()/(double)nevents
-                  << " ms/ev ]------\n"
-                  << "Events generation done! Saved in file \"" << save_path << "\".\n"
-                  << "Integrated luminosity = " << (double)nevents/angle_dist.back().cdf
+        show_progress(timer, nevents, nevents, "ev", true);
+        std::cout << "Events generation done! Saved in file \"" << save_path << "\".\n"
+                  << "Integrated luminosity = " << (double)nevents/(unit*t_dist.back().cdf)
                   << " nb^-1."
                   << std::endl;
     }
 
-    return (double)nevents/angle_dist.back().cdf;
+    // return integrated luminosity
+    return (double)nevents/(t_dist.back().cdf*unit);
 }
 
 // get differential cross section dsigma/dOmega
@@ -497,6 +533,12 @@ const
     // radiative cross section
     sig_rad = sig_Fh;
 }
+
+
+
+//============================================================================//
+// Static functions                                                           //
+//============================================================================//
 
 // Cross section including virtual photon part for Moller scattering
 // input Mandelstam variables s, t, u0
@@ -895,3 +937,4 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     p2[3] = vp[3] - sqrt(lamda_s/s)/2.;
 
 }
+

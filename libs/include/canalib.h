@@ -7,6 +7,9 @@
 #include <utility>
 #include <cmath>
 #include <cstdlib>
+#include <iostream>
+#include <random>
+#include <functional>
 
 namespace cana
 {
@@ -390,6 +393,53 @@ namespace cana
         // wn is positivie for counter clockwise and negative for clockwise
         return abs(wn);
     }
+
+    // seeding random engine
+    template<class T = std::mt19937, std::size_t N = T::state_size>
+    auto SeededRandomEngine() -> typename std::enable_if<!!N, T>::type
+    {
+        typename T::result_type random_data[N];
+        std::random_device rd;
+        std::generate(std::begin(random_data), std::end(random_data), std::ref(rd));
+        std::seed_seq seeds(std::begin(random_data), std::end(random_data));
+        T re(seeds);
+        return re;
+    }
+
+    template<typename T = double, class Engine = std::mt19937>
+    class CRandom
+    {
+    public:
+        // constructor
+        CRandom()
+        : engine(SeededRandomEngine<Engine>())
+        {
+            typename Engine::result_type range = engine.max() - engine.min();
+            divisor = static_cast<T>(range) + 1;
+
+            if(divisor <= 0) {
+                std::cerr << "CRandom: Output type cannot handle engine range, "
+                          << "undefined value may be returned."
+                          << std::endl;
+            }
+        }
+
+        // get a random number in (0, 1)
+        inline T Rand()
+        {
+            return static_cast<T>(engine() - engine.min())/divisor;
+        }
+
+        // get a random number in (min, max)
+        inline T Rand(T min, T max)
+        {
+            return static_cast<T>(engine() - engine.min())/divisor*(max - min) + min;
+        }
+
+    private:
+        Engine engine;
+        T divisor;
+    };
 };
 
 #endif
