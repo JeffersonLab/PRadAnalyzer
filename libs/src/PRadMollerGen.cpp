@@ -31,6 +31,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <algorithm>
 #include "PRadBenchMark.h"
 
 #define PROGRESS_EVENT_COUNT 1000
@@ -143,9 +144,10 @@ inline double calc_azimuthal(double *p)
 void show_progress(const PRadBenchMark &timer, int count, int max, const char *str, bool end = false)
 {
     std::cout << "------[ " << str << " " << count << "/" << max << " ]---"
-              << "---[ " << timer.GetElapsedTimeStr() << " ]---"
-              << "---[ " << timer.GetElapsedTime()/(double)count
-              << " ms/" << str << " ]------";
+              << "---[ " << timer.GetElapsedTimeStr() << " ]---";
+
+    double avg = (count > 0) ? (double)timer.GetElapsedTime()/(double)count : 0.;
+    std::cout << "---[ " << avg << " ms/" << str << " ]------";
 
     if(!end)
         std::cout << "\r" << std::flush;
@@ -194,49 +196,88 @@ struct TDist : public ValDist
     }
 };
 
+// finer binning if the interpolation cannot reach the precision
+inline void refine_binning(const PRadMollerGen &model, double s,
+                           double prec, std::vector<TDist> &container,
+                           size_t bin_i, size_t bin_f)
+{
+    const TDist &beg = container.at(bin_i), end = container.at(bin_f);
+    double t = (beg.val + end.val)/2.;
+
+    container.emplace_back(s, t, model);
+    const TDist &center = container.back();
+
+    double interp_nrad = cana::linear_interp(beg.val, beg.sig_nrad, end.val, end.sig_nrad, t);
+    double interp_rad = cana::linear_interp(beg.val, beg.sig_rad, end.val, end.sig_rad, t);
+
+    if(std::abs(1. - interp_nrad/center.sig_nrad) > prec ||
+       std::abs(1. - interp_rad/center.sig_rad) > prec)
+    {
+        refine_binning(model, s, prec, container, bin_i, container.size() - 1);
+        refine_binning(model, s, prec, container, container.size() - 1, bin_f);
+    }
+
+}
+
 // initialize theta grids for events generation
 std::vector<TDist> init_grid(const PRadMollerGen &model, double s,
-                                 double t_min, double t_max, bool verbose)
+                             double t_min, double t_max, bool verbose)
 {
     std::vector<TDist> res;
     PRadBenchMark timer;
-    int max_bins = model.GetMaxBins();
+    unsigned int init_bins = model.GetMinBins();
+    double prec = model.GetPrecision();
 
     if(verbose) {
-        std::cout << "Preparing distributions in theta bins to sample events..."
+        std::cout << "Initializing grids in theta to sample events..."
                   << std::endl;
     }
 
-    double t_step = (t_max - t_min)/(double)max_bins;
-    res.reserve(max_bins + 1);
-
-    // first point
-    res.emplace_back(s, t_min, model);
-
-    for(int i = 1; i <= max_bins; ++i)
+    double t_step = (t_max - t_min)/(double)init_bins;
+    res.reserve(100*init_bins);
+    for(unsigned int i = 0; i <= init_bins; ++i)
     {
-        // show progress
-        if(verbose && (i%PROGRESS_BIN_COUNT == 0))
-            show_progress(timer, i, max_bins, "bin");
-
-        // previous point
-        TDist &prev = res.back();
-
         // new point
         res.emplace_back(s, t_min + t_step*i, model);
-        TDist &curr = res.back();
-
-        // cross section is dsigma/dQ2
-        double curr_xs = (curr.sig_nrad + curr.sig_rad);
-        double prev_xs = (prev.sig_nrad + prev.sig_rad);
-
-        // trapezoid rule for integration, Q2 = -t
-        curr.cdf = prev.cdf - t_step*(curr_xs + prev_xs)/2.;
+        if(verbose) show_progress(timer, i, init_bins, "bin");
     }
 
     if(verbose) {
-        show_progress(timer, max_bins, max_bins, "bin", true);
-        std::cout << "Preparation done! Now start events generation..."
+        show_progress(timer, init_bins, init_bins, "bin", true);
+        std::cout << "Initialization done! Now refine binning to reach precision "
+                  << prec << std::endl;
+    }
+
+    timer.Reset();
+    for(unsigned int i = 1; i <= init_bins; ++i)
+    {
+        refine_binning(model, s, prec, res, i - 1, i);
+        if(verbose) show_progress(timer, i, init_bins, "bin");
+    }
+
+    // sort in Q2 transcendent (t descendant) order
+    std::sort(res.begin(), res.end(), [] (const TDist &b1, const TDist &b2)
+                                         {
+                                             return b1.val > b2.val;
+                                         });
+
+    // calculate cdf for each bin
+    for(auto curr = res.begin(), prev = curr++;
+        curr != res.end();
+        curr++, prev++)
+    {
+        double curr_xs = (curr->sig_nrad + curr->sig_rad);
+        double prev_xs = (prev->sig_nrad + prev->sig_rad);
+
+        // trapezoid rule for integration, Q2 = -t
+        curr->cdf = prev->cdf + (prev->val - curr->val)*(curr_xs + prev_xs)/2.;
+    }
+
+    if(verbose) {
+        show_progress(timer, init_bins, init_bins, "bin", true);
+        std::cout << "Interpolation grids finalized! \n"
+                  << "Total number of grids = " << res.size() - 1 << "\n"
+                  << "Interpolation precision = " << prec
                   << std::endl;
     }
 
@@ -276,7 +317,7 @@ inline double interp_dist(std::vector<ValDist> &dist, double dist_val)
 
 // constructor
 PRadMollerGen::PRadMollerGen(double vmin, double vmax, int nbins, double prec)
-: v_min(vmin), v_cut(vmax), max_bins(nbins), req_prec(prec)
+: v_min(vmin), v_cut(vmax), min_bins(nbins), req_prec(prec)
 {
     // place holder
 }

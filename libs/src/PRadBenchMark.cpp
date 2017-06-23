@@ -22,6 +22,7 @@ PRadBenchMark::~PRadBenchMark()
 void PRadBenchMark::Reset()
 {
     time_point = std::chrono::high_resolution_clock::now();
+    saved.clear();
 }
 
 unsigned int PRadBenchMark::GetElapsedTime()
@@ -68,3 +69,7 @@ const
     return time_str;
 }
 
+void PRadBenchMark::Save()
+{
+    saved.push_back(GetElapsedTime());
+}

@@ -15,6 +15,7 @@ namespace cana
 {
     const static double alpha = 7.297352568E-3;     // 1./137.03599911
     const static double pi = 3.1415926535897932;    // pi
+    const static double euler = 0.5772156649;       // Euler constant gamma
     const static double rad2deg = 57.2957795131;    // rad to degree
     const static double deg2rad = 0.01745329252;    // degree to rad
     const static double ele_mass = 0.510998918;     // MeV
@@ -44,10 +45,12 @@ namespace cana
     }
 
     // linear interpolation of two points (x1, y1), (x2, y2)
-    // input val must be within [x1, x2]
+    // input val must be x value within [x1, x2]
     template<typename T>
     inline T linear_interp(T x1, T y1, T x2, T y2, T val)
     {
+        if(x1 == x2)
+            return y1;
         return ((val - x1)*y2 + (x2 - val)*y1)/(x2 - x1);
     }
 
@@ -314,7 +317,7 @@ namespace cana
     }
 
     template<class Iter, typename T>
-    bool is_in(const T &val, Iter beg, Iter end)
+    inline bool is_in(const T &val, Iter beg, Iter end)
     {
         for(Iter it = beg; it != end; ++it)
         {
@@ -425,13 +428,13 @@ namespace cana
         }
 
         // get a random number in (0, 1)
-        inline T Rand()
+        T Rand()
         {
             return static_cast<T>(engine() - engine.min())/divisor;
         }
 
         // get a random number in (min, max)
-        inline T Rand(T min, T max)
+        T Rand(T min, T max)
         {
             return static_cast<T>(engine() - engine.min())/divisor*(max - min) + min;
         }
