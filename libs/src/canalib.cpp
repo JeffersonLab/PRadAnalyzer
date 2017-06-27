@@ -60,7 +60,8 @@ double cana::landau(double x)
                 {
                     return std::sin(pi*t)*std::exp(-t*(x + std::log(t)));
                 };
-    return simpson(1e-22, 500, 500000, expr)/pi;
+
+    return simpson(expr, 1e-22, 500, 500000)/pi;
 }
 
 // a fit method to calculate landau distribution
@@ -202,25 +203,5 @@ double cana::spence_tr(double z, double res, int nmax)
     }
 
     return output;
-}
-
-// simpson integration
-double cana::simpson(double begin, double end,
-                     double (*f)(double), double step, int Nmin)
-{
-    int Nsteps = (end - begin)/step;
-    int Nbins = std::max(Nmin, Nsteps)/2;
-    double s = (end - begin)/(double)(2.*Nbins);
-
-    // first bin
-    double result = (*f)(begin) + 4.*(*f)(begin + s) + (*f)(end);
-    double x = begin + 2.*s;
-    int i = 1;
-    while(i++ < Nbins)
-    {
-        result += 2.*(*f)(x) + 4.*(*f)(x + s);
-        x += 2.*s;
-    }
-    return result*s/3.;
 }
 

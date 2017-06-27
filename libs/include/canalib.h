@@ -54,92 +54,32 @@ namespace cana
         return ((val - x1)*y2 + (x2 - val)*y1)/(x2 - x1);
     }
 
-    // simpson integration
-    double simpson(double begin, double end, double (*f)(double), double step, int Nmin);
+    template<class T,
+             typename... Args>
+    double simpson(double (T::*f)(double, Args...), T *t, double a, double b, int steps, Args... args)
+    {
+        double s = (b - a)/(double)steps;
+        double res = (t->*f)(a, args...) + (t->*f)(b, args...) + (t->*f)(a + s/2., args...);
+        for(int i = 1; i < steps; ++i)
+        {
+            res += 4.*(t->*f)(a + s*i + s/2., args...) + 2.*(t->*f)(a + s*i, args...);
+        }
+
+        return s/6.*res;
+    }
 
     // simpson for lamda expression
-    template<class Lamda_func>
-    double simpson(double begin, double end, int Nbins, Lamda_func func)
+    template<typename F, typename... Args>
+    double simpson(F f, double a, double b, int steps, Args... args)
     {
-        double s = (end - begin)/(double)(2.*Nbins);
-
-        double result = func(begin) + 4.*func(begin + s) + func(end);
-        double x = begin + 2.*s;
-        int i = 1;
-        while(i++ < Nbins)
+        double s = (b - a)/(double)steps;
+        double res = f(a, args...) + f(b, args...) + f(a + s/2., args...);
+        for(int i = 1; i < steps; ++i)
         {
-            result += 2.*func(x) + 4.*func(x + s);
-            x += 2.*s;
+            res += 4.*f(a + s*i + s/2., args...) + 2.*f(a + s*i, args...);
         }
 
-        return result*s/3.;
-    }
-
-    template<class T>
-    double simpson(double begin, double end,
-                   double (T::*f)(const double&), T *t, double step, int Nmin)
-    {
-        int Nsteps = (end - begin)/step;
-        int Nbins = std::max(Nmin, Nsteps)/2;
-        double s = (end - begin)/(double)(2.*Nbins);
-
-        // first bin
-        double result = (t->*f)(begin) + 4.*(t->*f)(begin + s) + (t->*f)(end);
-        double x = begin + 2.*s;
-        int i = 1;
-        while(i++ < Nbins)
-        {
-            result += 2.*(t->*f)(x) + 4.*(t->*f)(x + s);
-            x += 2.*s;
-        }
-
-        return result*s/3.;
-    }
-
-    template<class T, typename... Args>
-    double simpson(double begin, double end, double step, int Nmin,
-                   double (T::*f)(const double&, const Args& ...), T *t, const Args&... args)
-    {
-        int Nsteps = (end - begin)/step;
-        int Nbins = std::max(Nmin, Nsteps)/2;
-        double s = (end - begin)/(double)(2.*Nbins);
-
-        // first bin
-        double result =  (t->*f)(begin, args...)
-                       + 4.*(t->*f)(begin + s, args...)
-                       + (t->*f)(end, args...);
-        double x = begin + 2.*s;
-        int i = 1;
-        while(i++ < Nbins)
-        {
-            result += 2.*(t->*f)(x, args...) + 4.*(t->*f)(x + s, args...);
-            x += 2.*s;
-        }
-
-        return result*s/3.;
-    }
-
-    template<class T, typename... Args>
-    double simpson(double begin, double end, double step, int Nmin,
-                   double (T::*f) (double, Args ...) const, const T *t, Args... args)
-    {
-        int Nsteps = (end - begin)/step;
-        int Nbins = std::max(Nmin, Nsteps)/2;
-        double s = (end - begin)/(double)(2.*Nbins);
-
-        // first bin
-        double result =  (t->*f)(begin, args...)
-                       + 4.*(t->*f)(begin + s, args...)
-                       + (t->*f)(end, args...);
-        double x = begin + 2.*s;
-        int i = 1;
-        while(i++ < Nbins)
-        {
-            result += 2.*(t->*f)(x, args...) + 4.*(t->*f)(x + s, args...);
-            x += 2.*s;
-        }
-
-        return result*s/3.;
+        return s/6.*res;
     }
 
     // the function is based on c++ source code
