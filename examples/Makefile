@@ -60,6 +60,7 @@ EXAMPLE       = testGEM \
 				physCalib \
 				reconstruct \
 				testNeural \
+				testPhiSym \
 				neuralTrain \
 				neuralReject
 
