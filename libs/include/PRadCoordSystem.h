@@ -133,27 +133,12 @@ public:
         }
     }
 
-    template<class T>
-    inline float GetPolarAngle(const T &hit, const Point &O = target())
-    {
-        float z = hit.z - O.z;
-        float r = sqrt(pow(z, 2) + pow(hit.x - O.x, 2) + pow(hit.y - O.y, 2));
-        return acos(z/r)*cana::rad2deg;
-    }
-
-    template<class T>
-    inline float GetAzimuthalAngle(const T &hit, const Point &O = target())
-    {
-        return atan2(hit.y - O.y, hit.x - O.x)*cana::rad2deg;
-    }
-
-
 public:
     //static public members
-    static Point origin() {return Point(0., 0., 0.);}
+    static inline Point origin() {return Point(0., 0., 0.);}
     // target cell center is at z = 88.9 mm from survey data
-    static Point target() {return Point(0., 0., 88.9);}
-    static Point beamline(const float &z) {return Point(0., 0., z);}
+    static inline Point target() {return Point(0., 0., 88.9);}
+    static inline Point beamline(const float &z) {return Point(0., 0., z);}
 
     // basic projection functions
     static void Projection(float &x, float &y, float &z,
@@ -175,6 +160,20 @@ public:
     static inline Point ProjectionCoordDiff(const T1 &t1, const T2 &t2, Point ori = target(), float proj_z = 5725)
     {
         return ProjectionCoordDiff(Point(t1.x, t1.y, t1.z), Point(t2.x, t2.y, t2.z), ori, proj_z);
+    }
+
+    template<class T>
+    static inline float GetPolarAngle(const T &hit, const Point &O = target())
+    {
+        float z = hit.z - O.z;
+        float r = sqrt(pow(z, 2) + pow(hit.x - O.x, 2) + pow(hit.y - O.y, 2));
+        return acos(z/r)*cana::rad2deg;
+    }
+
+    template<class T>
+    static inline float GetAzimuthalAngle(const T &hit, const Point &O = target())
+    {
+        return atan2(hit.y - O.y, hit.x - O.x)*cana::rad2deg;
     }
 
 

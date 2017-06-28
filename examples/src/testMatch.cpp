@@ -73,7 +73,10 @@ void testMatch(const string &path)
     hist[1] = new TH1F("PbWO4 R Diff", "Diff in R", 1000, -100, 100);
     hist[2] = new TH1F("Trans R Diff", "Diff in R", 1000, -100, 100);
     TH2F *hist2d = new TH2F("R Diff", "HyCal - GEM", 800, 0, 800, 200, -100, 100);
-    TH2F *histev = new TH2F("E vs theta", "Event Distribution", 200, 0, 8, 200, 0, 1400);
+    TH2F *histev = new TH2F("E vs theta", "Event Distribution", 500, 0, 8, 500, 0, 3000);
+    TH2F *histhycal = new TH2F("HyCal Events", "Event Distribution", 500, 0, 8, 500, 0, 3000);
+    TH2F *histgem1 = new TH2F("GEM1 Events", "Event Distribution", 500, -600, 600, 500, -600, 600);
+    TH2F *histgem2 = new TH2F("GEM2 Events", "Event Distribution", 500, -600, 600, 500, -600, 600);
 
     PRadHyCalDetector *hycal_det = hycal->GetDetector();
     PRadGEMDetector *gem_det1 = gem->GetDetector("PRadGEM1");
@@ -116,6 +119,19 @@ void testMatch(const string &path)
             coord_sys->Transform(PRadDetector::PRadGEM1, gem1_hit.begin(), gem1_hit.end());
             coord_sys->Transform(PRadDetector::PRadGEM2, gem2_hit.begin(), gem2_hit.end());
 
+            for(auto &hit : hycal_hit)
+            {
+                histhycal->Fill(PRadCoordSystem::GetPolarAngle(hit), hit.E);
+            }
+
+            for(auto &hit : gem1_hit) {
+                histgem1->Fill(hit.x, hit.y);
+            }
+
+            for(auto &hit : gem2_hit) {
+                histgem2->Fill(hit.x, hit.y);
+            }
+
             // hits matching, return matched index
             auto matched = det_match->Match(hycal_hit, gem1_hit, gem2_hit);
 
@@ -135,7 +151,7 @@ void testMatch(const string &path)
                 hist[hidx]->Fill(r - r2);
                 hist2d->Fill(r, r - r2);
 
-                float angle = coord_sys->GetPolarAngle(hit);
+                float angle = PRadCoordSystem::GetPolarAngle(hit);
                 histev->Fill(angle, hit.E);
             }
 
@@ -166,5 +182,8 @@ void testMatch(const string &path)
     }
     hist2d->Write();
     histev->Write();
+    histhycal->Write();
+    histgem1->Write();
+    histgem2->Write();
     f.Close();
 }
