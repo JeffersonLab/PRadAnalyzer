@@ -11,6 +11,9 @@
 #include <random>
 #include <functional>
 
+// limit of bins for simpson integration by precision
+#define MAX_SIMPSON_BINS 100000
+
 namespace cana
 {
     const static double alpha = 7.297352568E-3;     // 1./137.03599911
@@ -54,32 +57,75 @@ namespace cana
         return ((val - x1)*y2 + (x2 - val)*y1)/(x2 - x1);
     }
 
-    template<class T,
-             typename... Args>
-    double simpson(double (T::*f)(double, Args...), T *t, double a, double b, int steps, Args... args)
-    {
-        double s = (b - a)/(double)steps;
-        double res = (t->*f)(a, args...) + (t->*f)(b, args...) + (t->*f)(a + s/2., args...);
-        for(int i = 1; i < steps; ++i)
-        {
-            res += 4.*(t->*f)(a + s*i + s/2., args...) + 2.*(t->*f)(a + s*i, args...);
-        }
-
-        return s/6.*res;
-    }
-
-    // simpson for lamda expression
+    // simpson integration
     template<typename F, typename... Args>
-    double simpson(F f, double a, double b, int steps, Args... args)
+    double simpson(F &&f, double a, double b, int steps, Args&&... args)
     {
         double s = (b - a)/(double)steps;
-        double res = f(a, args...) + f(b, args...) + f(a + s/2., args...);
+        double res = f(a, args...) + f(b, args...) + 4.*f(a + s/2., args...);
         for(int i = 1; i < steps; ++i)
         {
             res += 4.*f(a + s*i + s/2., args...) + 2.*f(a + s*i, args...);
         }
 
         return s/6.*res;
+    }
+
+    // simpson integration for class member function
+    template<class T, typename F, typename... Args1, typename... Args2>
+    double simpson(F (T::*f)(double, Args1...), T *t, double a, double b, int steps, Args2&&... args)
+    {
+        double s = (b - a)/(double)steps;
+        double res = (t->*f)(a, std::forward<Args2>(args)...)
+                     + (t->*f)(b, std::forward<Args2>(args)...)
+                     + 4.*(t->*f)(a + s/2., std::forward<Args2>(args)...);
+        for(int i = 1; i < steps; ++i)
+        {
+            res += 4.*(t->*f)(a + s*i + s/2., std::forward<Args2>(args)...)
+                   + 2.*(t->*f)(a + s*i, std::forward<Args2>(args)...);
+        }
+
+        return s/6.*res;
+    }
+
+    // simpson rule for a bin [a, b]
+    template<typename F, typename... Args>
+    inline double simpson_prec_helper(F &&f, double a, double f_a, double b, double f_b, double prec, int &count, Args&&... args)
+    {
+        double c = (a + b)/2.;
+        double f_c = f(c, args...);
+        if(++count < MAX_SIMPSON_BINS && std::abs(1. - (f_a + f_b)/2./f_c) > prec) {
+            return simpson_prec_helper(f, a, f_a, c, f_c, prec, count, args...)
+                   + simpson_prec_helper(f, c, f_c, b, f_b, prec, count, args...);
+        } else {
+            return (b - a)*(f_a + f_b + f_c*4.)/6.;
+        }
+    }
+
+    // simpson integration according to required precision
+    template<typename F, typename... Args>
+    double simpson_prec(F &&f, double a, double b, double prec, Args&&... args)
+    {
+        double f_a = f(a, args...);
+        double f_b = f(b, args...);
+        int count = 0;
+        return simpson_prec_helper(f, a, f_a, b, f_b, prec, count, args...);
+    }
+
+    template<class T, typename F, typename... Args1, typename... Args2>
+    double simpson_prec(F (T::*f)(double, Args1...), T *t, double a, double b, double prec, Args2&&... args)
+    {
+        double f_a = (t->*f)(a, args...);
+        double f_b = (t->*f)(b, args...);
+        int count = 0;
+
+        // wrapper member function
+        auto fn = [t, f] (double val, Args2&&... args)
+                  {
+                      return (t->*f)(val, std::forward<Args2>(args)...);
+                  };
+
+        return simpson_prec_helper(fn, a, f_a, b, f_b, prec, count, args...);
     }
 
     // the function is based on c++ source code
@@ -118,6 +164,7 @@ namespace cana
         }
     }
 
+    //  binary search, iterator can be randomly accessed
     template<class RdmaccIt, typename T>
     RdmaccIt binary_search(RdmaccIt beg, RdmaccIt end, const T &val)
     {
@@ -140,9 +187,7 @@ namespace cana
     }
 
     // Comp(*it, val) output should be defined as
-    // =0 : ==
-    // >0 : >
-    // <0 : <
+    // == : 0,  > : >0, < : <0
     template<class RdmaccIt, typename T, class Comp>
     RdmaccIt binary_search(RdmaccIt beg, RdmaccIt end, const T &val, Comp comp)
     {
@@ -164,6 +209,7 @@ namespace cana
         return mid;
     }
 
+    // binary search in an interval
     template<class RdmaccIt, typename T>
     std::pair<RdmaccIt, RdmaccIt> binary_search_interval(RdmaccIt beg,
                                                          RdmaccIt end,
@@ -195,6 +241,9 @@ namespace cana
 
     }
 
+    // binary search in an interval
+    // out put of Comp must be defined as
+    // == : 0,  > : >0, < : <0
     template<class RdmaccIt, typename T, class Compare>
     std::pair<RdmaccIt, RdmaccIt> binary_search_interval(RdmaccIt beg,
                                                          RdmaccIt end,
@@ -226,6 +275,8 @@ namespace cana
         }
     }
 
+    // binary search, return the closest smaller value of the input if the same
+    // value is not found
     template<class RdmaccIt, typename T>
     RdmaccIt binary_search_close_less(RdmaccIt beg, RdmaccIt end, const T &val)
     {
@@ -244,6 +295,7 @@ namespace cana
                 end = mid;
             else
                 beg = mid + 1;
+
             mid = beg + (end - beg)/2;
         }
 
@@ -256,6 +308,7 @@ namespace cana
         }
     }
 
+    // iteration to check if the value is included
     template<class Iter, typename T>
     inline bool is_in(const T &val, Iter beg, Iter end)
     {
@@ -339,7 +392,7 @@ namespace cana
 
     // seeding random engine
     template<class T = std::mt19937, std::size_t N = T::state_size>
-    auto SeededRandomEngine() -> typename std::enable_if<!!N, T>::type
+    auto seeded_random_engine() -> typename std::enable_if<!!N, T>::type
     {
         typename T::result_type random_data[N];
         std::random_device rd;
@@ -350,12 +403,12 @@ namespace cana
     }
 
     template<typename T = double, class Engine = std::mt19937>
-    class CRandom
+    class rand_gen
     {
     public:
         // constructor
-        CRandom()
-        : engine(SeededRandomEngine<Engine>())
+        rand_gen()
+        : engine(seeded_random_engine<Engine>())
         {
             typename Engine::result_type range = engine.max() - engine.min();
             divisor = static_cast<T>(range) + 1;
@@ -368,13 +421,13 @@ namespace cana
         }
 
         // get a random number in (0, 1)
-        T Rand()
+        T operator() ()
         {
             return static_cast<T>(engine() - engine.min())/divisor;
         }
 
         // get a random number in (min, max)
-        T Rand(T min, T max)
+        T operator() (T min, T max)
         {
             return static_cast<T>(engine() - engine.min())/divisor*(max - min) + min;
         }
@@ -383,6 +436,47 @@ namespace cana
         Engine engine;
         T divisor;
     };
+
+    // simple structure for converting uniform distribution to any distribution
+    struct val_cdf
+    {
+        double val, cdf;
+
+        // constructors
+        val_cdf() {}
+        val_cdf(double v, double c) : val(v), cdf(c) {}
+
+        // for binary search
+        bool operator ==(double v) const {return cdf == v;}
+        bool operator <(double v) const {return cdf < v;}
+        bool operator >(double v) const {return cdf > v;}
+        bool operator != (double v) const {return cdf != v;}
+    };
+
+    // convert uniform distribution to another distribution according to the
+    // val-cdf distribution provided
+    template<class RdmIt, typename T>
+    inline T uni2dist(RdmIt begin, RdmIt end, T val)
+    {
+        auto itv = cana::binary_search_interval(begin, end, val);
+
+        // should not happen
+        if(itv.first == end || itv.second == end)
+        {
+            std::cerr << "Fail to convert distribution from value = " << val << std::endl;
+            return 0.;
+        }
+
+        if(itv.first == itv.second) {
+            return itv.first->val;
+        } else {
+            return cana::linear_interp(itv.first->cdf, itv.first->val,
+                                       itv.second->cdf, itv.second->val,
+                                       val);
+        }
+    }
+
+
 };
 
 #endif

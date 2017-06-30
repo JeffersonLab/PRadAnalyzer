@@ -4,77 +4,39 @@
 ! Added C interfaces, changed unit from GeV to MeV, Chao Peng, 05/13/2017
 
 !===============================================================================
-      real(C_DOUBLE) function merad_sigfs(vmin, tin, plin)
-! return the "soft" Bremsstrahlung cross section
-! vmin: the minimum v for photons to be detected (MeV^2)
+      real(C_DOUBLE) function merad_sigfs(vin, tin, plin,sig0)
+! return the "soft" Bremsstrahlung cross section factor
+! vin: the photonic variable v (MeV^2)
 ! tin: the Mandelstam variable t (MeV^2)
 ! plin: degree of polarization
      &bind(C, name = "merad_sigfs")
       use, intrinsic :: ISO_C_BINDING
 !-------------------------------------------------------------------------------
       implicit none
-      real(C_DOUBLE), intent(IN), VALUE :: vmin, tin, plin
-      real*8 fsirsoft, xs, sigborn
+      real(C_double), intent(IN), VALUE :: vin,tin,plin,sig0
+      real*8 fsir
       integer nn
-      include 'merad_tv.inc'
 
-      t = tin
-      pl = plin
-      sig0 = sigborn(t, pl)
-      ! redundant, but it prevents crash
-      xs = fsirsoft(vmin)
-      call simpsx(1d-22,vmin,10000,1d-3,fsirsoft,xs)
-      merad_sigfs = xs
+      merad_sigfs=fsir(tin,0d0,vin,0d0,plin,nn,-1,sig0)
       return
 
       end function merad_sigfs
 
 !===============================================================================
-      real*8 function fsirsoft(v)
-! a helper function to use the simpson integration subroutine
-! kinematics t, v are shared through a common block
-      implicit none
-      real*8 v,fsir
-      integer nn
-      include 'merad_tv.inc'
-
-      fsirsoft=fsir(t,0d0,v,0d0,pl,nn,-1,sig0)
-      return
-
-      end function fsirsoft
-
-!===============================================================================
-      real(C_DOUBLE) function merad_sigfh(vmin, vmax, tin, plin)
+      real(C_DOUBLE) function merad_sigfh(vin, tin, plin)
 ! retrun the "hard" Bremsstrahlung cross section
-! vmin: the minimum v for photons to be detected (MeV^2)
-! vmax: v cuts on the hard photons to be calculated, cannot exceed the
-!       kinematics limit (MeV^2)
+! vin: the photonic variable v (MeV^2)
 ! tin: the Mandelstam variable t (MeV^2)
 ! plin: degree of polarization
      &bind(C, name = "merad_sigfh")
       use, intrinsic :: ISO_C_BINDING
 !-------------------------------------------------------------------------------
       implicit none
-      real(C_DOUBLE), intent(IN), VALUE :: vmin, vmax, tin, plin
-      real*8 va, vb, sia, sib, fsir
-      integer nn, iv
-      include 'merad_tv.inc'
-      include 'merad_grid.inc'
+      real(C_DOUBLE), intent(IN), VALUE :: vin, tin, plin
+      real*8 fsir
+      integer nn
 
-      ! this hard photon part will be revisited again
-      ! so use grid to calculate it and store the values
-      ! Trapezoid rule
-      vb = vmin
-      sib = 0d0
-      do iv = 1, nv
-        va = vb
-        sia = sib
-        vb = vmin + (vmax - vmin)*grv(iv)
-        sib = fsir(tin, 0d0, vb, 0d0, plin, nn, 2, 0d0)
-        distsiv(iv) = distsiv(iv-1) + (sib + sia)*(vb-va)/2d0
-        distarv(iv) = vb
-      enddo
-      merad_sigfh = distsiv(nv)
+      merad_sigfh = fsir(tin, 0d0, vin, 0d0, plin, nn, 2, 0d0)
       return
 
       end function merad_sigfh
@@ -243,7 +205,7 @@
 ! ikey=1 radiative cross section integrated over z ds/dt/dv/dt1
 ! ikey=2 radiative cross section integrated over z and t1 ds/dt/dv
 ! ikey=-1 finite  part of
-! radiative cross section integrated over z and t1 ds/dt/dv
+! radiative cross section integrated over z and t1 ds/dt/dv (factorized part)
       implicit none
       real*8 t,t1,v,z,pl,u,uu,vv,v1,vv1,z1,z2,zz,zz1,zz2,ds
       real*8 dz,dz1,vt,pls,tt,tt1,dt,sd,fir,sig0

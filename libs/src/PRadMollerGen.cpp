@@ -25,7 +25,6 @@
 
 
 #include "PRadMollerGen.h"
-#include "canalib.h"
 #include <cmath>
 #include <random>
 #include <iostream>
@@ -56,7 +55,7 @@ const double alp3 = alp2*cana::alpha;
 const double unit = cana::hbarc2*1e7;
 
 // random number generator
-static cana::CRandom<> rng;
+static cana::rand_gen<> rng;
 
 // some inlines
 // square
@@ -155,68 +154,47 @@ void show_progress(const PRadBenchMark &timer, int count, int max, const char *s
         std::cout << std::endl;
 }
 
-// simple distribution structure
-struct ValDist
+// refine t bin til the interpolation precision reaches required value
+inline void refine_t_bin(const PRadMollerGen &model,
+                         std::vector<TDist> &container, size_t i, size_t f,
+                         double prec, double s)
 {
-    double val, cdf;
+    // safety check
+    if(container.size() >= MAX_THETA_BINS)
+        return;
 
-    // constructors
-    ValDist() {}
-    ValDist(double v, double c) : val(v), cdf(c) {}
-
-    // for binary search
-    bool operator ==(double v) const {return cdf == v;}
-    bool operator <(double v) const {return cdf < v;}
-    bool operator >(double v) const {return cdf > v;}
-    bool operator != (double v) const {return cdf != v;}
-};
-
-// angle distribution structure
-struct TDist : public ValDist
-{
-    // point information
-    double sig_born, sig_nrad, sig_rad;
-    // v related
-    std::vector<ValDist> v_dist;
-
-    // constructor
-    TDist(double s, double t, const PRadMollerGen &model)
-    : ValDist(t, 0.)
-    {
-        // calculate cross sections
-        model.GetXSdQsq(s, t, sig_born, sig_nrad, sig_rad);
-
-        v_dist.reserve(MERAD_NV);
-
-        // copy v distribution that calculated in MERADGEN
-        for(int i = 0; i < MERAD_NV; ++i)
-        {
-            v_dist.emplace_back(merad_dist_.distarv[i], merad_dist_.distsiv[i]);
-        }
-    }
-};
-
-// finer binning if the interpolation cannot reach the precision
-inline void refine_binning(const PRadMollerGen &model, double s,
-                           double prec, std::vector<TDist> &container,
-                           size_t bin_i, size_t bin_f)
-{
-    const TDist &beg = container.at(bin_i), end = container.at(bin_f);
+    const TDist &beg = container.at(i), &end = container.at(f);
     double t = (beg.val + end.val)/2.;
 
-    container.emplace_back(s, t, model);
+    container.emplace_back(t, model.GetNonRadXSdQsq(s, t), model.GetRadVDist(s, t));
     const TDist &center = container.back();
 
-    double interp_nrad = cana::linear_interp(beg.val, beg.sig_nrad, end.val, end.sig_nrad, t);
-    double interp_rad = cana::linear_interp(beg.val, beg.sig_rad, end.val, end.sig_rad, t);
-
-    if(std::abs(1. - interp_nrad/center.sig_nrad) > prec ||
-       std::abs(1. - interp_rad/center.sig_rad) > prec)
+    if(std::abs(1. - 2.*center.sig_nrad/(beg.sig_nrad + end.sig_nrad)) > prec ||
+       std::abs(1. - 2.*center.sig_rad/(beg.sig_rad + end.sig_rad)) > prec)
     {
-        refine_binning(model, s, prec, container, bin_i, container.size() - 1);
-        refine_binning(model, s, prec, container, container.size() - 1, bin_f);
+        refine_t_bin(model, container, i, container.size() - 1, prec, s);
+        refine_t_bin(model, container, container.size() - 1, f, prec, s);
     }
 
+}
+
+// refine v bin til the interpolation precision reaches required value
+inline void refine_v_bin(std::vector<VDist> &container, size_t i, size_t f,
+                         double prec, double t)
+{
+    if(container.size() >= MAX_V_BINS)
+        return;
+
+    auto &beg = container.at(i), &end = container.at(f);
+    double v = (beg.val + end.val)/2.;
+
+    container.emplace_back(v, merad_sigfh(v, t, 0.));
+    auto &center = container.back();
+
+    if(std::abs(1. - 2.*center.sig/(beg.sig + end.sig)) > prec) {
+        refine_v_bin(container, i, container.size() - 1, prec, t);
+        refine_v_bin(container, container.size() - 1, f, prec, t);
+    }
 }
 
 // initialize theta grids for events generation
@@ -224,9 +202,10 @@ std::vector<TDist> init_grid(const PRadMollerGen &model, double s,
                              double t_min, double t_max, bool verbose)
 {
     std::vector<TDist> res;
+    res.reserve(MAX_THETA_BINS);
     PRadBenchMark timer;
     unsigned int init_bins = model.GetMinBins();
-    double prec = model.GetPrecision();
+    double prec = model.GetTDistPrecision();
 
     if(verbose) {
         std::cout << "Initializing grids in theta to sample events..."
@@ -234,11 +213,12 @@ std::vector<TDist> init_grid(const PRadMollerGen &model, double s,
     }
 
     double t_step = (t_max - t_min)/(double)init_bins;
-    res.reserve(100*init_bins);
+
     for(unsigned int i = 0; i <= init_bins; ++i)
     {
         // new point
-        res.emplace_back(s, t_min + t_step*i, model);
+        double t = t_min + t_step*i;
+        res.emplace_back(t, model.GetNonRadXSdQsq(s, t), model.GetRadVDist(s, t));
         if(verbose) show_progress(timer, i, init_bins, "bin");
     }
 
@@ -249,9 +229,13 @@ std::vector<TDist> init_grid(const PRadMollerGen &model, double s,
     }
 
     timer.Reset();
+
+    // refine t bin
+    // the content in the loop will change container's size, so a fix number needs
+    // to be used in for loop
     for(unsigned int i = 1; i <= init_bins; ++i)
     {
-        refine_binning(model, s, prec, res, i - 1, i);
+        refine_t_bin(model, res, i - 1, i, prec, s);
         if(verbose) show_progress(timer, i, init_bins, "bin");
     }
 
@@ -281,34 +265,10 @@ std::vector<TDist> init_grid(const PRadMollerGen &model, double s,
                   << std::endl;
     }
 
+    res.shrink_to_fit();
+
     return res;
 }
-
-// linear interpolation from two arrays (one for distribution, one for value)
-inline double interp_dist(std::vector<ValDist> &dist, double dist_val)
-{
-    double interp_val = dist_val*dist.back().cdf;
-    auto itv = cana::binary_search_interval(dist.begin(), dist.end(), interp_val);
-
-    // should not happen
-    if(itv.first == dist.end() || itv.second == dist.end())
-    {
-        std::cerr << "Interpolation error for value = " << interp_val
-                  << ", distribution CDF starts at " << dist.front().cdf
-                  << ", ends at " << dist.back().cdf
-                  << std::endl;
-        return 0.;
-    }
-
-    if(itv.first == itv.second) {
-        return itv.first->val;
-    } else {
-        return cana::linear_interp(itv.first->cdf, itv.first->val,
-                                   itv.second->cdf, itv.second->val,
-                                   interp_val);
-    }
-}
-
 
 
 //============================================================================//
@@ -316,8 +276,8 @@ inline double interp_dist(std::vector<ValDist> &dist, double dist_val)
 //============================================================================//
 
 // constructor
-PRadMollerGen::PRadMollerGen(double vmin, double vmax, int nbins, double prec)
-: v_min(vmin), v_cut(vmax), min_bins(nbins), req_prec(prec)
+PRadMollerGen::PRadMollerGen(double vmin, double vmax, int nbins, double t_res, double v_res)
+: v_min(vmin), v_cut(vmax), min_bins(nbins), t_prec(t_res), v_prec(v_res)
 {
     // place holder
 }
@@ -369,7 +329,7 @@ const
     PRadBenchMark timer;
     for(int i = 0; i < nevents; ++i)
     {
-        double rnd = rng.Rand()*t_dist.back().cdf;
+        double rnd = rng()*t_dist.back().cdf;
         auto interval = cana::binary_search_interval(t_dist.begin(), t_dist.end(), rnd);
 
         // should not happen
@@ -380,7 +340,7 @@ const
         }
 
         // check if this event has a hard photon emission
-        double rnd2 = rng.Rand();
+        double rnd2 = rng();
         double sig_rad, sig_nrad, rnd_rad;
 
         // exactly matched one point
@@ -391,9 +351,11 @@ const
             sig_nrad = interval.first->sig_nrad;
             rnd_rad = (rnd2*(sig_nrad + sig_rad) - sig_nrad)/sig_rad;
             if(rnd_rad > 0.) {
-                v = interp_dist(interval.first->v_dist, rnd);
-                t1 = merad_sample_t1(t, v, 0., rng.Rand());
-                z = merad_sample_z(t, t1, v, 0., rng.Rand());
+                v = cana::uni2dist(interval.first->v_dist.begin(),
+                                   interval.first->v_dist.end(),
+                                   rnd*interval.first->v_dist.back().cdf);
+                t1 = merad_sample_t1(t, v, 0., rng());
+                z = merad_sample_z(t, t1, v, 0., rng());
             } else {
                 v = 0., t1 = t, z = 0.;
             }
@@ -411,20 +373,24 @@ const
                                           rnd);
             rnd_rad = (rnd2*(sig_nrad + sig_rad) - sig_nrad)/sig_rad;
             if(rnd_rad > 0.) {
-                double v1 = interp_dist(interval.first->v_dist, rnd_rad);
-                double v2 = interp_dist(interval.second->v_dist, rnd_rad);
+                double v1 = cana::uni2dist(interval.first->v_dist.begin(),
+                                           interval.first->v_dist.end(),
+                                           rnd_rad*interval.first->v_dist.back().cdf);
+                double v2 = cana::uni2dist(interval.second->v_dist.begin(),
+                                           interval.second->v_dist.end(),
+                                           rnd_rad*interval.second->v_dist.back().cdf);
 
                 v = cana::linear_interp(interval.first->cdf, v1,
                                         interval.second->cdf, v2,
                                         rnd);
-                t1 = merad_sample_t1(t, v, 0., rng.Rand());
-                z = merad_sample_z(t, t1, v, 0., rng.Rand());
+                t1 = merad_sample_t1(t, v, 0., rng());
+                z = merad_sample_z(t, t1, v, 0., rng());
             } else {
                 v = 0., t1 = t, z = 0.;
             }
         }
 
-        MomentumRec(k2_CM, p2_CM, k_CM, s, t, t1, v, z, rng.Rand(), rng.Rand());
+        MomentumRec(k2_CM, p2_CM, k_CM, s, t, t1, v, z, rng(), rng());
         four_momentum_boost_z(k2, k2_CM, -beta_CM);
         four_momentum_boost_z(p2, p2_CM, -beta_CM);
         four_momentum_boost_z(k, k_CM, -beta_CM);
@@ -505,7 +471,7 @@ const
 void PRadMollerGen::GetXSdQsq(double s, double t, double &sig_born, double &sig_nrad, double &sig_rad)
 const
 {
-    double u0 = 4.*m2 - s -t;
+    double u0 = 4.*m2 - s - t;
     // virtual photon part of Moller cross section
     // the t and u channels should be calculated separately
     double sig_0t, sig_0u, sig_St, sig_Su, sig_vertt, sig_vertu, sig_Bt, sig_Bu;
@@ -517,29 +483,26 @@ const
     // limitation on variable v, 99% of its allowed kinematic value
     double v_limit = 0.99*(s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
 
-    // infrared divergent part of real photon emission
-    // NOTE that the t and u channels are not separated
-    double v_ir = (v_min > v_limit) ? v_limit : v_min;
-    double delta_1H, delta_1S, delta_1inf;
-    SigmaIR(s, t, v_ir, delta_1H, delta_1S, delta_1inf);
-
-    // infrared free part of real photon emission
-    double sig_Fs, sig_Fh;
-    double v_f = (v_cut > v_limit) ? v_limit : v_cut;
-    SigmaF(s, t, v_ir, v_f, sig_Fs, sig_Fh);
-
     // t and u channels together
     // born level cross section
     sig_born = sig_0t + sig_0u;
-
 
     // non-radiative cross section
     double sig_S = sig_St + sig_Su;
     double sig_vert = sig_vertt + sig_vertu;
     double sig_B = sig_Bt + sig_Bu;
-    double sig_IR = alp_pi*(delta_1H + delta_1S + delta_1inf)*sig_born;
+
+    // infrared divergent part of real photon emission
+    // NOTE that the t and u channels are not separated
+    double sig_IR = SigmaIR(s, t, cana::clamp(v_min, v_min, v_limit));
+
+    // infrared free part of real photon emission, "soft" part
+    double sig_Fs = SigmaFs(s, t, cana::clamp(v_min, v_min, v_limit));
 
     sig_nrad = sig_born + sig_IR + sig_S + sig_vert + sig_B + sig_Fs;
+
+    // radiative cross section, infrared free part of real photon emission, "hard" part
+    sig_rad = SigmaRad(s, t, cana::clamp(v_min, v_min, v_cut), cana::clamp(v_cut, v_cut, v_limit));
 
 #ifdef MOLLER_TEST_MERA
     merad_init(s);
@@ -570,9 +533,89 @@ const
               << sig_nrad3/sig_born << std::endl;
 
 #endif //MOLLER_TEST_MERA
+}
 
-    // radiative cross section
-    sig_rad = sig_Fh;
+// similar to GetXSdQsq, but only calculate the non-radiative part
+double PRadMollerGen::GetNonRadXSdQsq(double s, double t)
+const
+{
+    double u0 = 4.*m2 - s - t;
+    // virtual photon part of Moller cross section
+    // the t and u channels should be calculated separately
+    double sig_0t, sig_0u, sig_St, sig_Su, sig_vertt, sig_vertu, sig_Bt, sig_Bu;
+    // t channel
+    SigmaVph(s, t, sig_0t, sig_St, sig_vertt, sig_Bt);
+    // u0 channel
+    SigmaVph(s, u0, sig_0u, sig_Su, sig_vertu, sig_Bu);
+
+    // t and u channels together
+    // born level cross section
+    double sig_born = sig_0t + sig_0u;
+
+    // non-radiative cross section
+    double sig_S = sig_St + sig_Su;
+    double sig_vert = sig_vertt + sig_vertu;
+    double sig_B = sig_Bt + sig_Bu;
+
+    // infrared divergent part of real photon emission
+    // NOTE that the t and u channels are not separated
+    double sig_IR = SigmaIR(s, t, cana::clamp(v_min, v_min, v_cut));
+
+    // infrared free part of real photon emission, "soft" part
+    double sig_Fs = SigmaFs(s, t, cana::clamp(v_min, v_min, v_cut));
+
+    return sig_born + sig_IR + sig_S + sig_vert + sig_B + sig_Fs;
+}
+
+// returns the whole v distribution of radiative part in val-cdf way
+std::vector<VDist> PRadMollerGen::GetRadVDist(double s, double t)
+const
+{
+    std::vector<VDist> res;
+    res.reserve(MAX_V_BINS);
+
+    // initialize MERADGEN
+    merad_init(s);
+
+    // limitation on variable v, 99% of its allowed kinematic value
+    double v_limit = 0.99*(s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
+
+    // integration range
+    double v_end = cana::clamp(v_cut, v_cut, v_limit);
+    double v_beg = cana::clamp(v_min, v_min, v_end);
+
+    // set initial v bins
+    double v_step = (v_end - v_beg)/(double)min_bins;
+    for(size_t i = 0; i <= min_bins; ++i)
+    {
+        double v = v_beg + i*v_step;
+        res.emplace_back(v, merad_sigfh(v, t, 0.));
+    }
+
+    // refine v bins to reach required precision
+    // the content in the loop will change container's size, so a fix number needs
+    // to be used in for loop
+    for(size_t i = 1; i <= min_bins; ++i)
+    {
+        refine_v_bin(res, i-1, i, v_prec, t);
+    }
+
+    // sort in v descendent
+    std::sort(res.begin(), res.end(), [] (const VDist &b1, const VDist &b2)
+                                         {
+                                             return b1.val < b2.val;
+                                         });
+
+    for(size_t i = 1; i < res.size(); ++i)
+    {
+        auto &prev = res.at(i - 1);
+        auto &curr = res.at(i);
+        curr.cdf = prev.cdf + (curr.val - prev.val)*(prev.sig + curr.sig)/2.;
+    }
+
+    res.shrink_to_fit();
+
+    return res;
 }
 
 
@@ -581,8 +624,33 @@ const
 // Static functions                                                           //
 //============================================================================//
 
+// Cross section at Born level in t and u channel
+// input Mandelstam variables s, t
+double PRadMollerGen::SigmaBorn(double s, double t)
+{
+    double u0 = 4.*m2 - s - t;
+    // frequently used variables
+    double xi_s = sqrt(1. - 4.*m2/s);
+    double xi_t = sqrt(1 - 4.*m2/t);
+    double xi_u0 = sqrt(1. - 4.*m2/u0);
+    double xi_s2 = xi_s*xi_s, xi_s4 = xi_s2*xi_s2;
+    double xi_t2 = xi_t*xi_t, xi_t4 = xi_t2*xi_t2;
+    double xi_u02 = xi_u0*xi_u0, xi_u04 = xi_u02*xi_u02;
+
+    // equation (49) in [1]
+    // t channel
+    double sig_0t = (u0*u0/xi_s2/4./s*(4.*xi_u04 - pow2(1. - xi_u02)*(2. + t/u0)) - s*s*xi_s4/u0)
+                    * 2.*cana::pi*alp2/t/t/s;
+    // u channel t <-> u0
+    double sig_0u = (t*t/xi_s2/4./s*(4.*xi_t4 - pow2(1. - xi_t2)*(2. + u0/t)) - s*s*xi_s4/t)
+                    * 2.*cana::pi*alp2/u0/u0/s;
+
+    return sig_0t + sig_0u;
+}
+
 // Cross section including virtual photon part for Moller scattering
-// input Mandelstam variables s, t, u0
+// t channel only
+// input Mandelstam variables s, t
 // output cross section including virtual photon effects
 void PRadMollerGen::SigmaVph(double s, double t,
                              double &sig_0, double &sig_S, double &sig_vert, double &sig_B)
@@ -695,12 +763,14 @@ void PRadMollerGen::SigmaVph(double s, double t,
 }
 
 // Infrared part of the Moller cross sections with real photon emission
+// t and u channel
 // input Mandelstam variables s, t
-// NOTE that the t and u0 channel are not separated
-// output 3 factorized part for the infrared part of the radiative cross section
-void PRadMollerGen::SigmaIR(double s, double t, double v_max,
-                            double &delta_1H, double &delta_1S, double &delta_1inf)
+// output the cross section, including  3 factorized parts
+double PRadMollerGen::SigmaIR(double s, double t, double v_max)
 {
+    // 3 factors;
+    double delta_1H, delta_1S, delta_1inf;
+
     double u0 = 4.*m2 - s - t;
     // frequently used variables
     double xi_s = sqrt(1. - 4.*m2/s);
@@ -858,25 +928,36 @@ void PRadMollerGen::SigmaIR(double s, double t, double v_max,
 
 #endif // MOLLER_TEST_URA
 // end test
+
+    return alp_pi*(delta_1H + delta_1S + delta_1inf)*SigmaBorn(s, t);
 }
 
 // real photon emission (infrared free part) of the Moller scattering
+// t and u channel
 // s, t: input, Mandelstam variables s, t in MeV^2
+// sig_born : input, Born level cross section, must be both t and u channel
 // v_min: input, the separation of "soft" and "hard" Bremsstrahlung
 // v_max: input, the upper limit v of the Bremsstrahlung integration
-// sig_Fs: output, "soft" Bremsstrahlung cross section
-// sig_Fh: output, "hard" Bremsstrahlung cross section
-void PRadMollerGen::SigmaF(double s, double t, double v_min, double v_max,
-                           double &sig_Fs, double &sig_Fh)
+// res: relatively precision in integration
+// SigmaFs: output, "soft" Bremsstrahlung cross section
+// SigmaRad: output, "hard" Bremsstrahlung cross section
+double PRadMollerGen::SigmaFs(double s, double t, double v_min, double res)
 {
     // initialize MERADGEN
     merad_init(s);
 
     // the "soft" Bremsstrahlung part of the radiative cross section
     // blow v_min, photon emission is not detectable
-    sig_Fs = merad_sigfs(v_min, t, 0.);
+    return cana::simpson_prec(merad_sigfs, 1e-30, v_min, res, t, 0., SigmaBorn(s, t));
+}
+
+double PRadMollerGen::SigmaRad(double s, double t, double v_min, double v_max, double res)
+{
+    // initialize MERADGEN
+    merad_init(s);
+
     // the "hard" Bremsstrahlung part of the radiative cross section
-    sig_Fh = merad_sigfh(v_min, v_max, t, 0.);
+    return cana::simpson_prec(merad_sigfh, v_min, v_max, res, t, 0.);
 }
 
 

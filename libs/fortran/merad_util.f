@@ -32,18 +32,6 @@
       integer i, n1, n2
       include 'merad_grid.inc'
 
-      ! for grid v
-      n1 = nv/2
-      n2 = n1 + nv/4
-      do i=1,n1
-        grv(i)=dble(i-1)/dble(n1-1)/4d0
-      enddo
-      do i=n1+1,n2
-        grv(i)=0.25d0+dble(i-n1)/dble(n2-n1)/4d0
-      enddo
-      do i=n2+1,nv
-        grv(i)=0.5d0+dble(i-n2)/dble(nv-n2)/2d0
-      enddo
       ! for grid nt1
       n1 = nt1/4
       n2 = nt1/2

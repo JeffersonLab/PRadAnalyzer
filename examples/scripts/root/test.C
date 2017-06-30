@@ -79,7 +79,7 @@ inline void get_moller_stu(double Es, double angle, double &s, double &t, double
     u = 4.*m2 - s - t;
 }
 
-void moller_test(double v_min = 0.5)
+void moller_test(double v_max = 1000)
 {
     TGraph *g1a = new TGraph();
     TGraph *g2a = new TGraph();
@@ -87,9 +87,9 @@ void moller_test(double v_min = 0.5)
     TGraph *g1b = new TGraph();
     TGraph *g2b = new TGraph();
     TGraph *g3b = new TGraph();
-    PRadMollerGen moller1(1, 1000);
-    PRadMollerGen moller2(10, 1000);
-    PRadMollerGen moller3(100, 1000);
+    PRadMollerGen moller1(1, v_max);
+    PRadMollerGen moller2(10, v_max);
+    PRadMollerGen moller3(100, v_max);
     double s1 = 2.*cana::ele_mass*(1100. + cana::ele_mass);
     double s2 = 2.*cana::ele_mass*(2200. + cana::ele_mass);
     for(double logq2 = -6; logq2 < -2; logq2 += 0.01)
