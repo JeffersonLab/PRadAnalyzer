@@ -197,78 +197,6 @@ inline void refine_v_bin(std::vector<VDist> &container, size_t i, size_t f,
     }
 }
 
-// initialize theta grids for events generation
-std::vector<TDist> init_grid(const PRadMollerGen &model, double s,
-                             double t_min, double t_max, bool verbose)
-{
-    std::vector<TDist> res;
-    res.reserve(MAX_THETA_BINS);
-    PRadBenchMark timer;
-    unsigned int init_bins = model.GetMinBins();
-    double prec = model.GetTDistPrecision();
-
-    if(verbose) {
-        std::cout << "Initializing grids in theta to sample events..."
-                  << std::endl;
-    }
-
-    double t_step = (t_max - t_min)/(double)init_bins;
-
-    for(unsigned int i = 0; i <= init_bins; ++i)
-    {
-        // new point
-        double t = t_min + t_step*i;
-        res.emplace_back(t, model.GetNonRadXSdQsq(s, t), model.GetRadVDist(s, t));
-        if(verbose) show_progress(timer, i, init_bins, "bin");
-    }
-
-    if(verbose) {
-        show_progress(timer, init_bins, init_bins, "bin", true);
-        std::cout << "Initialization done! Now refine binning to reach precision "
-                  << prec << std::endl;
-    }
-
-    timer.Reset();
-
-    // refine t bin
-    // the content in the loop will change container's size, so a fix number needs
-    // to be used in for loop
-    for(unsigned int i = 1; i <= init_bins; ++i)
-    {
-        refine_t_bin(model, res, i - 1, i, prec, s);
-        if(verbose) show_progress(timer, i, init_bins, "bin");
-    }
-
-    // sort in Q2 transcendent (t descendant) order
-    std::sort(res.begin(), res.end(), [] (const TDist &b1, const TDist &b2)
-                                         {
-                                             return b1.val > b2.val;
-                                         });
-
-    // calculate cdf for each bin
-    for(auto curr = res.begin(), prev = curr++;
-        curr != res.end();
-        curr++, prev++)
-    {
-        double curr_xs = (curr->sig_nrad + curr->sig_rad);
-        double prev_xs = (prev->sig_nrad + prev->sig_rad);
-
-        // trapezoid rule for integration, Q2 = -t
-        curr->cdf = prev->cdf + (prev->val - curr->val)*(curr_xs + prev_xs)/2.;
-    }
-
-    if(verbose) {
-        show_progress(timer, init_bins, init_bins, "bin", true);
-        std::cout << "Interpolation grids finalized! \n"
-                  << "Total number of grids = " << res.size() - 1 << "\n"
-                  << "Interpolation precision = " << prec
-                  << std::endl;
-    }
-
-    res.shrink_to_fit();
-
-    return res;
-}
 
 
 //============================================================================//
@@ -319,7 +247,7 @@ const
     get_moller_stu(Es, max_angle, s, t_max, u);
 
     // prepare grid for interpolation of angle
-    std::vector<TDist> t_dist = init_grid(*this, s, t_min, t_max, verbose);
+    std::vector<TDist> t_dist = init_grids(s, t_min, t_max, verbose);
 
     // prepare variables
     double k2[4], p2[4], k[4], k2_CM[4], p2_CM[4], k_CM[4];
@@ -1060,3 +988,80 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
 
 }
 
+
+
+//============================================================================//
+// Private Function                                                           //
+//============================================================================//
+
+// initialize theta grids for events generation
+std::vector<TDist> PRadMollerGen::init_grids(double s, double t_min, double t_max, bool verbose)
+const
+{
+    std::vector<TDist> res;
+    res.reserve(MAX_THETA_BINS);
+    PRadBenchMark timer;
+
+    if(verbose) {
+        std::cout << "Initializing grids in theta to sample events..."
+                  << std::endl;
+    }
+
+    double t_step = (t_max - t_min)/(double)min_bins;
+
+    for(unsigned int i = 0; i <= min_bins; ++i)
+    {
+        // new point
+        double t = t_min + t_step*i;
+        res.emplace_back(t, GetNonRadXSdQsq(s, t), GetRadVDist(s, t));
+        if(verbose) show_progress(timer, i, min_bins, "bin");
+    }
+
+    if(verbose) {
+        show_progress(timer, min_bins, min_bins, "bin", true);
+        std::cout << "Initialization done! Now refine binning to reach precision "
+                  << "t: " << t_prec << ", v: " << v_prec <<  std::endl;
+    }
+
+    timer.Reset();
+
+    // refine t bin
+    // the content in the loop will change container's size, so a fix number needs
+    // to be used in for loop
+    for(unsigned int i = 1; i <= min_bins; ++i)
+    {
+        refine_t_bin(*this, res, i - 1, i, t_prec, s);
+        if(verbose) show_progress(timer, i, min_bins, "bin");
+    }
+
+    // sort in Q2 transcendent (t descendant) order
+    std::sort(res.begin(), res.end(), [] (const TDist &b1, const TDist &b2)
+                                         {
+                                             return b1.val > b2.val;
+                                         });
+
+    size_t tot_vbins = res.front().v_dist.size();
+    // calculate cdf for each bin
+    for(auto curr = res.begin(), prev = curr++;
+        curr != res.end();
+        curr++, prev++)
+    {
+        tot_vbins += curr->v_dist.size();
+        double curr_xs = (curr->sig_nrad + curr->sig_rad);
+        double prev_xs = (prev->sig_nrad + prev->sig_rad);
+
+        // trapezoid rule for integration, Q2 = -t
+        curr->cdf = prev->cdf + (prev->val - curr->val)*(curr_xs + prev_xs)/2.;
+    }
+
+    if(verbose) {
+        show_progress(timer, min_bins, min_bins, "bin", true);
+        std::cout << "Interpolation grids finalized! \n"
+                  << "Total number of grids t: " << res.size() - 1 << ", v: "
+                  << tot_vbins << std::endl;
+    }
+
+    res.shrink_to_fit();
+
+    return res;
+}

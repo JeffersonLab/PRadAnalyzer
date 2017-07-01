@@ -102,6 +102,9 @@ public:
                             double rnd1 = 0., double rnd2 = 0.);
 
 private:
+    std::vector<TDist> init_grids(double s, double t_min, double t_max, bool verbose) const;
+
+private:
     // v_min defines the minimum photon energy that to be generated (hard photons)
     // v_cut defines the integration range to the highest photon energy
     double v_min, v_cut;

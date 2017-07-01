@@ -12,7 +12,7 @@
 #include <functional>
 
 // limit of bins for simpson integration by precision
-#define MAX_SIMPSON_BINS 100000
+#define MAX_SIMPSON_BINS 60000
 
 namespace cana
 {
@@ -72,23 +72,24 @@ namespace cana
     }
 
     // simpson integration for class member function
-    template<class T, typename F, typename... Args1, typename... Args2>
-    double simpson(F (T::*f)(double, Args1...), T *t, double a, double b, int steps, Args2&&... args)
+    template<class T, typename F, typename... Args>
+    double simpson(F (T::*f), T *t, double a, double b, int steps, Args&&... args)
     {
         double s = (b - a)/(double)steps;
-        double res = (t->*f)(a, std::forward<Args2>(args)...)
-                     + (t->*f)(b, std::forward<Args2>(args)...)
-                     + 4.*(t->*f)(a + s/2., std::forward<Args2>(args)...);
+        double res = (t->*f)(a, args...)
+                     + (t->*f)(b, args...)
+                     + 4.*(t->*f)(a + s/2., args...);
         for(int i = 1; i < steps; ++i)
         {
-            res += 4.*(t->*f)(a + s*i + s/2., std::forward<Args2>(args)...)
-                   + 2.*(t->*f)(a + s*i, std::forward<Args2>(args)...);
+            res += 4.*(t->*f)(a + s*i + s/2., args...)
+                   + 2.*(t->*f)(a + s*i, args...);
         }
 
         return s/6.*res;
     }
 
-    // simpson rule for a bin [a, b]
+    // helper function for simpson integration, keep refine binning if the
+    // precision is not reached
     template<typename F, typename... Args>
     inline double simpson_prec_helper(F &&f, double a, double f_a, double b, double f_b, double prec, int &count, Args&&... args)
     {
@@ -112,17 +113,17 @@ namespace cana
         return simpson_prec_helper(f, a, f_a, b, f_b, prec, count, args...);
     }
 
-    template<class T, typename F, typename... Args1, typename... Args2>
-    double simpson_prec(F (T::*f)(double, Args1...), T *t, double a, double b, double prec, Args2&&... args)
+    template<class T, typename F, typename... Args>
+    double simpson_prec(F (T::*f), T *t, double a, double b, double prec, Args&&... args)
     {
         double f_a = (t->*f)(a, args...);
         double f_b = (t->*f)(b, args...);
         int count = 0;
 
         // wrapper member function
-        auto fn = [t, f] (double val, Args2&&... args)
+        auto fn = [t, f] (double val, Args&&... args)
                   {
-                      return (t->*f)(val, std::forward<Args2>(args)...);
+                      return (t->*f)(val, args...);
                   };
 
         return simpson_prec_helper(fn, a, f_a, b, f_b, prec, count, args...);
