@@ -139,7 +139,7 @@ void moller_test(double v_max = 1000)
 
 void moller_gen_test(int Nevents, const char *path = "moller_test.dat")
 {
-    PRadMollerGen moller(1, 3000);
+    PRadMollerGen moller(1, 3000, 100, 1e-4, 1e-4);
     moller.Generate(2142, 0.3, 3.0, Nevents, path);
 }
 
@@ -223,5 +223,30 @@ void moller_vmin_test(double energy = 2142, double v_max = 1000)
     g6->Draw("AC");
     g5->Draw("C");
     g4->Draw("C");
+}
+
+void show_ep_gen(const char *path)
+{
+    ConfigParser c_parser;
+    c_parser.OpenFile(path);
+
+    double p1, p2, p, th1, th2, th, ph1, ph2, ph;
+    TH1F *hist_th = new TH1F("theta dist", "theta dist", 200, 5, 13);
+    TH1F *hist_E = new TH1F("energy dist", "energy dist", 200, 0, 2200);
+    double m = cana::ele_mass;
+    while(c_parser.ParseLine())
+    {
+        c_parser >> p1 >> th1 >> ph1 >> p2 >> th2 >> ph2 >> p >> th >> ph;
+        hist_E->Fill(sqrt(p1*p1 + m*m));
+        hist_th->Fill(th1*cana::rad2deg);
+    }
+
+    TCanvas *c1 = new TCanvas("Elastic XS", "Elastic XS", 200, 10, 1200, 500);
+    c1->Divide(2, 1);
+    c1->cd(1);
+    hist_E->Draw("colz");
+
+    c1->cd(2);
+    hist_th->Draw("colz");
 }
 

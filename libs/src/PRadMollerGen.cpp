@@ -160,7 +160,7 @@ inline void refine_t_bin(const PRadMollerGen &model,
                          double prec, double s)
 {
     // safety check
-    if(container.size() >= MAX_THETA_BINS)
+    if(container.size() >= MAX_T_BINS)
         return;
 
     const TDist &beg = container.at(i), &end = container.at(f);
@@ -999,7 +999,7 @@ std::vector<TDist> PRadMollerGen::init_grids(double s, double t_min, double t_ma
 const
 {
     std::vector<TDist> res;
-    res.reserve(MAX_THETA_BINS);
+    res.reserve(MAX_T_BINS);
     PRadBenchMark timer;
 
     if(verbose) {

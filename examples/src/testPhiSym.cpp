@@ -1,5 +1,5 @@
 //============================================================================//
-// An example showing how to use HyCAL clustering method to reconstruct data  //
+// An example showing how to use HyCal information to check phi symmetry      //
 //                                                                            //
 // Chao Peng                                                                  //
 // 11/12/2016                                                                 //

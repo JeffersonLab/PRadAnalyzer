@@ -4,7 +4,7 @@
 #include <vector>
 #include "canalib.h"
 
-#define MAX_THETA_BINS 30000
+#define MAX_T_BINS 30000
 #define MAX_V_BINS 30000
 
 extern "C"

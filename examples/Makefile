@@ -41,43 +41,23 @@ STRIP         =
 
 ####### Targets, add new objects here
 
-EXAMPLE_SRC   = src
-EXAMPLE_DIR   = bin
-EXAMPLE       = testGEM \
-                testHyCal \
-				testDST \
-                testLMS \
-                testEPICS \
-                testMatch \
-                testSim \
-				testPerform \
-                getAvgGain \
-                replay \
-                eventSelect \
-                beamChargeCount \
-				messReject \
-				mollerCenter \
-				physCalib \
-				reconstruct \
-				testNeural \
-				testPhiSym \
-				neuralTrain \
-				neuralReject
-
-EXAMPLE_BINS  = $(addprefix $(EXAMPLE_DIR)/, $(EXAMPLE))
+SOURCE_DIR    = src
+BUILD_DIR     = bin
+SOURCES      := $(shell find $(SOURCE_DIR) -name '*.cpp')
+TARGETS      := $(addprefix $(BUILD_DIR)/, $(SOURCES:$(SOURCE_DIR)/%.cpp=%))
 
 
 ####### Build rules
 first: all
 
-all: $(EXAMPLE_BINS)
+all: $(TARGETS)
 
-$(EXAMPLE_DIR)/%: $(EXAMPLE_SRC)/%.cpp
+$(BUILD_DIR)/%: $(SOURCE_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS)
 
 ####### Clean
 clean:
-	$(DEL_FILE) $(EXAMPLE_BINS)
+	$(DEL_FILE) $(TARGETS)
 
 ####### Install
 
