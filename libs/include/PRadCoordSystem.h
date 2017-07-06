@@ -17,7 +17,6 @@ class PRadGEMDetector;
 class PRadCoordSystem
 {
 public:
-public:
     PRadCoordSystem(const std::string &path = "", const int &run = 0);
     virtual ~PRadCoordSystem();
 
@@ -36,7 +35,6 @@ public:
     // basic transform functions
     void Transform(int det_id, float &x, float &y, float &z) const;
 
-public:
     // template functions
     // transform for clusters with det_id
     template<class T>
@@ -75,6 +73,16 @@ public:
         }
     }
 
+    // transform the hits on the detector
+    template<class DetPtr>
+    void TransformHits(DetPtr det)
+    const
+    {
+        for(auto it = det->GetHits().begin(); it != det->GetHits().end(); ++it)
+        {
+            Transform(det->GetDetID(), it->x, it->y, it->z);
+        }
+    }
 
     // z-projection
     // by default it projects to HyCal surface from origin

@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
     PRadEventViewer* viewer = new PRadEventViewer;
 
     viewer->show();
+    viewer->AutoScale();
 
     app.connect(viewer, SIGNAL(destroyed()), &app, SLOT(quit()));
 

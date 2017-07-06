@@ -94,6 +94,7 @@ public:
     void UpdateStatusInfo();
     void UpdateHistCanvas();
     void SelectModule(HyCalModule* module);
+    void AutoScale();
     PRadDataHandler *GetHandler() {return handler;}
 
 signals:
@@ -159,6 +160,7 @@ private:
                              QFileDialog::AcceptMode mode = QFileDialog::AcceptOpen,
                              QFileDialog::FileMode fmode = QFileDialog::ExistingFiles);
 
+    std::string prad_root;
     PRadDataHandler *handler;
     PRadEPICSystem *epic_sys;
     PRadTaggerSystem *tagger_sys;
