@@ -8,6 +8,8 @@
 
 
 #include "PRadHyCalSystem.h"
+#include "PRadGEMSystem.h"
+#include "PRadDetMatch.h"
 #include "PRadDSTParser.h"
 #include "PRadBenchMark.h"
 #include "PRadCoordSystem.h"
@@ -49,25 +51,35 @@ void SavePixels(const char *path, const char *save_path)
     sys.ChooseRun(path);
     PRadCoordSystem coord(prad_path + "database/coordinates.dat");
     coord.ChooseCoord(PRadInfoCenter::GetRunNumber());
+    PRadGEMSystem gem(prad_path + "config/gem.conf");
+    PRadDetMatch det_match(prad_path + "config/det_match.conf");
 
     string name = ConfigParser::decompose_path(path).name;
 
-    unsigned int Nhits;
+    unsigned int Nclusters, Nhits;
     int EvNb;
-    double theta;
+    double theta, good;
     double id[1728], E[1728];
+    double ClAngle[1000], ClEnergy[1000];
 
     TFile file(save_path,"RECREATE");
     TTree T("T","T");
+    T.Branch("Nclusters", &Nclusters, "Nclusters/i");
+    T.Branch("ClAngle", &ClAngle, "ClAngle[Nclusters]/D");
+    T.Branch("ClEnergy", &ClEnergy, "ClEnergy[Nclusters]/D");
     T.Branch("Nhits", &Nhits, "Nhits/i");
     T.Branch("EvNb", &EvNb, "EvNb/I");
     T.Branch("Theta", &theta, "Theta/D");
+    T.Branch("Good", &good, "Good/D");
     T.Branch("ID", &id[0], "ID[Nhits]/D");
     T.Branch("Energy", &E[0], "Energy[Nhits]/D");
 
     dst_parser.OpenInput(path);
     int count = 0;
     PRadBenchMark timer;
+
+    PRadGEMDetector *gem1 = gem.GetDetector("PRadGEM1");
+    PRadGEMDetector *gem2 = gem.GetDetector("PRadGEM2");
 
     while(dst_parser.Read())
     {
@@ -98,21 +110,27 @@ void SavePixels(const char *path, const char *save_path)
 
             // reconstruct event and get the most energized cluster's theta angle
             sys.Reconstruct(event);
+            gem.Reconstruct(event);
             auto &hits = sys.GetDetector()->GetHits();
-            coord.Transform(PRadDetector::HyCal, hits.begin(), hits.end());
-            if(hits.empty()) {
-                theta = 0.;
-            } else {
-                double max_energy = hits.front().E;
-                theta = PRadCoordSystem::GetPolarAngle(hits.front());
-                for(auto &hit : hits)
-                {
-                    if(hit.E > max_energy) {
-                        max_energy = hit.E;
-                        theta = PRadCoordSystem::GetPolarAngle(hit);
-                    }
-                }
+
+            coord.TransformHits(sys.GetDetector());
+            coord.TransformHits(gem1);
+            coord.TransformHits(gem2);
+
+            Nclusters = hits.size();
+            for(unsigned int i = 0; i < Nclusters; ++i)
+            {
+                ClEnergy[i] = hits[i].E;
+                ClAngle[i] = PRadCoordSystem::GetPolarAngle(hits[i]);
             }
+
+            // hits matching, return matched index
+            auto matched = det_match.Match(hits, gem1->GetHits(), gem2->GetHits());
+
+            if(!matched.empty())
+                good = 1.;
+            else
+                good = -1.;
 
             T.Fill();
         }
