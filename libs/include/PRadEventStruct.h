@@ -692,6 +692,22 @@ public:
     }
 };
 
+// a function to get the hit with the greatest energy
+template<typename Iter>
+inline Iter MostEnergeticHit(Iter beg, Iter end)
+{
+    if(beg == end) return end;
+
+    Iter res = beg;
+    for(++beg; beg != end; ++beg)
+    {
+        if(beg->E > res->E)
+            res = beg;
+    }
+
+    return res;
+}
+
 //============================================================================//
 // *END* DETECTOR HIT STRUCTURE                                               //
 //============================================================================//

@@ -48,13 +48,28 @@ namespace cana
     }
 
     // linear interpolation of two points (x1, y1), (x2, y2)
-    // input val must be x value within [x1, x2]
     template<typename T>
     inline T linear_interp(T x1, T y1, T x2, T y2, T val)
     {
         if(x1 == x2)
             return y1;
         return ((val - x1)*y2 + (x2 - val)*y1)/(x2 - x1);
+    }
+
+    // linear interpolation of three points (x1, y1), (x2, y2), (x3, y3)
+    template<typename T>
+    inline T parabolic_interp(T x1, T y1, T x2, T y2, T x3, T y3, T val)
+    {
+        if(x1 == x2)
+            return linear_interp(x1, y1, x3, y3, val);
+        if(x2 == x3)
+            return linear_interp(x1, y1, x2, y2, val);
+
+        double x = val - x2, xp = x3 - x2, xm = x1 - x2;
+        double a = y2;
+        double c = ((y3 - y1)*(xp + xm)/(xp - xm) - (y3 + y1 - 2.*y2))/(xp*xm*2.);
+        double b = (y3 - y1)/(xp - xm) - c*(xp + xm);
+        return a + b*x + c*x*x;
     }
 
     // simpson integration
@@ -121,9 +136,9 @@ namespace cana
         int count = 0;
 
         // wrapper member function
-        auto fn = [t, f] (double val, Args&&... args)
+        auto fn = [t, f] (double val, Args&&... args2)
                   {
-                      return (t->*f)(val, args...);
+                      return (t->*f)(val, args2...);
                   };
 
         return simpson_prec_helper(fn, a, f_a, b, f_b, prec, count, args...);
@@ -477,7 +492,6 @@ namespace cana
         }
     }
 
-
-};
+} // namespace cana
 
 #endif
