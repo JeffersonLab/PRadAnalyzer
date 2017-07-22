@@ -31,6 +31,6 @@ foreach $i (<INPUT>) {
 
     $cmd = $FUNC." ".$file." ".$outf;
     print "$cmd \n";
-#    system("$cmd");
+    system("$cmd");
 }
 close(INPUT);

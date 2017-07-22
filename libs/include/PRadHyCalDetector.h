@@ -1,6 +1,7 @@
 #ifndef PRAD_HYCAL_DETECTOR_H
 #define PRAD_HYCAL_DETECTOR_H
 
+#include <cmath>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -94,6 +95,12 @@ public:
     static int get_sector_id(const char *name);
     static const char *get_sector_name(int sec);
     static float hit_distance(const ModuleHit &m1, const ModuleHit &m2);
+    // resolution formula, E, a, b, c should have consistent unit
+    static inline double resolution(double E, double a, double b, double c)
+    {
+        // a/E ++ b/sqrt(E) ++ c, ++ means quadratic sum
+        return sqrt(a/E*a/E + b*b/E + c);
+    }
 
 protected:
     virtual void setLayout(PRadHyCalModule &module) const;

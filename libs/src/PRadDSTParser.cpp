@@ -69,6 +69,20 @@ inline uint32_t __dst_buf_to_header(char *buf, uint32_t index)
     return header;
 }
 
+template<typename T>
+inline T __read(std::istream &is)
+{
+    T temp;
+    is.read((char *) &temp, sizeof(T));
+    return temp;
+}
+
+template<typename T>
+inline void __write(std::ostream &os, T val)
+{
+    os.write((char *) &val, sizeof(T));
+}
+
 // constructor
 PRadDSTParser::PRadDSTParser(PRadDataHandler *h)
 : handler(h), input_length(0), ev_type(Type::undefined), in_idx(0), out_idx(0),
@@ -84,6 +98,8 @@ PRadDSTParser::~PRadDSTParser()
 
 void PRadDSTParser::OpenOutput(const std::string &path, std::ios::openmode mode)
 {
+    CloseOutput();
+
     dst_out.open(path, mode);
 
     if(!dst_out.is_open()) {
@@ -100,11 +116,13 @@ void PRadDSTParser::OpenOutput(const std::string &path, std::ios::openmode mode)
 
 void PRadDSTParser::CloseOutput()
 {
+    writeEventMap();
     dst_out.close();
 }
 
 void PRadDSTParser::OpenInput(const std::string &path, std::ios::openmode mode)
 {
+    CloseInput();
     dst_in.open(path, mode);
 
     if(!dst_in.is_open()) {
@@ -138,6 +156,7 @@ void PRadDSTParser::OpenInput(const std::string &path, std::ios::openmode mode)
 
 void PRadDSTParser::CloseInput()
 {
+    in_map.Clear();
     dst_in.close();
 }
 
@@ -194,7 +213,6 @@ throw(PRadException)
     } catch(...) {
         throw;
     }
-
 }
 
 void PRadDSTParser::readEvent(EventData &data)
@@ -508,61 +526,136 @@ throw(PRadException)
     }
 }
 
+// event map information
+void PRadDSTParser::writeEventMap()
+throw(PRadException)
+{
+    // no need to write map
+    if(out_map.Empty()) return;
+
+    // record current ofstream position
+    int64_t map_pos = dst_out.tellp();
+
+    // write map begin mark
+    __write(dst_out, __dst_form_header(EventHeader, static_cast<uint32_t>(Type::map_begin)));
+
+    // write position information
+    __write(dst_out, uint32_t(out_map.event_pos.size()));
+    for(auto &pos : out_map.event_pos) __write(dst_out, pos);
+    __write(dst_out, uint32_t(out_map.epics_pos.size()));
+    for(auto &pos : out_map.epics_pos) __write(dst_out, pos);
+    __write(dst_out, uint32_t(out_map.other_pos.size()));
+    for(auto &pos : out_map.other_pos) __write(dst_out, pos);
+
+
+    // write map pos for searching
+    __write(dst_out, map_pos);
+
+    // write map end mark
+    __write(dst_out, __dst_form_header(EventHeader, static_cast<uint32_t>(Type::map_end)));
+
+    out_map.Clear();
+}
+
+// read event map in
+bool PRadDSTParser::ReadEventMap()
+{
+    if(!dst_in.is_open() || input_length < (int)sizeof(uint32_t)) return false;
+
+    in_map.Clear();
+
+    // remember current position
+    int64_t cur_pos = dst_in.tellg();
+
+    dst_in.seekg(input_length - sizeof(uint32_t));
+
+    // check header (end of map)
+    if(__dst_get_type(__read<uint32_t>(dst_in)) != Type::map_end) {
+        dst_in.seekg(cur_pos);
+        return false;
+    }
+
+    // get map position
+    dst_in.seekg(input_length - sizeof(uint32_t) - sizeof(int64_t));
+
+    int64_t map_pos = __read<int64_t>(dst_in);
+
+    // go to map position
+    dst_in.seekg(map_pos);
+
+    // check header again (begin of map)
+    if(__dst_get_type(__read<uint32_t>(dst_in)) != Type::map_begin) {
+        dst_in.seekg(cur_pos);
+        return false;
+    }
+
+    uint32_t ev_size = __read<uint32_t>(dst_in);
+    in_map.event_pos.reserve(ev_size);
+    for(uint32_t i = 0; i < ev_size; ++i) in_map.event_pos.push_back(__read<int64_t>(dst_in));
+
+    uint32_t ep_size = __read<uint32_t>(dst_in);
+    in_map.epics_pos.reserve(ep_size);
+    for(uint32_t i = 0; i < ep_size; ++i) in_map.epics_pos.push_back(__read<int64_t>(dst_in));
+
+    uint32_t ot_size = __read<uint32_t>(dst_in);
+    in_map.other_pos.reserve(ot_size);
+    for(uint32_t i = 0; i < ot_size; ++i) in_map.other_pos.push_back(__read<int64_t>(dst_in));
+
+
+    return true;
+}
+
 //============================================================================//
 // Return type:  false. file end or error                                     //
 //               true. successfully read                                      //
 //============================================================================//
-bool PRadDSTParser::Read()
+bool PRadDSTParser::Read(int64_t pos)
 {
+    if(pos > 0) dst_in.seekg(pos);
+    if(dst_in.eof() || dst_in.tellg() >= input_length) return false;
+
     try {
-        if(dst_in.tellg() < input_length && dst_in.tellg() != -1)
+        ev_type = getBuffer(dst_in);
+
+        // reset in_buf index
+        in_idx = 0;
+        switch(ev_type)
         {
-            ev_type = getBuffer(dst_in);
-
-            // reset in_buf index
-            in_idx = 0;
-            switch(ev_type)
-            {
-            case Type::event:
-                readEvent(event);
-                break;
-            case Type::epics:
-                readEPICS(epics_event);
-                break;
-            case Type::epics_map:
-                if(handler)
-                    readEPICSMap(handler->GetEPICSystem());
-                else
-                    readEPICSMap(nullptr);
-                break;
-            case Type::run_info:
-                readRunInfo();
-                break;
-            case Type::hycal_info:
-                if(handler)
-                    readHyCalInfo(handler->GetHyCalSystem());
-                else
-                    readHyCalInfo(nullptr);
-                break;
-            case Type::gem_info:
-                if(handler)
-                    readGEMInfo(handler->GetGEMSystem());
-                else
-                    readGEMInfo(nullptr);
-                break;
-            default:
-                std::cerr << "READ DST ERROR: Undefined buffer type, incorrect "
-                          << "format or corrupted file."
-                          << std::endl;
-                return false;
-            }
-
-            return true;
-        } else {
-            // file end
+        case Type::event:
+            readEvent(event);
+            break;
+        case Type::epics:
+            readEPICS(epics_event);
+            break;
+        case Type::epics_map:
+            if(handler) readEPICSMap(handler->GetEPICSystem());
+            else readEPICSMap(nullptr);
+            break;
+        case Type::run_info:
+            readRunInfo();
+            break;
+        case Type::hycal_info:
+            if(handler) readHyCalInfo(handler->GetHyCalSystem());
+            else readHyCalInfo(nullptr);
+            break;
+        case Type::gem_info:
+            if(handler)
+                readGEMInfo(handler->GetGEMSystem());
+            else
+                readGEMInfo(nullptr);
+            break;
+        case Type::map_begin:
+        case Type::map_end:
+            // end of the contents
+            return false;
+        default:
+            std::cerr << "READ DST ERROR: Undefined buffer type = 0x"
+                      << std::hex << std::setw(8) << std::setfill('0') << static_cast<int>(ev_type)
+                      << ", incorrect format or corrupted file."
+                      << std::endl;
             return false;
         }
-
+        return true;
     } catch(PRadException &e) {
         std::cerr << e.FailureType() << ": " << e.FailureDesc()
                   << std::endl
@@ -615,14 +708,17 @@ inline void PRadDSTParser::readBuffer(char *ptr, uint32_t size)
     }
 }
 
-inline void PRadDSTParser::saveBuffer(std::ofstream &ofs, uint32_t htype, uint32_t info)
+inline void PRadDSTParser::saveBuffer(std::ofstream &ofs, uint32_t htype, uint32_t etype)
 throw (PRadException)
 {
     if(!ofs.is_open())
         throw PRadException("WRITE DST", "output file is not opened!");
 
+    // save current event position
+    out_map.Add(static_cast<Type>(etype), ofs.tellp());
+
     // write header
-    uint32_t header = __dst_form_header(htype, info);
+    uint32_t header = __dst_form_header(htype, etype);
     ofs.write((char*) &header, sizeof(header));
 
     // write buffer length

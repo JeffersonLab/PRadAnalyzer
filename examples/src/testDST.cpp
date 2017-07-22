@@ -1,90 +1,79 @@
 //============================================================================//
-// An example showing how to use DST Parser to read and save selected events  //
+// An example showing the features of PRadDSTParser                           //
 //                                                                            //
 // Chao Peng                                                                  //
-// 11/20/2016                                                                 //
+// 07/21/2017                                                                 //
 //============================================================================//
 
 #include "PRadDSTParser.h"
-#include "PRadHyCalSystem.h"
-#include "PRadGEMSystem.h"
-#include "PRadEPICSystem.h"
+#include "PRadBenchMark.h"
+#include "ConfigParser.h"
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
 
+#define PROGRESS_COUNT 10000
+
 using namespace std;
 
-PRadEPICSystem *epics;
-PRadHyCalSystem *hycal;
-void SelectEvent(const string &file);
+void TestDST(const string &inf, const string &outf);
+void ListEPICS(const string &inf);
 
 int main(int argc, char *argv[])
 {
-    if(argc < 2) {
-        cout << "usage: testDST <file1> <file2> ..." << endl;
+    if(argc != 3) {
+        cout << "usage: testDST <in_file> <out_file>" << endl;
         return 0;
     }
 
-    epics = new PRadEPICSystem("config/epics_channels.conf");
-    hycal = new PRadHyCalSystem("config/hycal.conf");
-
-    for(int i = 1; i < argc; ++i)
-    {
-        string file = argv[i];
-        SelectEvent(file);
-    }
-
-    return 0;
+    TestDST(argv[1], argv[2]);
+    ListEPICS(argv[2]);
 }
 
-void SelectEvent(const string &file)
+void TestDST(const string &inf, const string &outf)
 {
-    PRadDSTParser *dst_parser = new PRadDSTParser();
-    dst_parser->OpenInput(file);
-    dst_parser->OpenOutput(ConfigParser::decompose_path(file).name + "_select.dst");
+    PRadDSTParser dst_parser;
 
-    float beam_energy = 0.;
-    int beam_energy_ch = epics->GetChannel("MBSY2C_energy");
+    dst_parser.OpenInput(inf);
+    dst_parser.OpenOutput(outf);
 
-    int count = 0;
-    while(dst_parser->Read())
+    while(dst_parser.Read())
     {
-        if(dst_parser->EventType() == PRadDSTParser::Type::event) {
-            // you can push this event into data handler
-            // handler->GetEventData().push_back(dst_parser->GetEvent()
-            // or you can just do something with this event and discard it
-            if(++count%10000 == 0)
-                cout << count << "\r" << flush;
-
-            auto event = dst_parser->GetEvent();
-            if(!event.is_physics_event())
-                continue;
-            hycal->Reconstruct(event);
-            auto &hits = hycal->GetDetector()->GetHits();
-
-            if((hits.size() != 1) ||
-               (!TEST_BIT(hits.front().flag, kTransition)))
-                continue;
-
-            float energy = 0;
-            for(auto &hit : hits)
-            {
-                energy += hit.E;
-            }
-
-            // only save the event with the energy close to beam energy
-            if(fabs((energy - beam_energy)/beam_energy) <= 0.3)
-                dst_parser->WriteEvent();
-        } else if (dst_parser->EventType() == PRadDSTParser::Type::epics) {
-            auto epics_ev = dst_parser->GetEPICSEvent();
-            dst_parser->WriteEPICS(epics_ev);
-            beam_energy = epics_ev.values.at(beam_energy_ch);
+        if(dst_parser.EventType() == PRadDSTParser::Type::event) {
+            dst_parser.WriteEvent();
+        } else if(dst_parser.EventType() == PRadDSTParser::Type::epics) {
+            dst_parser.WriteEPICS();
         }
     }
-    cout << endl;
-    dst_parser->CloseInput();
-    dst_parser->CloseOutput();
-    delete dst_parser;
+
+    dst_parser.CloseInput();
+    dst_parser.CloseOutput();
 }
 
+void ListEPICS(const string &inf)
+{
+    PRadDSTParser dst_parser;
+    dst_parser.OpenInput(inf);
+
+    if(dst_parser.ReadEventMap()) {
+        auto dst_map = dst_parser.GetInputMap();
+
+        for(auto &pos : dst_map.epics_pos)
+        {
+            if(dst_parser.Read(pos)) {
+                if(dst_parser.EventType() == PRadDSTParser::Type::epics) {
+                    cout << dst_parser.GetEPICSEvent().event_number << endl;
+                } else {
+                    cout << "Wrong type!" << endl;
+                }
+            } else {
+                cout << "Read failure at " << pos << endl;
+            }
+        }
+    } else {
+        cout << "No event map information." << endl;
+    }
+
+    dst_parser.CloseInput();
+}

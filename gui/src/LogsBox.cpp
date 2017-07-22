@@ -11,6 +11,7 @@
 #include <QFileSystemWatcher>
 #include <QFile>
 #include <QDate>
+#include <QDir>
 #include <QTextStream>
 #include "LogsBox.h"
 #include <cstdio>
@@ -23,6 +24,10 @@ LogsBox::LogsBox(QWidget *parent)
     QString date = QDate::shortMonthName(today.month()) + tr("_")
                   + QString::number(today.day()) + tr("_")
                   + QString::number(today.year());
+
+    if(!QDir("logs").exists())
+        QDir().mkdir("logs");
+
     out_path = tr("logs/") + tr("system_") + date + tr(".log");
     err_path = tr("logs/") + tr("error_") + date + tr(".log");
 

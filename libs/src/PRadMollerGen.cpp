@@ -528,7 +528,7 @@ const
         refine_v_bin(res, i-1, i, v_prec, t);
     }
 
-    // sort in v descendent
+    // sort in v transcendent
     std::sort(res.begin(), res.end(), [] (const VDist &b1, const VDist &b2)
                                          {
                                              return b1.val < b2.val;
