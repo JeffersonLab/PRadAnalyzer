@@ -99,7 +99,7 @@ public:
     static inline double resolution(double E, double a, double b, double c)
     {
         // a/E ++ b/sqrt(E) ++ c, ++ means quadratic sum
-        return sqrt(a/E*a/E + b*b/E + c);
+        return sqrt(a/E*a/E + b*b/E + c*c);
     }
 
 protected:

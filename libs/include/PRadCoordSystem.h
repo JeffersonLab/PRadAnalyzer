@@ -4,15 +4,39 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <map>
 #include <cmath>
 #include "canalib.h"
 #include "PRadDetector.h"
 #include "PRadEventStruct.h"
 
 
-class PRadHyCalDetector;
-class PRadGEMDetector;
+
+// coordinates information in a run
+struct RunCoord
+{
+    int run_number;
+    std::vector<DetCoord> dets;
+
+    RunCoord(int r = 0) : run_number(r)
+    {
+        dets.resize(static_cast<size_t>(PRadDetector::Max_Dets));
+    }
+
+    void Clear()
+    {
+        run_number = 0;
+        dets.clear();
+        dets.resize(static_cast<size_t>(PRadDetector::Max_Dets));
+    }
+
+    // define operators for searching run number
+    bool operator == (const int &run) const {return run_number == run;}
+    bool operator != (const int &run) const {return run_number != run;}
+    bool operator > (const int &run) const {return run_number > run;}
+    bool operator < (const int &run) const {return run_number < run;}
+};
+
+std::ostream &operator <<(std::ostream &os, const RunCoord &coord);
 
 class PRadCoordSystem
 {
@@ -24,13 +48,14 @@ public:
     void LoadCoordData(const std::string &path, const int &run = 0);
     void SaveCoordData(const std::string &path);
     void ChooseCoord(int run_number);
+    void ChooseCoordAt(int index);
 
     // set members
-    void SetCurrentCoord(const std::vector<DetCoord> &coords);
+    bool SetCurrentCoord(const RunCoord &coords);
 
     // get members
-    const std::map<int ,std::vector<DetCoord>> &GetCoordsData() const {return coords_data;}
-    std::vector<DetCoord> GetCurrentCoords() const {return current_coord;}
+    const std::vector<RunCoord> &GetCoordsData() const {return coords_data;}
+    RunCoord GetCurrentCoords() const {return current_coord;}
 
     // basic transform functions
     void Transform(int det_id, float &x, float &y, float &z) const;
@@ -91,7 +116,7 @@ public:
                     int det_id = (int)PRadDetector::HyCal)
     const
     {
-        float zf = current_coord[det_id].z_ori;
+        float zf = current_coord.dets[det_id].z_ori;
         Projection(t.x, t.y, t.z, pi.x, pi.y, pi.z, zf);
     }
 
@@ -111,7 +136,7 @@ public:
                     int det_id = (int)PRadDetector::HyCal)
     const
     {
-        float zf = current_coord[det_id].z_ori;
+        float zf = current_coord.dets[det_id].z_ori;
         for(int i = 0; i < NCluster; ++i)
         {
             Projection(t[i].x, t[i].y, t[i].z, pi.x, pi.y, pi.z, zf);
@@ -134,7 +159,7 @@ public:
                     int det_id = (int)PRadDetector::HyCal)
     const
     {
-        float zf = current_coord[det_id].z_ori;
+        float zf = current_coord.dets[det_id].z_ori;
         for(T_it it = first; it != last; ++it)
         {
             Projection((*it).x, (*it).y, (*it).z, pi.x, pi.y, pi.z, zf);
@@ -186,10 +211,8 @@ public:
 
 
 protected:
-    // offsets data, run number as key, order is important, thus use map instead of hash map
-    std::map<int, std::vector<DetCoord>> coords_data;
-    std::vector<DetCoord> current_coord;
+    RunCoord current_coord;
+    std::vector<RunCoord> coords_data;
 };
 
-std::ostream &operator <<(std::ostream &os, const DetCoord &coord);
 #endif

@@ -12,6 +12,7 @@
 #include "PRadHyCalDetector.h"
 #include "PRadGEMDetector.h"
 #include "ConfigParser.h"
+#include "canalib.h"
 #include <fstream>
 #include <iomanip>
 
@@ -54,7 +55,7 @@ void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_r
     }
 
     coords_data.clear();
-    current_coord.clear();
+    current_coord.Clear();
 
     while(c_parser.ParseLine())
     {
@@ -84,15 +85,16 @@ void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_r
 
         DetCoord new_off(run, index, x, y, z, theta_x, theta_y, theta_z);
 
-        auto it = coords_data.find(run);
-        if(it == coords_data.end()) {
+        auto it_pair = cana::binary_search_interval(coords_data.begin(), coords_data.end(), run);
+        // not find the exact matched entry
+        if(it_pair.second == coords_data.end() || it_pair.first != it_pair.second) {
             // create a new entry
-            std::vector<DetCoord> new_entry((size_t)PRadDetector::Max_Dets);
-            new_entry[index] = new_off;
-
-            coords_data[run] = new_entry;
+            RunCoord new_entry(run);
+            new_entry.dets[index] = new_off;
+            // insert the entry before the upper bound to keep the order
+            coords_data.insert(it_pair.second, new_entry);
         } else {
-            it->second[index] = new_off;
+            it_pair.first->dets[index] = new_off;
         }
     }
 
@@ -119,19 +121,16 @@ void PRadCoordSystem::SaveCoordData(const std::string &path)
            << std::setw(12) << "z_tilt"
            << std::endl;
 
-    for(auto &it : coords_data)
+    for(auto &coord : coords_data)
     {
-        for(auto &coord : it.second)
-        {
-            output << coord << std::endl;
-        }
+        output << coord << std::endl;
     }
 
     output.close();
 }
 
 // choose the coordinate offsets from the database
-void PRadCoordSystem::ChooseCoord(int run_number)
+void PRadCoordSystem::ChooseCoord(int run)
 {
     if(coords_data.empty()) {
         std::cerr << "PRad Coord System Error: Database is empty, make sure you "
@@ -140,32 +139,64 @@ void PRadCoordSystem::ChooseCoord(int run_number)
         return;
     }
 
-    // choose the default run
-    if(run_number == 0) {
-        current_coord = coords_data.begin()->second;
+    // choose default run
+    if(run <= 0) {
+        current_coord = coords_data.front();
         return;
     }
 
-    auto it = coords_data.find(run_number);
-    if((it == coords_data.end())) {
-        current_coord = coords_data.begin()->second;
-        std::cout << "PRad Coord System Warning: Cannot find run " << run_number
-                  << " in the current database, choose the default run "
-                  << coords_data.begin()->first
-                  << std::endl;
+    bool warn_not_exact = true;
+    // exceeds the lower bound
+    if(run <= coords_data.front().run_number) {
+        current_coord = coords_data.front();
+    // exceeds the upper bound
+    } else if (run >= coords_data.back().run_number) {
+        current_coord = coords_data.back();
+    // find interval
     } else {
-        current_coord = it->second;
+        auto it_pair = cana::binary_search_interval(coords_data.begin(), coords_data.end(), run);
+        // exact much
+        if(it_pair.first == it_pair.second)
+            warn_not_exact = false;
+        // always choose the nearest previous run
+        current_coord = *it_pair.first;
+    }
+
+    if(warn_not_exact) {
+        std::cout << "PRad Coord System Warning: Cannot find run " << run
+                  << " in the current database, choose the run "
+                  << current_coord.run_number << " instead."
+                  << std::endl;
     }
 }
 
-// choose coordinates
-void PRadCoordSystem::SetCurrentCoord(const std::vector<DetCoord> &coords)
+// choose coordinates by index in the data container
+void PRadCoordSystem::ChooseCoordAt(int idx)
 {
+    if(idx < 0 || idx >= (int)coords_data.size())
+        return;
+
+    current_coord = coords_data.at(idx);
+}
+
+// set and update the current coordinates
+bool PRadCoordSystem::SetCurrentCoord(const RunCoord &coords)
+{
+    if(coords.dets.size() != static_cast<size_t>(PRadDetector::Max_Dets))
+        return false;
+
     current_coord = coords;
 
-    current_coord.resize((int)PRadDetector::Max_Dets);
+    auto itp = cana::binary_search_interval(coords_data.begin(), coords_data.end(), coords.run_number);
+    // add a new entry
+    if(itp.second == coords_data.end() || itp.first != itp.second) {
+        coords_data.insert(itp.second, coords);
+    // exact match
+    } else {
+        *itp.first = coords;
+    }
 
-    coords_data[current_coord.begin()->run_number] = current_coord;
+    return true;
 }
 
 // Transform the detector frame to beam frame
@@ -173,7 +204,7 @@ void PRadCoordSystem::SetCurrentCoord(const std::vector<DetCoord> &coords)
 void PRadCoordSystem::Transform(int det_id, float &x, float &y, float &z)
 const
 {
-    const DetCoord &coord = current_coord.at(det_id);
+    const DetCoord &coord = current_coord.dets.at(det_id);
 
     // firstly do the angle tilting
     // basic rotation matrix
@@ -249,14 +280,19 @@ Point PRadCoordSystem::ProjectionCoordDiff(Point p1, Point p2, Point ori, float 
     return Point(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
 }
 
-std::ostream &operator <<(std::ostream &os, const DetCoord &det)
+std::ostream &operator <<(std::ostream &os, const RunCoord &coord)
 {
-    return os << std::setw(8)  << det.run_number
-              << std::setw(12) << PRadDetector::getName(det.det_enum)
-              << std::setw(12) << det.x_ori
-              << std::setw(12) << det.y_ori
-              << std::setw(12) << det.z_ori
-              << std::setw(8) << det.theta_x
-              << std::setw(8) << det.theta_y
-              << std::setw(8) << det.theta_z;
+    for(auto &det : coord.dets) {
+        os << std::setw(8)  << coord.run_number
+           << std::setw(12) << PRadDetector::getName(det.det_enum)
+           << std::setw(12) << det.x_ori
+           << std::setw(12) << det.y_ori
+           << std::setw(12) << det.z_ori
+           << std::setw(8) << det.theta_x
+           << std::setw(8) << det.theta_y
+           << std::setw(8) << det.theta_z
+           << std::endl;
+    }
+
+    return os;
 }

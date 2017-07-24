@@ -98,7 +98,7 @@ private:
     std::vector<MarkSettingWidget*> markSettings;
 
 private:
-    std::vector<DetCoord> det_coords;
+    RunCoord coords;
 };
 
 #endif
