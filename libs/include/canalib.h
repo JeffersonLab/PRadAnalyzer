@@ -11,13 +11,15 @@
 #include <random>
 #include <functional>
 
+
+
 // limit of bins for simpson integration by precision
 #define MAX_SIMPSON_BINS 60000
 
 namespace cana
 {
     const static double alpha = 7.297352568E-3;     // 1./137.03599911
-    const static double pi = 3.1415926535897932;    // pi
+    const static double pi = 3.14159265358979323846;// pi
     const static double euler = 0.5772156649;       // Euler constant gamma
     const static double rad2deg = 57.2957795131;    // rad to degree
     const static double deg2rad = 0.01745329252;    // degree to rad
@@ -71,6 +73,56 @@ namespace cana
         double b = (y3 - y1)/(xp - xm) - c*(xp + xm);
         return a + b*x + c*x*x;
     }
+
+    // weight point for gauss legendre integration
+    struct weight_point
+    {
+        double x, w;
+
+        weight_point() : x(0.), w(0.) {}
+        weight_point(double xi, double wi) : x(xi), w(wi) {}
+    };
+    struct legendre_nodes { int order; std::vector<weight_point> weights; };
+
+    // legendre polynomial calculation to get the weight table
+    legendre_nodes calc_legendre_nodes(int n, double prec = 1e-10);
+    // gauss-legendre quadrature
+    template<typename F, typename... Args>
+    double gauss_quad(const legendre_nodes &ln, F &&f, double a, double b, Args&&... args)
+    {
+        // invalid legendre nodes
+        if(ln.order < 2) return 0.;
+
+        // convert integration range to [-1, 1]
+        double A = (b - a)/2., B = (b + a)/2.;
+
+        // different first point handling for even or odd case
+        const auto &fp = ln.weights.front();
+        double s = (ln.order&1)?
+                   (fp.w*f(B, args...)) :
+                   (fp.w*f(B + A*fp.x, args...) + fp.w*f(B - A*fp.x, args...));
+
+        for(size_t i = 1; i < ln.weights.size(); ++i)
+        {
+            const auto &p = ln.weights.at(i);
+            s += p.w*(f(B + A*p.x, args...) + f(B - A*p.x, args...));
+        }
+
+        return A*s;
+    }
+
+    template<class T, typename F, typename... Args>
+    double gauss_quad(const legendre_nodes &ln, F (T::*f), T *t, double a, double b, Args&&... args)
+    {
+        // wrapper member function
+        auto fn = [t, f] (double val, Args&&... args2)
+                  {
+                      return (t->*f)(val, args2...);
+                  };
+
+        return gauss_quad(ln, fn, a, b, args...);
+    }
+
 
     // simpson integration
     template<typename F, typename... Args>
