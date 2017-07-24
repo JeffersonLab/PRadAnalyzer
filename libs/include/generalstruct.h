@@ -57,8 +57,6 @@ struct Point
 // detector coordinates in a certain frame
 struct DetCoord
 {
-    int run_number; // associated run
-    int det_enum;   // detector index
     float x_ori;    // origin x
     float y_ori;    // origin y
     float z_ori;    // origin z
@@ -67,25 +65,22 @@ struct DetCoord
     float theta_z;  // tilting angle on z axis
 
     DetCoord()
-    : run_number(0), det_enum(0),
-      x_ori(0), y_ori(0), z_ori(0),
+    : x_ori(0), y_ori(0), z_ori(0),
       theta_x(0), theta_y(0), theta_z(0)
     {};
 
-    DetCoord(int r, int i, float x, float y, float z)
-    : run_number(r), det_enum(i),
-      x_ori(x), y_ori(y), z_ori(z),
+    DetCoord(float x, float y, float z)
+    : x_ori(x), y_ori(y), z_ori(z),
       theta_x(0), theta_y(0), theta_z(0)
     {};
 
-    DetCoord(int r, int i, float x, float y, float z, float tx, float ty, float tz)
-    : run_number(r), det_enum(i),
-      x_ori(x), y_ori(y), z_ori(z),
+    DetCoord(float x, float y, float z, float tx, float ty, float tz)
+    : x_ori(x), y_ori(y), z_ori(z),
       theta_x(tx), theta_y(ty), theta_z(tz)
     {};
 
     // these functions help to retrieve values in array or set values in array
-    float get_dim_coord(int i)
+    float GetCoord(int i)
     {
         if(i == 0) return x_ori;
         if(i == 1) return y_ori;
@@ -96,7 +91,7 @@ struct DetCoord
         return 0.;
     }
 
-    void set_dim_coord(int i, float val)
+    void SetCoord(int i, float val)
     {
         if(i == 0) x_ori = val;
         if(i == 1) y_ori = val;

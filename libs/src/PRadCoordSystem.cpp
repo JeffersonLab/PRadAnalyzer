@@ -83,7 +83,7 @@ void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_r
             continue;
         }
 
-        DetCoord new_off(run, index, x, y, z, theta_x, theta_y, theta_z);
+        DetCoord new_off(x, y, z, theta_x, theta_y, theta_z);
 
         auto it_pair = cana::binary_search_interval(coords_data.begin(), coords_data.end(), run);
         // not find the exact matched entry
@@ -282,9 +282,11 @@ Point PRadCoordSystem::ProjectionCoordDiff(Point p1, Point p2, Point ori, float 
 
 std::ostream &operator <<(std::ostream &os, const RunCoord &coord)
 {
-    for(auto &det : coord.dets) {
+    for(size_t i = 0; i < coord.dets.size(); ++i)
+    {
+        const auto &det = coord.dets.at(i);
         os << std::setw(8)  << coord.run_number
-           << std::setw(12) << PRadDetector::getName(det.det_enum)
+           << std::setw(12) << PRadDetector::getName(i)
            << std::setw(12) << det.x_ori
            << std::setw(12) << det.y_ori
            << std::setw(12) << det.z_ori

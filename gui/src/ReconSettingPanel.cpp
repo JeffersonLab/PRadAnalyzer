@@ -296,9 +296,9 @@ void ReconSettingPanel::ConnectCoordSystem(PRadCoordSystem *c)
 
     coords = c->GetCurrentCoords();
 
-    for(auto &coord : coords.dets)
+    for(size_t i = 0; i < coords.dets.size(); ++i)
     {
-        coordType->addItem(PRadDetector::getName(coord.det_enum));
+        coordType->addItem(PRadDetector::getName(i));
     }
 
     coordType->setCurrentIndex(0);
@@ -332,9 +332,13 @@ void ReconSettingPanel::updateHyCalPath()
 // open the configuration file for selected method
 void ReconSettingPanel::openHyCalConfig()
 {
+    std::string dir = getenv("PRAD_PATH");
+    if(dir.size() && dir.back() != '/') dir += "/";
+    dir += "config/";
+
     QString path = QFileDialog::getOpenFileName(this,
                                                 "HyCal Cluster Configuration File",
-                                                "config/",
+                                                dir.c_str(),
                                                 "text config file (*.conf *.txt)");
 
     if(path.isEmpty())
@@ -370,7 +374,7 @@ void ReconSettingPanel::changeCoordType(int t)
 
     for(size_t i = 0; i < coordBox.size(); ++i)
     {
-        coordBox[i]->setValue(coord.get_dim_coord(i));
+        coordBox[i]->setValue(coord.GetCoord(i));
     }
 
 }
@@ -395,16 +399,20 @@ void ReconSettingPanel::saveCoordData()
 
     for(size_t i = 0; i < coordBox.size(); ++i)
     {
-        coord.set_dim_coord(i, coordBox[i]->value());
+        coord.SetCoord(i, coordBox[i]->value());
     }
     coordSystem->SetCurrentCoord(coords);
 }
 
 void ReconSettingPanel::saveCoordFile()
 {
+    std::string dir = getenv("PRAD_PATH");
+    if(dir.size() && dir.back() != '/') dir += "/";
+    dir += "database/";
+
     QString path = QFileDialog::getSaveFileName(this,
                                                 "Coordinates File",
-                                                "config/",
+                                                dir.c_str(),
                                                 "text data file (*.dat *.txt)");
     if(path.isEmpty())
         return;
@@ -416,9 +424,13 @@ void ReconSettingPanel::saveCoordFile()
 
 void ReconSettingPanel::openCoordFile()
 {
+    std::string dir = getenv("PRAD_PATH");
+    if(dir.size() && dir.back() != '/') dir += "/";
+    dir += "database/";
+
     QString path = QFileDialog::getOpenFileName(this,
                                                 "Coordinates File",
-                                                "config/",
+                                                dir.c_str(),
                                                 "text data file (*.dat *.txt)");
     if(path.isEmpty())
         return;
