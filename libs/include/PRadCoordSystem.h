@@ -47,7 +47,7 @@ public:
     // manipulate coordinates database
     void LoadCoordData(const std::string &path, const int &run = 0);
     void SaveCoordData(const std::string &path);
-    void ChooseCoord(int run_number);
+    void ChooseCoord(int run_number, bool warn_not_found = true);
     void ChooseCoordAt(int index);
 
     // set members

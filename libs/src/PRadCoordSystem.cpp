@@ -130,7 +130,7 @@ void PRadCoordSystem::SaveCoordData(const std::string &path)
 }
 
 // choose the coordinate offsets from the database
-void PRadCoordSystem::ChooseCoord(int run)
+void PRadCoordSystem::ChooseCoord(int run, bool warn_not_found)
 {
     if(coords_data.empty()) {
         std::cerr << "PRad Coord System Error: Database is empty, make sure you "
@@ -145,27 +145,24 @@ void PRadCoordSystem::ChooseCoord(int run)
         return;
     }
 
-    bool warn_not_exact = true;
     // exceeds the lower bound
     if(run <= coords_data.front().run_number) {
         current_coord = coords_data.front();
     // exceeds the upper bound
     } else if (run >= coords_data.back().run_number) {
         current_coord = coords_data.back();
-    // find interval
+    // find interval that the run sits in
     } else {
         auto it_pair = cana::binary_search_interval(coords_data.begin(), coords_data.end(), run);
-        // exact much
-        if(it_pair.first == it_pair.second)
-            warn_not_exact = false;
         // always choose the nearest previous run
         current_coord = *it_pair.first;
     }
 
-    if(warn_not_exact) {
-        std::cout << "PRad Coord System Warning: Cannot find run " << run
-                  << " in the current database, choose the run "
-                  << current_coord.run_number << " instead."
+    // warn not exact
+    if(warn_not_found && run != current_coord.run_number) {
+        std::cout << "PRad Coord System: Cannot find run <" << run
+                  << "> in the current database, choose run <"
+                  << current_coord.run_number << "> instead."
                   << std::endl;
     }
 }
