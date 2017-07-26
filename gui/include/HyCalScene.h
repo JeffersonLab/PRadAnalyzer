@@ -99,7 +99,7 @@ public:
             (((HyCalModule*)module)->*act)(std::forward<Args>(args)...);
     }
     // overloaded
-    void ReadModuleList(const std::string &path);
+    bool ReadModuleList(const std::string &path);
 
 protected:
     void drawForeground(QPainter *painter, const QRectF &rect);

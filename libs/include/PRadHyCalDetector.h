@@ -56,9 +56,8 @@ public:
     // public member functions
     void SetSystem(PRadHyCalSystem *sys, bool force_set = false);
     void UnsetSystem(bool force_unset = false);
-    virtual void ReadModuleList(const std::string &path);
-    void ReadVirtualModuleList(const std::string &path);
-    void ReadCalibrationFile(const std::string &path);
+    virtual bool ReadModuleList(const std::string &path);
+    bool ReadCalibrationFile(const std::string &path);
     void SaveModuleList(const std::string &path) const;
     void SaveCalibrationFile(const std::string &path) const;
     bool AddModule(PRadHyCalModule *module);

@@ -134,17 +134,17 @@ void PRadHyCalDetector::UnsetSystem(bool force_unset)
 }
 
 // read module list
-void PRadHyCalDetector::ReadModuleList(const std::string &path)
+bool PRadHyCalDetector::ReadModuleList(const std::string &path)
 {
     if(path.empty())
-        return;
+        return false;
 
     ConfigParser c_parser;
     if(!c_parser.ReadFile(path)) {
         std::cerr << "PRad HyCal Detector Error: Failed to read module list file "
                   << "\"" << path << "\"."
                   << std::endl;
-        return;
+        return false;
     }
 
     // clear all modules
@@ -175,20 +175,22 @@ void PRadHyCalDetector::ReadModuleList(const std::string &path)
 
     // sort the module by id
     SortModuleList();
+
+    return true;
 }
 
 // read calibration constants file
-void PRadHyCalDetector::ReadCalibrationFile(const std::string &path)
+bool PRadHyCalDetector::ReadCalibrationFile(const std::string &path)
 {
     if(path.empty())
-        return;
+        return false;
 
     ConfigParser c_parser;
     if(!c_parser.ReadFile(path)) {
         std::cerr << "PRad HyCal Detector Error: Failed to read calibration file "
                   << " \"" << path << "\""
                   << std::endl;
-        return;
+        return false;
     }
 
     std::string name;
@@ -217,6 +219,8 @@ void PRadHyCalDetector::ReadCalibrationFile(const std::string &path)
                       << std::endl;
         }
     }
+
+    return true;
 }
 
 void PRadHyCalDetector::SaveModuleList(const std::string &path)

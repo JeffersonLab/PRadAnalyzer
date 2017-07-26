@@ -216,10 +216,10 @@ void PRadHyCalSystem::Configure(const std::string &path)
 }
 
 // read DAQ channel list
-void PRadHyCalSystem::ReadChannelList(const std::string &path)
+bool PRadHyCalSystem::ReadChannelList(const std::string &path)
 {
     if(path.empty())
-        return;
+        return false;
 
     ConfigParser c_parser;
     // set special splitter
@@ -228,7 +228,7 @@ void PRadHyCalSystem::ReadChannelList(const std::string &path)
         std::cerr << "PRad HyCal System Error: Failed to read channel list file "
                   << "\"" << path << "\"."
                   << std::endl;
-        return;
+        return false;
     }
 
     // we accept 2 types of channels
@@ -310,6 +310,7 @@ void PRadHyCalSystem::ReadChannelList(const std::string &path)
 
     // build connection between modules and channels
     BuildConnections();
+    return true;
 }
 
 // build connections between ADC channels and HyCal modules
@@ -342,17 +343,17 @@ void PRadHyCalSystem::BuildConnections()
 }
 
 // read module status file
-void PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
+bool PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
 {
     if(path.empty())
-        return;
+        return false;
 
     ConfigParser c_parser;
     if(!c_parser.ReadFile(path)) {
         std::cerr << "PRad HyCal System Error: Failed to read status file "
                   << "\"" << path << "\""
                   << std::endl;
-        return;
+        return false;
     }
 
     std::string name;
@@ -369,7 +370,7 @@ void PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
                       << "file reading from "
                       << "\"" << path << "\""
                       << std::endl;
-            return;
+            return false;
         }
 
         // fill in reference PMT gains
@@ -386,7 +387,7 @@ void PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
                       << ", only has " << ref_gain.size()
                       << " Ref. PMTs"
                       << std::endl;
-            return;
+            return false;
         }
     }
 
@@ -425,20 +426,22 @@ void PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
         method->UpdateModuleStatus(hycal->GetModuleList());
     }
 #endif
+
+    return true;
 }
 
 // update the trigger efficiency
-void PRadHyCalSystem::ReadTriggerEffFile(const std::string &path)
+bool PRadHyCalSystem::ReadTriggerEffFile(const std::string &path)
 {
     if(path.empty())
-        return;
+        return false;
 
     ConfigParser c_parser;
     if(!c_parser.ReadFile(path)) {
         std::cerr << "PRad HyCal System Error: Failed to read trigger efficiency file "
                   << "\"" << path << "\""
                   << std::endl;
-        return;
+        return false;
     }
 
     std::string name;
@@ -456,20 +459,22 @@ void PRadHyCalSystem::ReadTriggerEffFile(const std::string &path)
             module->SetTriggerEfficiency(eff);
         }
     }
+
+    return true;
 }
 
 // read file that contains the information about calibration period
-void PRadHyCalSystem::ReadCalPeriodFile(const std::string &path)
+bool PRadHyCalSystem::ReadCalPeriodFile(const std::string &path)
 {
     if(path.empty())
-        return;
+        return false;
 
     ConfigParser c_parser;
     if(!c_parser.ReadFile(path)) {
         std::cerr << "PRad HyCal System Error: Failed to read calibration period file "
                   << "\"" << path << "\""
                   << std::endl;
-        return;
+        return false;
     }
 
     cal_period.clear();
@@ -486,6 +491,8 @@ void PRadHyCalSystem::ReadCalPeriodFile(const std::string &path)
         // no need to update
         cal_period.emplace_back(begin, end, period, sub_period);
     }
+
+    return true;
 }
 
 // set run number from data file path and update related file
@@ -538,14 +545,11 @@ void PRadHyCalSystem::UpdateRunFiles(bool verbose)
     // calibration file
     file_path = ConfigParser::form_path(GetConfig<std::string>("Calibration Folder"),
                                         GetConfig<std::string>("Calibration File"));
-    if(hycal) {
-        hycal->ReadCalibrationFile(file_path);
 
-        if(verbose) {
-            std::cout << "PRad HyCal System: Read Calibration File "
-                      << "\"" << file_path << "\""
-                      << std::endl;
-        }
+    if(hycal && hycal->ReadCalibrationFile(file_path) && verbose) {
+        std::cout << "PRad HyCal System: Read Calibration File "
+                  << "\"" << file_path << "\""
+                  << std::endl;
     }
 
     // run info file
@@ -554,9 +558,7 @@ void PRadHyCalSystem::UpdateRunFiles(bool verbose)
     file_path = ConfigParser::form_path(GetConfig<std::string>("Run Info Folder"),
                                         GetConfig<std::string>("Run Info File"));
 
-    ReadRunInfoFile(file_path);
-
-    if(verbose) {
+    if(ReadRunInfoFile(file_path) && verbose) {
         std::cout << "PRad HyCal System: Read Run Info File "
                   << "\"" << file_path << "\""
                   << std::endl;

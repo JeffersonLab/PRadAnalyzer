@@ -179,17 +179,17 @@ void HyCalScene::drawHitsMark(QPainter *painter, const QPointF& pos, const HyCal
 }
 
 // pverloaded read module list
-void HyCalScene::ReadModuleList(const std::string &path)
+bool HyCalScene::ReadModuleList(const std::string &path)
 {
     if(path.empty())
-        return;
+        return false;
 
     ConfigParser c_parser;
     if(!c_parser.ReadFile(path)) {
         std::cerr << "PRad HyCal Detector Error: Failed to read module list file "
                   << "\"" << path << "\"."
                   << std::endl;
-        return;
+        return false;
     }
 
     // clear all modules
@@ -223,6 +223,8 @@ void HyCalScene::ReadModuleList(const std::string &path)
 
     // sort the module by id
     SortModuleList();
+
+    return true;
 }
 
 

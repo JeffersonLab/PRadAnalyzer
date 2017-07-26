@@ -55,6 +55,9 @@ CXX_SRC_DIR   = src
 CXX_INC_DIR   = include
 CXX_SUFFIX    = cpp
 CXX_SOURCES   = canalib \
+                ConfigParser \
+                ConfigValue \
+                ConfigObject \
                 PRadDAQChannel \
                 PRadADCChannel \
                 PRadTDCChannel \
@@ -64,9 +67,6 @@ CXX_SOURCES   = canalib \
                 PRadDataHandler \
                 PRadException \
                 PRadBenchMark \
-                ConfigParser \
-                ConfigValue \
-                ConfigObject \
                 PRadDetector \
                 PRadHyCalSystem \
                 PRadHyCalDetector \

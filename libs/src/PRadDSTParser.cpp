@@ -747,8 +747,7 @@ throw (PRadException)
         // read buffer length
         ifs.read((char*) &in_bufl, sizeof(in_bufl));
         if(in_bufl > DST_BUF_SIZE) {
-            std::cout << std::hex << in_bufl << std::endl;
-            throw PRadException("READ DST", "read-in buffer exceeds size limit!");
+            throw PRadException("READ DST", "read-in buffer size (" + std::to_string(in_bufl) + ") exceeds limit!");
         }
         ifs.read(in_buf, in_bufl);
     }

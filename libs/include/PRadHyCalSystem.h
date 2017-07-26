@@ -84,10 +84,10 @@ public:
 
     // configuration
     void Configure(const std::string &path);
-    void ReadChannelList(const std::string &path);
-    void ReadRunInfoFile(const std::string &path);
-    void ReadTriggerEffFile(const std::string &path);
-    void ReadCalPeriodFile(const std::string &path);
+    bool ReadChannelList(const std::string &path);
+    bool ReadRunInfoFile(const std::string &path);
+    bool ReadTriggerEffFile(const std::string &path);
+    bool ReadCalPeriodFile(const std::string &path);
     void ChooseRun(const std::string &path, bool verbose = true);
     void ChooseRun(int run, bool verbose = true);
     void UpdateRunFiles(bool verbose = true);
