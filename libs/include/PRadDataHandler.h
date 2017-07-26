@@ -49,7 +49,7 @@ public:
 
     // file reading and writing
     void Decode(const void *buffer);
-    void ReadFromDST(const std::string &path, unsigned int mode = 0);
+    void ReadFromDST(const std::string &path);
     int ReadFromEvio(const std::string &path, int evt = -1, bool verbose = false);
     int ReadFromSplitEvio(const std::string &path, int split = -1, bool verbose = true);
     void WriteToDST(const std::string &path);

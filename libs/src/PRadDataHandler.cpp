@@ -28,7 +28,7 @@
 
 // constructor
 PRadDataHandler::PRadDataHandler()
-: parser(this), dst_parser(this),
+: parser(this),
   epic_sys(nullptr), tagger_sys(nullptr), hycal_sys(nullptr), gem_sys(nullptr),
   onlineMode(false), replayMode(false), current_event(0),
   new_event(new EventData), proc_event(new EventData)
@@ -38,7 +38,7 @@ PRadDataHandler::PRadDataHandler()
 
 // copy/move constructors
 PRadDataHandler::PRadDataHandler(const PRadDataHandler &that)
-: parser(this), dst_parser(this),
+: parser(this),
   epic_sys(nullptr), tagger_sys(nullptr), hycal_sys(nullptr), gem_sys(nullptr),
   onlineMode(that.onlineMode), replayMode(that.replayMode),
   current_event(that.current_event), event_data(that.event_data),
@@ -48,7 +48,7 @@ PRadDataHandler::PRadDataHandler(const PRadDataHandler &that)
 }
 
 PRadDataHandler::PRadDataHandler(PRadDataHandler &&that)
-: parser(this), dst_parser(this),
+: parser(this),
   epic_sys(nullptr), tagger_sys(nullptr), hycal_sys(nullptr), gem_sys(nullptr),
   onlineMode(that.onlineMode), replayMode(that.replayMode),
   current_event(that.current_event), event_data(std::move(that.event_data)),
@@ -116,12 +116,10 @@ void PRadDataHandler::Decode(const void *buffer)
 }
 
 // read from DST format file
-void PRadDataHandler::ReadFromDST(const std::string &path, unsigned int mode)
+void PRadDataHandler::ReadFromDST(const std::string &path)
 {
     try {
         dst_parser.OpenInput(path);
-
-        dst_parser.SetMode(mode);
 
         std::cout << "Data Handler: Reading events from DST file "
                   << "\"" << path << "\""
@@ -508,15 +506,9 @@ void PRadDataHandler::Replay(const std::string &r_path, int split, const std::st
     std::cout << "Replay started!" << std::endl;
     PRadBenchMark timer;
 
-    dst_parser.WriteHyCalInfo(hycal_sys);
-    dst_parser.WriteGEMInfo(gem_sys);
-    dst_parser.WriteEPICSMap(epic_sys);
-
     replayMode = true;
 
     int count = ReadFromSplitEvio(r_path, split);
-
-    dst_parser.WriteRunInfo();
 
     replayMode = false;
 
@@ -537,13 +529,6 @@ void PRadDataHandler::WriteToDST(const std::string &path)
                   << "\"" << path << "\""
                   << std::endl;
 
-        if(hycal_sys)
-            dst_parser.WriteHyCalInfo(hycal_sys);
-        if(gem_sys)
-            dst_parser.WriteGEMInfo(gem_sys);
-        if(epic_sys)
-            dst_parser.WriteEPICSMap(epic_sys);
-
         if(epic_sys) {
             for(auto &epics : epic_sys->GetEventData())
             {
@@ -555,8 +540,6 @@ void PRadDataHandler::WriteToDST(const std::string &path)
         {
             dst_parser.WriteEvent(event);
         }
-
-        dst_parser.WriteRunInfo();
 
     } catch(PRadException &e) {
         std::cerr << e.FailureType() << ": "

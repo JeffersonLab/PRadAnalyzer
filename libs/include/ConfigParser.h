@@ -160,7 +160,7 @@ public:
     static int find_integer(const std::string &str, const size_t &pos = 0);
     static std::vector<int> find_integers(const std::string &str);
     static void find_integer_helper(const std::string &str, std::vector<int> &result);
-    struct PathInfo { std::string dir, name, suffix; };
+    struct PathInfo { std::string dir, name, ext; };
     static PathInfo decompose_path(const std::string &path);
     static std::string compose_path(const PathInfo &path);
     static std::string form_path(const std::string &dir, const std::string &file);

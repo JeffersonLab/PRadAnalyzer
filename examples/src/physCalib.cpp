@@ -76,7 +76,6 @@ int main(int argc, char * argv [])
     det_match = new PRadDetMatch("config/det_match.conf");
     dst_parser = new PRadDSTParser();
 
-    dst_parser->SetMode(0);
     hycal = hycal_sys->GetDetector();
     gem1 = gem_sys->GetDetector("PRadGEM1");
     gem2 = gem_sys->GetDetector("PRadGEM2");

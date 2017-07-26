@@ -6,66 +6,71 @@
 //============================================================================//
 
 #include "PRadDSTParser.h"
+#include "DSTReaderV1.h"
 #include "PRadBenchMark.h"
 #include "ConfigParser.h"
 #include <iostream>
 #include <iomanip>
 #include <string>
 #include <vector>
+#include "DSTReaderV1.h"
 
 #define PROGRESS_COUNT 10000
 
 using namespace std;
 
-void TestDST(const string &inf, const string &outf);
-void ListEPICS(const string &inf);
+void UpdateDST(const string &inf, const string &outf);
+void ListEvents(const string &inf);
 
 int main(int argc, char *argv[])
 {
     if(argc != 3) {
-        cout << "usage: testDST <in_file> <out_file>" << endl;
+        cout << "usage: updateDST <in_file> <out_file>" << endl;
         return 0;
     }
 
-    TestDST(argv[1], argv[2]);
-    ListEPICS(argv[2]);
+    UpdateDST(argv[1], argv[2]);
+//    ListEvents(argv[2]);
 }
 
-void TestDST(const string &inf, const string &outf)
+void UpdateDST(const string &inf, const string &outf)
 {
-    PRadDSTParser dst_parser;
+    DSTReaderV1 dst_old;
+    PRadDSTParser dst_new;
 
-    dst_parser.OpenInput(inf);
-    dst_parser.OpenOutput(outf);
+    dst_old.OpenInput(inf);
+    dst_new.OpenOutput(outf);
 
-    while(dst_parser.Read())
+    while(dst_old.Read())
     {
-        if(dst_parser.EventType() == PRadDSTParser::Type::event) {
-            dst_parser.WriteEvent();
-        } else if(dst_parser.EventType() == PRadDSTParser::Type::epics) {
-            dst_parser.WriteEPICS();
+        if(dst_old.EventType() == DSTReaderV1::Type::event) {
+            dst_new.WriteEvent(dst_old.GetEvent());
+        } else if(dst_old.EventType() == DSTReaderV1::Type::epics) {
+            dst_new.WriteEPICS(dst_old.GetEPICSEvent());
         }
     }
 
-    dst_parser.CloseInput();
-    dst_parser.CloseOutput();
+    dst_old.CloseInput();
+    dst_new.CloseOutput();
 }
 
-void ListEPICS(const string &inf)
+void ListEvents(const string &inf)
 {
     PRadDSTParser dst_parser;
     dst_parser.OpenInput(inf);
 
-    if(dst_parser.ReadEventMap()) {
+    auto type = PRadDSTParser::Type::event;
+
+    if(dst_parser.ReadMap()) {
         auto dst_map = dst_parser.GetInputMap();
 
-        for(auto &pos : dst_map.epics_pos)
+        for(auto &pos : dst_map.GetType(type))
         {
             if(dst_parser.Read(pos)) {
-                if(dst_parser.EventType() == PRadDSTParser::Type::epics) {
-                    cout << dst_parser.GetEPICSEvent().event_number << endl;
-                } else {
+                if(dst_parser.EventType() != type) {
                     cout << "Wrong type!" << endl;
+                } else {
+                    cout << dst_parser.GetEvent().event_number << endl;
                 }
             } else {
                 cout << "Read failure at " << pos << endl;

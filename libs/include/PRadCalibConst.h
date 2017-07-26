@@ -12,7 +12,6 @@ class PRadCalibConst
 {
 public:
     friend class PRadHyCalModule;
-    friend class PRadDSTParser;
 
 public:
     PRadCalibConst(int ref_num = DEFAULT_REF_NUM);

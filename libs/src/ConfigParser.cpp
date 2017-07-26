@@ -752,7 +752,7 @@ pair<size_t, size_t> ConfigParser::find_pair(const string &str,
 // get file name and directory from a path
 ConfigParser::PathInfo ConfigParser::decompose_path(const string &path)
 {
-    // find directory and suffix
+    // find directory and ext
     auto dir_pos = path.find_last_of("/");
     auto suf_pos = path.find_first_of(".");
 
@@ -761,12 +761,12 @@ ConfigParser::PathInfo ConfigParser::decompose_path(const string &path)
         res.dir = ".";
         res.name = path.substr(0, suf_pos);
         if(suf_pos != string::npos)
-            res.suffix = path.substr(suf_pos + 1);
+            res.ext = path.substr(suf_pos + 1);
     } else {
         res.dir = path.substr(0, dir_pos);
         res.name = path.substr(dir_pos + 1, suf_pos - dir_pos - 1);
         if(suf_pos != string::npos && suf_pos > dir_pos)
-            res.suffix = path.substr(suf_pos + 1);
+            res.ext = path.substr(suf_pos + 1);
     }
 
     return res;
@@ -776,15 +776,15 @@ ConfigParser::PathInfo ConfigParser::decompose_path(const string &path)
 string ConfigParser::compose_path(const ConfigParser::PathInfo &path)
 {
     string res(path.dir);
-    res.reserve(path.dir.size() + path.name.size() + path.suffix.size() + 2);
+    res.reserve(path.dir.size() + path.name.size() + path.ext.size() + 2);
 
     if(!res.empty() && res.back() != '/')
         res += '/';
 
     res += path.name;
 
-    if(!path.suffix.empty())
-        res += "." + path.suffix;
+    if(!path.ext.empty())
+        res += "." + path.ext;
 
     return res;
 }

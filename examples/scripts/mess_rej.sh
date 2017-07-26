@@ -21,14 +21,14 @@ fi
 
 # check run number range
 # begin
-if [[ $1 -eq 0 ]]; then
+if [ -z $1 ]; then
     run_begin=0
 else
     run_begin=$1
 fi
 
 # end
-if [[ $2 -eq 0 ]]; then
+if [ -z $2 ]; then
     run_end=999999
 else
     run_end=$2
