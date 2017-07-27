@@ -16,22 +16,18 @@
 #include <cmath>
 #include <iomanip>
 
-void Helper()
-{
-    cout << "usage: physCalib <options> <begin_run> <end_run>" << endl
-         << "options:" << endl
-         << setw(10) << "-i " << "<input_file_dir>" << endl
-         << setw(10) << "-o " << "<output_file_dir>" << endl
-         << setw(10) << "-h " << ", show_options" << endl
-         << endl;
-}
-
 int main(int argc, char * argv [])
 {
     ConfigOption conf_opt;
-    conf_opt.AddOpt('i', ConfigOption::arg_require);
-    conf_opt.AddOpt('o', ConfigOption::arg_require);
-    conf_opt.AddOpt('h', ConfigOption::arg_none);
+    conf_opt.AddOpt(ConfigOption::arg_require, 'i');
+    conf_opt.AddOpt(ConfigOption::arg_require, 'o');
+    conf_opt.AddOpt(ConfigOption::help_message, 'h');
+
+    conf_opt.SetDesc("usage: physCalib <options> <begin_run> <end_run>");
+    conf_opt.SetDesc('i', "input file directory");
+    conf_opt.SetDesc('o', "output file directory");
+    conf_opt.SetDesc('h', "show instruction");
+
     // determine input files
     int run[2];
     run[0] = 0;
@@ -39,8 +35,8 @@ int main(int argc, char * argv [])
     string in_dir = "./"; //define your dst data file folder here
     string out_dir = "./";
 
-    if(!conf_opt.ParseArgs(argc, argv)) {
-        Helper();
+    if(!conf_opt.ParseArgs(argc, argv) || conf_opt.NbofArgs() != 2) {
+        std::cout << conf_opt.GetInstruction() << std::endl;
         return -1;
     }
 
@@ -54,16 +50,10 @@ int main(int argc, char * argv [])
         case 'i':
             in_dir = opt.var.String();
             break;
-        case 'h':
         default:
-            Helper();
+            std::cout << conf_opt.GetInstruction() << std::endl;
             return -1;
         }
-    }
-
-    if(conf_opt.NbofArgs() != 2) {
-        std::cerr << "Wrong number of arguments, require 2!" << std::endl;
-        return -1;
     }
 
     for(int i = 0; i < 2; ++i)

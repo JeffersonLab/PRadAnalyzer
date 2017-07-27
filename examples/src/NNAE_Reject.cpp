@@ -26,26 +26,23 @@ using namespace std;
 void RejectCosmic(const char *path, const char *nnid_file, const char *out_dir,
                   double ang_min, double ang_max, double ene_min, double ene_max);
 
-void print_instructions()
-{
-    cerr << "usage: NNAE_Prepare <data_file> <root_file> <out_dir>\n"
-         << "\t--cut-angle-min=<value>, --cut-angle-max=<value>, angle cut on the most energetic cluster\n"
-         << "\t--cut-energy-min=<value>, --cut-energy-max=<value>, energy cut on the most energetic cluster"
-         << "\t-h, show this message"
-         << endl;
-}
-
 int main(int argc, char *argv[])
 {
     ConfigOption conf_opt;
-    conf_opt.AddOpt('h', ConfigOption::arg_none);
-    conf_opt.AddOpt("cut-angle-min", ConfigOption::arg_require, 'a');
-    conf_opt.AddOpt("cut-angle-max", ConfigOption::arg_require, 'b');
-    conf_opt.AddOpt("cut-energy-min", ConfigOption::arg_require, 'c');
-    conf_opt.AddOpt("cut-energy-max", ConfigOption::arg_require, 'd');
+    conf_opt.AddOpt(ConfigOption::help_message, 'h');
+    conf_opt.AddLongOpt(ConfigOption::arg_require, "cut-angle-min", 'a');
+    conf_opt.AddLongOpt(ConfigOption::arg_require, "cut-angle-max", 'b');
+    conf_opt.AddLongOpt(ConfigOption::arg_require, "cut-energy-min", 'c');
+    conf_opt.AddLongOpt(ConfigOption::arg_require, "cut-energy-max", 'd');
 
-    if(!conf_opt.ParseArgs(argc, argv)) {
-        print_instructions();
+    conf_opt.SetDesc("usage: NNAE_Prepare <data_file> <root_file> <out_dir>");
+    conf_opt.SetDesc('a', "cut minimum angle of the most energetic cluster.");
+    conf_opt.SetDesc('b', "cut maximum angle of the most energetic cluster.");
+    conf_opt.SetDesc('c', "cut minimum energy of the most energetic cluster.");
+    conf_opt.SetDesc('d', "cut minimum energy of the most energetic cluster.");
+
+    if(!conf_opt.ParseArgs(argc, argv) || conf_opt.NbofArgs() != 3) {
+        std::cout << conf_opt.GetInstruction() << std::endl;
         return -1;
     }
 
@@ -58,14 +55,10 @@ int main(int argc, char *argv[])
         case 'b': ang_max = opt.var.Double(); break;
         case 'c': ene_min = opt.var.Double(); break;
         case 'd': ene_max = opt.var.Double(); break;
-        case 'h':
-        default : print_instructions(); return -1;
+        default :
+            std::cout << conf_opt.GetInstruction() << std::endl;
+            return -1;
         }
-    }
-
-    if(conf_opt.NbofArgs() != 3) {
-        print_instructions();
-        return -1;
     }
 
     RejectCosmic(conf_opt.GetArgument(0).c_str(),

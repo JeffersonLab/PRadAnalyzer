@@ -36,14 +36,21 @@ void print_instruction()
 int main(int argc, char * argv[])
 {
     ConfigOption conf_opt;
-    conf_opt.AddOpt('s', ConfigOption::arg_require);
-    conf_opt.AddOpt('h', ConfigOption::arg_none);
-    conf_opt.AddOpt("init-evio", ConfigOption::arg_none, 'e');
-    conf_opt.AddOpt("init-database", ConfigOption::arg_none, 'd');
-    conf_opt.AddOpt('r', ConfigOption::arg_require);
+    conf_opt.AddOpt(ConfigOption::arg_require, 's');
+    conf_opt.AddLongOpt(ConfigOption::arg_none, "init-evio", 'e');
+    conf_opt.AddLongOpt(ConfigOption::arg_none, "init-database", 'd');
+    conf_opt.AddOpt(ConfigOption::arg_require, 'r');
+    conf_opt.AddOpt(ConfigOption::help_message, 'h');
 
-    if(!conf_opt.ParseArgs(argc, argv)) {
-        print_instruction();
+    conf_opt.SetDesc("usage: replay <in_file> <out_file>");
+    conf_opt.SetDesc('s', "spliting file number, default -1 (no splitting).");
+    conf_opt.SetDesc('r', "set run number, only valid for --init-database, default -1 (determined from file name).");
+    conf_opt.SetDesc('e', "initialize from evio.0 file");
+    conf_opt.SetDesc('d', "initialize from database");
+    conf_opt.SetDesc('h', "show instruction.");
+
+    if(!conf_opt.ParseArgs(argc, argv) || conf_opt.NbofArgs() != 2) {
+        std::cout << conf_opt.GetInstruction() << std::endl;
         return -1;
     }
 
@@ -66,16 +73,10 @@ int main(int argc, char * argv[])
         case 'r':
             run = opt.var.Int();
             break;
-        case 'h':
         default:
-            print_instruction();
+            std::cout << conf_opt.GetInstruction() << std::endl;
             return -1;
         }
-    }
-
-    if(conf_opt.NbofArgs() != 2) {
-        std::cerr << "Wrong number of arguments, require 2." << std::endl;
-        return -1;
     }
 
     string input = conf_opt.GetArgument(0).String();

@@ -64,9 +64,9 @@ void  WriteOutput(double nTotal, int rNumber = -1);
 int main(int argc, char * argv [])
 {
     ConfigOption conf_opt;
-    conf_opt.AddOpt('a', ConfigOption::arg_none);
-    conf_opt.AddOpt('s', ConfigOption::arg_require);
-    conf_opt.AddOpt('e', ConfigOption::arg_require);
+    conf_opt.AddOpt(ConfigOption::arg_none, 'a');
+    conf_opt.AddOpt(ConfigOption::arg_require, 's');
+    conf_opt.AddOpt(ConfigOption::arg_require, 'e');
 
     if(!conf_opt.ParseArgs(argc, argv)) exit(1);
 

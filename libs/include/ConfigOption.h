@@ -13,6 +13,7 @@ public:
     {
         arg_none = 0,
         arg_require,
+        help_message,
     };
 
     struct Opt
@@ -30,11 +31,15 @@ public:
     ConfigOption();
     virtual ~ConfigOption();
 
-    void AddOpt(char s_term, OptType type);
-    void AddOpt(char s_term, OptType type, char mark);
-    void AddOpt(const char *l_term, OptType type, char mark);
-    void AddOpt(char s_term, const char *l_term, OptType type);
-    void AddOpt(char s_term, const char *l_term, OptType type, char mark);
+    void AddOpt(OptType type, char s_term);
+    void AddOpt(OptType type, char s_term, char mark);
+    void AddLongOpt(OptType type, const char *l_term);
+    void AddLongOpt(OptType type, const char *l_term, char mark);
+    void AddOpts(OptType type, char s_term, const char *l_term);
+    void AddOpts(OptType type, char s_term, const char *l_term, char mark);
+    void SetDesc(const char *desc);
+    void SetDesc(char mark, const char *desc);
+    std::string GetInstruction();
     bool ParseArgs(int argc, char *argv[]);
     size_t NbofArgs() const {return arg_pack.size();}
     size_t NbofOpts() const {return opt_pack.size();}
@@ -51,6 +56,8 @@ private:
     std::unordered_map<std::string, Opt> l_opt_map;
     std::vector<Opt> opt_pack;
     std::vector<ConfigValue> arg_pack;
+    std::string base_desc;
+    std::vector<std::string> option_desc;
 };
 
 

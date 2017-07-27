@@ -36,40 +36,6 @@ void FillParams(PRadHyCalSystem &sys,
                 vector<vector<double>> &params,
                 unsigned int cap);
 
-void Helper(const string &mes = "")
-{
-    if(mes.size())
-        cerr << "error: " << mes << endl;
-
-    cout << "usage: " << endl
-         << setw(10) << " " << "neuralTrain <cosmic_data> <good_data>"
-         << endl
-         << "options:" << endl
-         << setw(10) << "-n " << "<file_path>, --net-path=<file_path> : "
-         << "create network from file, a new network will be created by default."
-         << endl
-         << setw(10) << "-l " << "<\"val1, val2, ...\">, --layer=<\"val1, val2, ...\"> : "
-         << "set the hidden layers for neural network, {20, 10, 5, 3} is the default value."
-         << endl
-         << setw(10) << "-s " << "<file_path>, --save-path=<file_path> : "
-         << "set the path to save the trained network, save to \"saved.net\" by default "
-         << endl
-         << setw(10) << "-f " << "<value>, --learning-factor=<value> : "
-         << "define learning factor, 0.1 is the default value."
-         << endl
-         << setw(10) << "-t " << "<value>, --training-times=<value> : "
-         << "set the training times (1,000 as the unit), 5,000k is the default value."
-         << endl
-         << setw(10) << "-c " << "<value>, --bank-capacity=<value> : "
-         << "set the training bank capacity (1,000 as the unit), 1,000k is the default value."
-         << endl
-         << setw(10) << "-h," << " --help : "
-         << "see this helper information."
-         << endl;
-
-    exit(-1);
-}
-
 int main(int argc, char *argv[])
 {
     string net_path, save_path, layer_str;
@@ -79,16 +45,25 @@ int main(int argc, char *argv[])
     save_path = "saved.net";
 
     ConfigOption conf_opt;
-    conf_opt.AddOpt('n', "net-path", ConfigOption::arg_require);
-    conf_opt.AddOpt('s', "save-path", ConfigOption::arg_require);
-    conf_opt.AddOpt('l', "layer", ConfigOption::arg_require);
-    conf_opt.AddOpt('f', "learning-factor", ConfigOption::arg_require);
-    conf_opt.AddOpt('t', "training-times", ConfigOption::arg_require);
-    conf_opt.AddOpt('c', "bank-capacity", ConfigOption::arg_require);
-    conf_opt.AddOpt('h', "help", ConfigOption::arg_require);
+    conf_opt.AddOpts(ConfigOption::arg_require, 'n', "net-path");
+    conf_opt.AddOpts(ConfigOption::arg_require, 's', "save-path");
+    conf_opt.AddOpts(ConfigOption::arg_require, 'l', "layer");
+    conf_opt.AddOpts(ConfigOption::arg_require, 'f', "learning-factor");
+    conf_opt.AddOpts(ConfigOption::arg_require, 't', "training-times");
+    conf_opt.AddOpts(ConfigOption::arg_require, 'c', "bank-capacity");
+    conf_opt.AddOpts(ConfigOption::help_message, 'h', "help");
 
-    if(!conf_opt.ParseArgs(argc, argv)) {
-        Helper();
+    conf_opt.SetDesc("neuralTrain <cosmic_data> <good_data>");
+    conf_opt.SetDesc('n', "create network from file, a new network will be created by default.");
+    conf_opt.SetDesc('l', "set the hidden layers for neural network in the format of \"val1, val2, ...\".");
+    conf_opt.SetDesc('s', "set the path to save the trained network, save to \"saved.net\" by default.");
+    conf_opt.SetDesc('f', "define learning factor, 0.1 is the default value.");
+    conf_opt.SetDesc('t', "set the training times (1,000 as the unit), 5,000k is the default value.");
+    conf_opt.SetDesc('c', "set the training bank capacity (1,000 as the unit), 1,000k is the default value.");
+    conf_opt.SetDesc('h', "show instruction.");
+
+    if(!conf_opt.ParseArgs(argc, argv) || conf_opt.NbofArgs() != 2) {
+        std::cout << conf_opt.GetInstruction() << std::endl;
         return -1;
     }
 
@@ -114,16 +89,10 @@ int main(int argc, char *argv[])
         case 'l':
             layer_str = opt.var.String();
             break;
-        case 'h':
         default:
-            Helper();
-            break;
+            std::cout << conf_opt.GetInstruction() << std::endl;
+            return -1;
         }
-    }
-
-    if(conf_opt.NbofArgs() != 2) {
-        std::cerr << "Wrong number of arguments, require 2." << std::endl;
-        return -1;
     }
 
     string cosmic_file = conf_opt.GetArgument(0).String();
