@@ -58,6 +58,7 @@ CXX_SOURCES   = canalib \
                 ConfigParser \
                 ConfigValue \
                 ConfigObject \
+                ConfigOption \
                 PRadDAQChannel \
                 PRadADCChannel \
                 PRadTDCChannel \

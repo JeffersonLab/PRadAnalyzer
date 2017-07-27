@@ -7,6 +7,7 @@
 //============================================================================//
 
 #include "physCalib.h"
+#include "ConfigOption.h"
 #include "TSystem.h"
 #include "TMath.h"
 #include "TVector2.h"
@@ -21,43 +22,53 @@ void Helper()
          << "options:" << endl
          << setw(10) << "-i " << "<input_file_dir>" << endl
          << setw(10) << "-o " << "<output_file_dir>" << endl
-         << setw(10) << "-h " << "<show_options>" << endl
+         << setw(10) << "-h " << ", show_options" << endl
          << endl;
-    exit(1);
 }
 
 int main(int argc, char * argv [])
 {
+    ConfigOption conf_opt;
+    conf_opt.AddOpt('i', ConfigOption::arg_require);
+    conf_opt.AddOpt('o', ConfigOption::arg_require);
+    conf_opt.AddOpt('h', ConfigOption::arg_none);
     // determine input files
-    int run[2], run_arg;
+    int run[2];
     run[0] = 0;
     run[1] = 999999;
-    run_arg = 0;
     string in_dir = "./"; //define your dst data file folder here
     string out_dir = "./";
 
-    for(int i = 1; i < argc; ++i)
+    if(!conf_opt.ParseArgs(argc, argv)) {
+        Helper();
+        return -1;
+    }
+
+    for(auto &opt : conf_opt.GetOptions())
     {
-        char* ptr = argv[i];
-        if(*(ptr++) == '-') {
-            switch(*(ptr++))
-            {
-            case 'o':
-                out_dir = argv[++i];
-                break;
-            case 'i':
-                in_dir = argv[++i];
-                break;
-            case 'h':
-            default:
-                Helper();
-            }
-        } else {
-            if(run_arg > 1)
-                Helper();
-            run[run_arg] = atoi(argv[i]);
-            run_arg++;
+        switch(opt.mark)
+        {
+        case 'o':
+            out_dir = opt.var.String();
+            break;
+        case 'i':
+            in_dir = opt.var.String();
+            break;
+        case 'h':
+        default:
+            Helper();
+            return -1;
         }
+    }
+
+    if(conf_opt.NbofArgs() != 2) {
+        std::cerr << "Wrong number of arguments, require 2!" << std::endl;
+        return -1;
+    }
+
+    for(int i = 0; i < 2; ++i)
+    {
+        run[i] = conf_opt.GetArgument(i).Int();
     }
 
     auto inputFiles = FindInputFiles(in_dir, run[0], run[1]);

@@ -12,6 +12,7 @@
 #include "PRadBenchMark.h"
 #include "PRadCoordSystem.h"
 #include "PRadInfoCenter.h"
+#include "ConfigOption.h"
 #include "TFile.h"
 #include "TTree.h"
 #include <iostream>
@@ -22,21 +23,61 @@
 #define PROGRESS_COUNT 10000
 
 using namespace std;
-void RejectCosmic(const char *path, const char *nnid_file, const char *out_dir);
+void RejectCosmic(const char *path, const char *nnid_file, const char *out_dir,
+                  double ang_min, double ang_max, double ene_min, double ene_max);
+
+void print_instructions()
+{
+    cerr << "usage: NNAE_Prepare <data_file> <root_file> <out_dir>\n"
+         << "\t--cut-angle-min=<value>, --cut-angle-max=<value>, angle cut on the most energetic cluster\n"
+         << "\t--cut-energy-min=<value>, --cut-energy-max=<value>, energy cut on the most energetic cluster"
+         << "\t-h, show this message"
+         << endl;
+}
 
 int main(int argc, char *argv[])
 {
+    ConfigOption conf_opt;
+    conf_opt.AddOpt('h', ConfigOption::arg_none);
+    conf_opt.AddOpt("cut-angle-min", ConfigOption::arg_require, 'a');
+    conf_opt.AddOpt("cut-angle-max", ConfigOption::arg_require, 'b');
+    conf_opt.AddOpt("cut-energy-min", ConfigOption::arg_require, 'c');
+    conf_opt.AddOpt("cut-energy-max", ConfigOption::arg_require, 'd');
 
-    if(argc != 4) {
-        cerr << "usage: NNAE_Prepare <data_file> <root_file> <out_directory>" << endl;
+    if(!conf_opt.ParseArgs(argc, argv)) {
+        print_instructions();
         return -1;
     }
 
-    RejectCosmic(argv[1], argv[2], argv[3]);
+    double ang_min = -1., ang_max = -1., ene_min = -1., ene_max = -1.;
+    for(auto &opt : conf_opt.GetOptions())
+    {
+        switch(opt.mark)
+        {
+        case 'a': ang_min = opt.var.Double(); break;
+        case 'b': ang_max = opt.var.Double(); break;
+        case 'c': ene_min = opt.var.Double(); break;
+        case 'd': ene_max = opt.var.Double(); break;
+        case 'h':
+        default : print_instructions(); return -1;
+        }
+    }
+
+    if(conf_opt.NbofArgs() != 3) {
+        print_instructions();
+        return -1;
+    }
+
+    RejectCosmic(conf_opt.GetArgument(0).c_str(),
+                 conf_opt.GetArgument(1).c_str(),
+                 conf_opt.GetArgument(2).c_str(),
+                 ang_min, ang_max, ene_min, ene_max);
+
     return 0;
 }
 
-void RejectCosmic(const char *path, const char *nnid_file, const char *out_dir)
+void RejectCosmic(const char *path, const char *nnid_file, const char *out_dir,
+                  double ang_min, double ang_max, double ene_min, double ene_max)
 {
     string prad_path = getenv("PRAD_PATH");
     if(prad_path.size()) {
@@ -48,7 +89,7 @@ void RejectCosmic(const char *path, const char *nnid_file, const char *out_dir)
     TFile *myfile= new TFile(nnid_file,"READ");
     TTree *tree= (TTree*) myfile->Get("Tid");
     double nn_id;
-    unsigned int EvNb;
+    int EvNb;
     tree->SetBranchAddress("nn_id",&nn_id);
     tree->SetBranchAddress("EvNb",&EvNb);
     int entries= tree->GetEntries();
@@ -89,9 +130,20 @@ void RejectCosmic(const char *path, const char *nnid_file, const char *out_dir)
             }
 
             auto event = dst_parser.GetEvent();
+            sys.Reconstruct(event);
+            auto &hits = sys.GetDetector()->GetHits();
+            coord.TransformHits(sys.GetDetector());
+
+            if(hits.empty()) continue;
+
+            auto &emax_hit = *MostEnergeticHit(hits.begin(), hits.end());
+            if(ene_min > 0. && emax_hit.E < ene_min) continue;
+            if(ene_max > 0. && emax_hit.E > ene_max) continue;
+            if(ang_min > 0. && PRadCoordSystem::GetPolarAngle(emax_hit) < ang_min) continue;
+            if(ang_max > 0. && PRadCoordSystem::GetPolarAngle(emax_hit) > ang_max) continue;
 
             // in the rejected list
-            if(rej_list.find((unsigned int)event.event_number) != rej_list.end()) {
+            if(rej_list.find(event.event_number) != rej_list.end()) {
                 dst_parser2.WriteEvent(event);
             } else {
                 dst_parser.WriteEvent(event);

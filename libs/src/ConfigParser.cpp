@@ -1,5 +1,5 @@
 //============================================================================//
-// A simple parser class to read text file                                    //
+// A simple parser class to read text file and deal with strings              //
 //                                                                            //
 // Chao Peng                                                                  //
 // 06/07/2016                                                                 //

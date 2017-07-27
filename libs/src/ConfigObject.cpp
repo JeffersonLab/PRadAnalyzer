@@ -5,6 +5,7 @@
 // The Configure() function should be overloaded according to specialized     //
 // requirements, and be called after the parameters being configured          //
 //                                                                            //
+// Chao Peng                                                                  //
 // 10/31/2016                                                                 //
 //============================================================================//
 

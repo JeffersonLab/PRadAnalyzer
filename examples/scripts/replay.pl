@@ -28,7 +28,7 @@ foreach $i (<INPUT>) {
     $job = system("$jget");
     print "$job \n";
 
-    $replay = $RE_FUNC. " -i ". $PATH. $file. $SUFF. " -s 1500 -o ". $re_file;
+    $replay = $RE_FUNC." ". $PATH. $file. $SUFF." ". $re_file." -s 1500";
     print "$replay \n";
     $job = system("$replay");
     print "$job \n";

@@ -8,6 +8,7 @@
 //============================================================================//
 
 #include "PRadDataHandler.h"
+#include "ConfigOption.h"
 #include "TFile.h"
 #include "TH1.h"
 #include "TMath.h"
@@ -62,29 +63,35 @@ void  WriteOutput(double nTotal, int rNumber = -1);
 
 int main(int argc, char * argv [])
 {
-    char *ptr;
+    ConfigOption conf_opt;
+    conf_opt.AddOpt('a', ConfigOption::arg_none);
+    conf_opt.AddOpt('s', ConfigOption::arg_require);
+    conf_opt.AddOpt('e', ConfigOption::arg_require);
+
+    if(!conf_opt.ParseArgs(argc, argv)) exit(1);
+
     doAverage = false;
     startRun = 0;
     endRun = 0;
-    for(int i = 0; i < argc; ++i){
-        ptr = argv[i];
-        if(*(ptr++) == '-') {
-        switch(*(ptr++)){
-            case 'a':
-                doAverage = true;
-                break;
-            case 's':
-                startRun = stoi(argv[++i]);
-                break;
-            case 'e':
-                endRun = stoi(argv[++i]);
-                break;
-            default:
-                printf("Unkown option!\n");
-                exit(1);
-            }
+    for(auto &opt : conf_opt.GetOptions())
+    {
+        switch(opt.mark)
+        {
+        case 'a':
+            doAverage = true;
+            break;
+        case 's':
+            startRun = opt.var.Int();
+            break;
+        case 'e':
+            endRun = opt.var.Int();
+            break;
+        default:
+            cerr << "Unkown option -" << opt.mark << endl;
+            exit(1);
         }
     }
+
     if (endRun == 0) endRun = startRun;
     if (endRun < startRun){
         cout<<"end Run less than start Run"<<endl;
