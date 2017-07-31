@@ -187,7 +187,7 @@ int main(int argc, char * argv [])
                 delete [] myhits;
             }
             else if(dst_parser->EventType() == PRadDSTParser::Type::epics) {
-                const auto &epics_ev = dst_parser->GetEPICSEvent();
+                auto epics_ev = dst_parser->GetEPICS();
 	            // save epics into handler, otherwise get epicsvalue won't work
 	            epics->AddEvent(epics_ev);
                 // only update beam energy when there is an epics event

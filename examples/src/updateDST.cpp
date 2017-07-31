@@ -44,9 +44,9 @@ void UpdateDST(const string &inf, const string &outf)
     while(dst_old.Read())
     {
         if(dst_old.EventType() == DSTReaderV1::Type::event) {
-            dst_new.WriteEvent(dst_old.GetEvent());
+            dst_new.Write(dst_old.GetEvent());
         } else if(dst_old.EventType() == DSTReaderV1::Type::epics) {
-            dst_new.WriteEPICS(dst_old.GetEPICSEvent());
+            dst_new.Write(dst_old.GetEPICSEvent());
         }
     }
 

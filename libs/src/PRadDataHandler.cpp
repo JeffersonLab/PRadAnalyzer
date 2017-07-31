@@ -130,17 +130,15 @@ void PRadDataHandler::ReadFromDST(const std::string &path)
             switch(dst_parser.EventType())
             {
             case PRadDSTParser::Type::event:
-                // fill histogram
-                FillHistograms(dst_parser.GetEvent());
-                // count occupancy
-                if(hycal_sys)
-                    hycal_sys->Sparsify(dst_parser.GetEvent());
                 // save data
-                event_data.emplace_back(std::move(dst_parser.event));
+                event_data.emplace_back(dst_parser.GetEvent());
+                // fill histogram
+                 FillHistograms(event_data.back());
+                // count occupancy
+                if(hycal_sys) hycal_sys->Sparsify(event_data.back());
                 break;
             case PRadDSTParser::Type::epics:
-                if(epic_sys)
-                    epic_sys->AddEvent(std::move(dst_parser.epics_event));
+                if(epic_sys) epic_sys->AddEvent(std::move(dst_parser.GetEPICS()));
                 break;
             default:
                 break;
@@ -357,7 +355,7 @@ void PRadDataHandler::EndProcess(EventData *ev)
 
         if(epic_sys) {
             if(replayMode)
-                dst_parser.WriteEPICS(EpicsData(ev->event_number, epic_sys->GetCurrentValues()));
+                dst_parser.Write(EpicsData(ev->event_number, epic_sys->GetCurrentValues()));
             else
                 epic_sys->SaveData(ev->event_number, onlineMode);
         }
@@ -372,7 +370,7 @@ void PRadDataHandler::EndProcess(EventData *ev)
             event_data.pop_front();
 
         if(replayMode)
-            dst_parser.WriteEvent(*ev);
+            dst_parser.Write(*ev);
         else
             event_data.emplace_back(std::move(*ev)); // save event
 
@@ -532,13 +530,13 @@ void PRadDataHandler::WriteToDST(const std::string &path)
         if(epic_sys) {
             for(auto &epics : epic_sys->GetEventData())
             {
-                dst_parser.WriteEPICS(epics);
+                dst_parser.Write(epics);
             }
         }
 
         for(auto &event : event_data)
         {
-            dst_parser.WriteEvent(event);
+            dst_parser.Write(event);
         }
 
     } catch(PRadException &e) {

@@ -236,7 +236,7 @@ void FillParams(PRadHyCalSystem &sys,
     {
         if(dst.EventType() == PRadDSTParser::Type::event)
         {
-            auto &event = dst.GetEvent();
+            auto event = dst.GetEvent();
 
             if(!event.is_physics_event())
                 continue;

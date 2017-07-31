@@ -68,7 +68,7 @@ void NeuralReject(CNeuralNetwork &net, PRadHyCalSystem &sys, string path)
         if(dst_parser.EventType() == PRadDSTParser::Type::event)
         {
 
-            auto &event = dst_parser.GetEvent();
+            auto event = dst_parser.GetEvent();
 
             if(!event.is_physics_event())
                 continue;
@@ -85,12 +85,12 @@ void NeuralReject(CNeuralNetwork &net, PRadHyCalSystem &sys, string path)
             hist.Fill(net.GetOutput().at(0));
             if(net.GetOutput().at(0) > 0.5)
             {
-                dst_parser.WriteEvent(event);
+                dst_parser.Write(event);
                 reject++;
             }
             else
             {
-                dst_parser2.WriteEvent(event);
+                dst_parser2.Write(event);
             }
         }
     }

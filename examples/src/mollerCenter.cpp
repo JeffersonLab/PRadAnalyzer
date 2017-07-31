@@ -166,7 +166,7 @@ void FillMollerEvents(const string &dst_path, MollerData &data)
 
         } else if(dst_parser->EventType() == PRadDSTParser::Type::epics) {
             // save epics into handler, otherwise get epicsvalue won't work
-            epics->AddEvent(dst_parser->GetEPICSEvent());
+            epics->AddEvent(dst_parser->GetEPICS());
             beam_energy = epics->GetValue("MBSY2C_energy");
         }
     }

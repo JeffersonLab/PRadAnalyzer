@@ -9,7 +9,7 @@
 #include <iomanip>
 #include "PRadDSTParser.h"
 
-#define DST_FILE_VERSION 0x21  // current version
+#define DST_FILE_VERSION 0x22  // current version
 
 
 
@@ -18,42 +18,15 @@
 //============================================================================//
 
 // convert version type to human readable string
-inline std::string dst_ver_str(uint32_t ver)
+inline std::string dst_ver_str(uint16_t ver)
 {
     return std::to_string(ver >> 4) + "." + std::to_string(ver & 0xf);
 }
 
-// check header type, return false if it is different with the input type
-inline bool dst_check_htype(uint32_t header_word, uint32_t type)
+template<typename T>
+inline std::streamsize vec_buf_size(const std::vector<T> &vec)
 {
-    if((header_word >> 8) == type)
-        return true;
-
-    return false;
-}
-
-// get version from header
-inline uint32_t dst_get_ver(uint32_t header_word)
-{
-    if(dst_check_htype(header_word, PRadDSTParser::FileHeader))
-        return (header_word & 0xff);
-
-    return 0;
-}
-
-// form header, combine header type and event type
-inline uint32_t dst_form_header(uint32_t htype, uint32_t type)
-{
-    return (htype << 8) | type;
-}
-
-// get event type from designated header type
-inline PRadDSTParser::Type dst_get_type(uint32_t header_word, uint32_t htype = PRadDSTParser::EventHeader)
-{
-    if(dst_check_htype(header_word, htype))
-        return static_cast<PRadDSTParser::Type>(header_word & 0xff);
-
-    return PRadDSTParser::Type::max_type;
+    return static_cast<std::streamsize>(vec.size()*sizeof(T));
 }
 
 // read from istream
@@ -79,44 +52,14 @@ inline void ost_write(std::ostream &os, T val)
     os.write((char *) &val, sizeof(T));
 }
 
-// read vector from istream
-template<typename T>
-inline std::vector<T> read_vector(std::istream &is)
-{
-    std::vector<T> res;
-    uint32_t size = ist_read<uint32_t>(is);
-    res.reserve(size);
-
-    for(uint32_t i = 0; i < size; ++i)
-        res.push_back(ist_read<T>(is));
-
-    return res;
-}
-
-// read vector from istream, auto determine type
-template<typename T>
-inline void read_vector(std::istream &is, std::vector<T> &vec)
-{
-    vec = read_vector<T>(is);
-}
-
-// write vector to ostream
-template<typename T>
-inline void write_vector(std::ostream &os, const std::vector<T> &vec)
-{
-    ost_write(os, (uint32_t)vec.size());
-    for(auto &ele : vec)
-        ost_write(os, ele);
-}
-
 // read from char array
 template<typename T>
 inline T buf_read(const char *buf, uint32_t max_size, uint32_t &idx)
 {
     uint32_t size = sizeof(T);
-    if(idx + size >= max_size) {
+    if(idx + size > max_size) {
         std::cerr << "exceeds read-in buffer range! "
-                  << idx + size << " >= " << max_size
+                  << idx + size << " > " << max_size
                   << std::endl;
         return T();
     }
@@ -194,18 +137,20 @@ inline void write_vector(char *buf, uint32_t max_size, uint32_t &idx, const std:
 //============================================================================//
 
 // constructor
-PRadDSTParser::PRadDSTParser()
-: content_length(0), ev_type(Type::max_type), in_idx(0), out_idx(0),
-  in_bufl(0)
+PRadDSTParser::PRadDSTParser(uint32_t size)
+: content_length(0), buf_size(size)
 {
-    // place holder
+    in_buf = new char[size];
+    out_buf = new char[size];
 }
 
 PRadDSTParser::~PRadDSTParser()
 {
-    // place holder
     CloseOutput();
     CloseInput();
+
+    delete [] in_buf;
+    delete [] out_buf;
 }
 
 
@@ -229,7 +174,8 @@ void PRadDSTParser::OpenOutput(const std::string &path, std::ios::openmode mode)
     }
 
     // save header information
-    ost_write(dst_out, dst_form_header(FileHeader, DST_FILE_VERSION));
+    ost_write(dst_out, Header(FileHeader, DST_FILE_VERSION, sizeof(int64_t)));
+
     // save content length
     ost_write(dst_out, (int64_t)dst_out.tellp());
 }
@@ -243,7 +189,7 @@ void PRadDSTParser::CloseOutput()
     // write content length
     int64_t content_end = dst_out.tellp();
     // skip header
-    dst_out.seekp(sizeof(uint32_t));
+    dst_out.seekp(sizeof(Header));
     // write length
     ost_write(dst_out, content_end);
     // back to the position
@@ -271,13 +217,13 @@ void PRadDSTParser::OpenInput(const std::string &path, std::ios::openmode mode)
     int64_t file_length = dst_in.tellg();
     dst_in.seekg(0, dst_in.beg);
 
-    // check version
-    uint32_t ver = dst_get_ver(ist_read<uint32_t>(dst_in));
-    if(ver != DST_FILE_VERSION) {
-        std::cerr << "DST Parser: Version mismatch between the file and library. "
-                  << std::endl
+    // read file header
+    Header header = ist_read<Header>(dst_in);
+
+    if(!header.Check(FileHeader, DST_FILE_VERSION)) {
+        std::cerr << "DST Parser: Unsupported format from \"" << path << "\".\n"
                   << "Expected version " << dst_ver_str(DST_FILE_VERSION)
-                  << ", the file version is " << dst_ver_str(ver) << "."
+                  << ", the file version is " << dst_ver_str(header.etype) << "."
                   << std::endl;
         dst_in.close();
     }
@@ -308,18 +254,15 @@ bool PRadDSTParser::Read(int64_t pos)
     if(dst_in.eof() || dst_in.tellg() >= content_length) return false;
 
     try {
-        ev_type = getBuffer(dst_in);
+        cur_evh = getBuffer(dst_in);
+        Type ev_type = cur_evh.GetType(EventHeader);
 
         // reset in_buf index
-        in_idx = 0;
         switch(ev_type)
         {
         case Type::event:
-            readEvent(event);
-            break;
         case Type::epics:
-            readEPICS(epics_event);
-            break;
+            return true;
         default:
             std::cerr << "READ DST ERROR: Undefined buffer type = 0x"
                       << std::hex << std::setw(8) << std::setfill('0') << static_cast<int>(ev_type)
@@ -327,7 +270,6 @@ bool PRadDSTParser::Read(int64_t pos)
                       << std::endl;
             return false;
         }
-        return true;
     } catch(PRadException &e) {
         std::cerr << e.FailureType() << ": " << e.FailureDesc()
                   << std::endl
@@ -343,6 +285,16 @@ bool PRadDSTParser::Read(int64_t pos)
     }
 }
 
+// resize buffer
+void PRadDSTParser::ResizeBuffer(uint32_t size)
+{
+    delete [] in_buf;
+    delete [] out_buf;
+    in_buf = new char[size];
+    out_buf = new char[size];
+    buf_size = size;
+}
+
 
 //============================================================================//
 // Read and write data structures                                             //
@@ -353,70 +305,82 @@ void PRadDSTParser::WriteEvent()
 throw(PRadException)
 {
     try {
-        WriteEvent(event);
+        if(!cur_evh.Check(EventHeader, Type::event)) {
+            Write(GetEvent());
+        } else {
+            throw PRadException("WRITE DST", "Current buffer has no event.");
+        }
     } catch(...) {
         throw;
     }
 }
 
 // write given event
-void PRadDSTParser::WriteEvent(const EventData &ev)
+void PRadDSTParser::Write(const EventData &ev)
 throw(PRadException)
 {
+    uint32_t out_idx = 0;
     // event information
-    buf_write(out_buf, DST_BUF_SIZE, out_idx, ev.event_number);
-    buf_write(out_buf, DST_BUF_SIZE, out_idx, ev.type);
-    buf_write(out_buf, DST_BUF_SIZE, out_idx, ev.trigger);
-    buf_write(out_buf, DST_BUF_SIZE, out_idx, ev.timestamp);
+    buf_write(out_buf, buf_size, out_idx, ev.event_number);
+    buf_write(out_buf, buf_size, out_idx, ev.type);
+    buf_write(out_buf, buf_size, out_idx, ev.trigger);
+    buf_write(out_buf, buf_size, out_idx, ev.timestamp);
 
     // data
-    write_vector(out_buf, DST_BUF_SIZE, out_idx, ev.adc_data);
-    write_vector(out_buf, DST_BUF_SIZE, out_idx, ev.tdc_data);
+    write_vector(out_buf, buf_size, out_idx, ev.adc_data);
+    write_vector(out_buf, buf_size, out_idx, ev.tdc_data);
 
-    buf_write(out_buf, DST_BUF_SIZE, out_idx, (uint32_t)ev.gem_data.size());
+    buf_write(out_buf, buf_size, out_idx, (uint32_t)ev.gem_data.size());
     for(auto &gem : ev.gem_data)
     {
-        buf_write(out_buf, DST_BUF_SIZE, out_idx, gem.addr);
-        write_vector(out_buf, DST_BUF_SIZE, out_idx, gem.values);
+        buf_write(out_buf, buf_size, out_idx, gem.addr);
+        write_vector(out_buf, buf_size, out_idx, gem.values);
     }
 
-    write_vector(out_buf, DST_BUF_SIZE, out_idx, ev.dsc_data);
+    write_vector(out_buf, buf_size, out_idx, ev.dsc_data);
 
     // save buffer to file
     try {
-        saveBuffer(dst_out, EventHeader, static_cast<uint32_t>(Type::event));
+        saveBuffer(dst_out, Header(EventHeader, Type::event, out_idx));
     } catch(...) {
         throw;
     }
 }
 
 // read event
-void PRadDSTParser::readEvent(EventData &ev)
-throw(PRadException)
+EventData PRadDSTParser::GetEvent()
+const
 {
-    ev.clear();
+    EventData ev;
+    if(!cur_evh.Check(EventHeader, Type::event)) {
+        std::cerr << "DST Parser: Current buffer has no event." << std::endl;
+        return ev;
+    }
 
+    uint32_t in_idx = 0;
     // event information
-    buf_read(in_buf, in_bufl, in_idx, ev.event_number);
-    buf_read(in_buf, in_bufl, in_idx, ev.type);
-    buf_read(in_buf, in_bufl, in_idx, ev.trigger);
-    buf_read(in_buf, in_bufl, in_idx, ev.timestamp);
+    buf_read(in_buf, cur_evh.length, in_idx, ev.event_number);
+    buf_read(in_buf, cur_evh.length, in_idx, ev.type);
+    buf_read(in_buf, cur_evh.length, in_idx, ev.trigger);
+    buf_read(in_buf, cur_evh.length, in_idx, ev.timestamp);
 
     // read all data
-    read_vector(in_buf, in_bufl, in_idx, ev.adc_data);
-    read_vector(in_buf, in_bufl, in_idx, ev.tdc_data);
+    read_vector(in_buf, cur_evh.length, in_idx, ev.adc_data);
+    read_vector(in_buf, cur_evh.length, in_idx, ev.tdc_data);
 
     // gem data structure is more complicated, it has a vector inside
-    uint32_t gem_size = buf_read<uint32_t>(in_buf, in_bufl, in_idx);
+    uint32_t gem_size = buf_read<uint32_t>(in_buf, cur_evh.length, in_idx);
     for(uint32_t i = 0; i < gem_size; ++i)
     {
         GEM_Data gemhit;
-        buf_read(in_buf, in_bufl, in_idx, gemhit.addr);
-        read_vector(in_buf, in_bufl, in_idx, gemhit.values);
+        buf_read(in_buf, cur_evh.length, in_idx, gemhit.addr);
+        read_vector(in_buf, cur_evh.length, in_idx, gemhit.values);
         ev.add_gemhit(gemhit);
     }
 
-    read_vector(in_buf, in_bufl, in_idx, ev.dsc_data);
+    read_vector(in_buf, cur_evh.length, in_idx, ev.dsc_data);
+
+    return ev;
 }
 
 // write current epics event
@@ -424,22 +388,28 @@ void PRadDSTParser::WriteEPICS()
 throw(PRadException)
 {
     try {
-        WriteEPICS(epics_event);
+        if(!cur_evh.Check(EventHeader, Type::epics)) {
+            Write(GetEPICS());
+        } else {
+            throw PRadException("WRITE DST", "Current buffer has no EPICS event.");
+        }
     } catch(...) {
         throw;
     }
 }
 
 // write given epics event
-void PRadDSTParser::WriteEPICS(const EpicsData &ep)
+void PRadDSTParser::Write(const EpicsData &ep)
 throw(PRadException)
 {
-    buf_write(out_buf, DST_BUF_SIZE, out_idx, ep.event_number);
-    write_vector(out_buf, DST_BUF_SIZE, out_idx, ep.values);
+    uint32_t out_idx = 0;
+
+    buf_write(out_buf, buf_size, out_idx, ep.event_number);
+    write_vector(out_buf, buf_size, out_idx, ep.values);
 
     // save buffer to file
     try {
-        saveBuffer(dst_out, EventHeader, static_cast<uint32_t>(Type::epics));
+        saveBuffer(dst_out, Header(EventHeader, Type::epics, out_idx));
     } catch(...) {
         throw;
     }
@@ -447,31 +417,40 @@ throw(PRadException)
 }
 
 // read epics event
-void PRadDSTParser::readEPICS(EpicsData &ep)
-throw(PRadException)
+EpicsData PRadDSTParser::GetEPICS()
+const
 {
-    ep.clear();
+    EpicsData ep;
+    if(!cur_evh.Check(EventHeader, Type::epics)) {
+        std::cerr << "DST Parser: Current buffer has no EPICS event." << std::endl;
+        return ep;
+    }
 
-    buf_read(in_buf, in_bufl, in_idx, ep.event_number);
-    read_vector(in_buf, in_bufl, in_idx, ep.values);
+    uint32_t in_idx = 0;
+    buf_read(in_buf, cur_evh.length, in_idx, ep.event_number);
+    read_vector(in_buf, cur_evh.length, in_idx, ep.values);
+
+    return ep;
 }
 
 // write file map
 void PRadDSTParser::writeMap()
 throw(PRadException)
 {
-    // no need to write map
-    if(out_map.Empty()) return;
+    // directly write to ofstream since map can be huge
+    try {
+        for(uint16_t i = 0; i < out_map.maps.size(); ++i)
+        {
+            const auto &cur_map = out_map.GetType(static_cast<Type>(i));
+            ost_write(dst_out, Header(MapHeader, i, cur_map.size()));
+            dst_out.write((char*) &cur_map[0], vec_buf_size(cur_map));
+        }
 
-    // write event map
-    ost_write(dst_out, dst_form_header(MapHeader, static_cast<uint32_t>(Type::event)));
-    write_vector(dst_out, out_map.GetType(Type::event));
-
-    // write epics map
-    ost_write(dst_out, dst_form_header(MapHeader, static_cast<uint32_t>(Type::epics)));
-    write_vector(dst_out, out_map.GetType(Type::epics));
-
-    out_map.Clear();
+        out_map.Clear();
+    } catch(...) {
+        out_map.Clear();
+        throw;
+    }
 }
 
 // read file map
@@ -488,14 +467,18 @@ bool PRadDSTParser::ReadMap()
     // to content end, where the map is supposed to be
     dst_in.seekg(content_length);
 
-    // check header
-    Type map_type = dst_get_type(ist_read<uint32_t>(dst_in), MapHeader);
+    Header header = ist_read<Header>(dst_in);
+    Type map_type = header.GetType(MapHeader);
 
     switch(map_type)
     {
     case Type::event:
     case Type::epics:
-        read_vector(dst_in, in_map.GetType(map_type));
+        {
+            auto &this_map = in_map.GetType(map_type);
+            this_map.resize(header.length);
+            dst_in.read((char*) &this_map[0], vec_buf_size(this_map));
+        }
         break;
     default:
         dst_in.seekg(cur_pos);
@@ -512,47 +495,38 @@ bool PRadDSTParser::ReadMap()
 // Private member functions                                                   //
 //============================================================================//
 
-inline void PRadDSTParser::saveBuffer(std::ofstream &ofs, uint32_t htype, uint32_t etype)
+inline void PRadDSTParser::saveBuffer(std::ofstream &ofs, Header evh)
 throw (PRadException)
 {
     if(!ofs.is_open())
         throw PRadException("WRITE DST", "output file is not opened!");
 
     // save current event position
-    out_map.Add(static_cast<Type>(etype), ofs.tellp());
+    out_map.Add(static_cast<Type>(evh.etype), ofs.tellp());
 
     // write header
-    uint32_t header = dst_form_header(htype, etype);
-    ofs.write((char*) &header, sizeof(header));
-
-    // write buffer length
-    ++out_idx;
-    ofs.write((char*) &out_idx, sizeof(out_idx));
+    ost_write(ofs, evh);
 
     // write buffer
-    ofs.write(out_buf, out_idx);
-    out_idx = 0;
+    ofs.write(out_buf, evh.length);
 }
 
-inline PRadDSTParser::Type PRadDSTParser::getBuffer(std::ifstream &ifs)
+inline PRadDSTParser::Header PRadDSTParser::getBuffer(std::ifstream &ifs)
 throw (PRadException)
 {
     if(!ifs.is_open())
         throw PRadException("READ DST", "input file is not opened!");
 
     // read header first
-    uint32_t header = ist_read<uint32_t>(ifs);
-    Type buf_type = dst_get_type(header);
+    Header eh = ist_read<Header>(ifs);
 
-    // read buffer length
-    in_bufl = ist_read<uint32_t>(ifs);
-    if(in_bufl > DST_BUF_SIZE) {
-        throw PRadException("READ DST", "read-in buffer size (" + std::to_string(in_bufl) + ") exceeds limit!");
+    if(eh.length > buf_size) {
+        throw PRadException("READ DST", "read-in buffer size (" + std::to_string(cur_evh.length) + ") exceeds limit!");
     }
 
     // read the whole buffer
-    ifs.read(in_buf, in_bufl);
+    ifs.read(in_buf, eh.length);
 
     // return buffer type
-    return buf_type;
+    return eh;
 }

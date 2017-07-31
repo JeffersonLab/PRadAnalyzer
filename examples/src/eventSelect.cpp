@@ -70,7 +70,7 @@ void EventSelect(const string &file, const string &bad_file)
             // write the monitoring event
             if(event.is_monitor_event()) {
                 m_count++;
-                dst_parser2.WriteEvent(event);
+                dst_parser2.Write(event);
                 continue;
             }
 
@@ -134,6 +134,6 @@ void WriteEvents(PRadDSTParser &dst, const PRadEventFilter &filter, const vector
 
     for(auto &event : data)
     {
-        dst.WriteEvent(event);
+        dst.Write(event);
     }
 }

@@ -7,27 +7,57 @@
 #include "PRadException.h"
 #include "PRadEventStruct.h"
 
-#define DST_BUF_SIZE 1000000
+
 
 class PRadDSTParser
 {
 public:
-    friend class PRadDataHandler;
-
-    enum Header : unsigned int
+    enum HeaderType : uint16_t
     {
         // headers
-        FileHeader = 0xc0c0c0,
-        EventHeader = 0xe0e0e0,
-        MapHeader = 0xa0a0a0,
+        FileHeader = 0xa1b1,
+        EventHeader = 0xa2b2,
+        MapHeader = 0xa3b3,
     };
 
-    enum class Type : unsigned int
+    enum class Type : uint16_t
     {
         // event types
         event = 0,
         epics,
         max_type,
+    };
+
+    struct Header
+    {
+        uint16_t htype, etype;
+        uint32_t length;
+
+        Header() : htype(0), etype(0), length(0) {}
+        Header(uint16_t h, uint16_t e, uint32_t l = 0)
+        : htype(h), etype(e), length(l) {}
+        Header(HeaderType h, Type e, uint32_t l = 0)
+        : htype(static_cast<uint16_t>(h)), etype(static_cast<uint16_t>(e)), length(l) {}
+
+        inline bool Check(uint16_t h, uint16_t e)
+        const
+        {
+            return (htype == h) && (etype == e);
+        }
+
+        inline bool Check(HeaderType h, Type e)
+        const
+        {
+            return Check(static_cast<uint16_t>(h), static_cast<uint16_t>(e));
+        }
+
+        inline Type GetType(uint16_t h)
+        const
+        {
+            if(htype == h)
+                return static_cast<Type>(etype);
+            return Type::max_type;
+        }
     };
 
     struct Map
@@ -73,7 +103,7 @@ public:
 
 public:
     // constructor
-    PRadDSTParser();
+    PRadDSTParser(uint32_t size = 1000000);
 
     // copy/move constructors
     PRadDSTParser(const PRadDSTParser &that) = delete;
@@ -93,37 +123,38 @@ public:
                    std::ios::openmode mode = std::ios::in | std::ios::binary);
     void CloseOutput();
     void CloseInput();
-    bool Read(int64_t pos = -1);
-    bool ReadMap();
-    Type EventType() const {return ev_type;}
-    const EventData &GetEvent() const {return event;}
-    const EpicsData &GetEPICSEvent() const {return epics_event;}
-    const Map &GetInputMap() const {return in_map;}
-    const Map &GetOutputMap() const {return out_map;}
+    void ResizeBuffer(uint32_t size);
 
     // write information
     void WriteEvent() throw(PRadException);
     void WriteEPICS() throw(PRadException);
-    void WriteEvent(const EventData &data) throw(PRadException);
-    void WriteEPICS(const EpicsData &data) throw(PRadException);
+    void Write(const EventData &data) throw(PRadException);
+    void Write(const EpicsData &data) throw(PRadException);
+
+    // get information from current buffer
+    bool Read(int64_t pos = -1);
+    bool ReadMap();
+    Type EventType() const {return cur_evh.GetType(EventHeader);}
+    uint32_t GetBufSize() const {return buf_size;}
+    EventData GetEvent() const;
+    EpicsData GetEPICS() const;
+    const Map &GetInputMap() const {return in_map;}
+    const Map &GetOutputMap() const {return out_map;}
+
 
 private:
-    void readEvent(EventData &data) throw(PRadException);
-    void readEPICS(EpicsData &data) throw(PRadException);
-    void saveBuffer(std::ofstream &ofs, uint32_t htype, uint32_t etype) throw(PRadException);
-    Type getBuffer(std::ifstream &ifs) throw (PRadException);
     void writeMap() throw(PRadException);
+    void saveBuffer(std::ofstream &ofs, Header evh) throw(PRadException);
+    Header getBuffer(std::ifstream &ifs) throw (PRadException);
 
 private:
     Map in_map, out_map;
+    Header cur_evh;
+    int64_t content_length;
     std::ofstream dst_out;
     std::ifstream dst_in;
-    int64_t content_length;
-    EventData event;
-    EpicsData epics_event;
-    Type ev_type;
-    char in_buf[DST_BUF_SIZE], out_buf[DST_BUF_SIZE];
-    uint32_t in_idx, out_idx, in_bufl;
+    char *in_buf, *out_buf;
+    uint32_t buf_size;
 };
 
 #endif

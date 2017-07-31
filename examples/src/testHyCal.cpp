@@ -104,7 +104,7 @@ int main(int /*argc*/, char * /*argv*/ [])
             t->Fill();
 
             if(save)
-                dst_parser->WriteEvent(event);
+                dst_parser->Write(event);
         }
     }
 

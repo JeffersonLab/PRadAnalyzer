@@ -72,12 +72,12 @@ void Evaluate(const string &file)
     {
         if(dst_parser.EventType() == PRadDSTParser::Type::event) {
 
-            auto &event = dst_parser.GetEvent();
+            auto event = dst_parser.GetEvent();
 
             // save sync event no matter what it is
             if(event.is_sync_event())
             {
-                dst_parser.WriteEvent(event);
+                dst_parser.Write(event);
                 continue;
             }
 
@@ -104,9 +104,9 @@ void Evaluate(const string &file)
             if((param.group_energy.maximum > 1.3 * beam_energy) ||
                ((param.max_group_size == 1) && (param.group_energy.maximum > 0.2 * beam_energy)) ||
                (param.max_group_size == 0))
-                dst_parser2.WriteEvent(event);
+                dst_parser2.Write(event);
             else
-                dst_parser.WriteEvent(event);
+                dst_parser.Write(event);
 
         } else if (dst_parser.EventType() == PRadDSTParser::Type::epics) {
             dst_parser.WriteEPICS();

@@ -88,7 +88,7 @@ private:
     EventData event;
     EpicsData epics_event;
     Type ev_type;
-    char in_buf[DST_BUF_SIZE];
+    char in_buf[DST_READER_BUF_SIZE];
     uint32_t in_idx, in_bufl;
     bool old_ver;
 };
@@ -449,7 +449,7 @@ throw (PRadException)
     if(!old_ver) {
         // read buffer length
         ifs.read((char*) &in_bufl, sizeof(in_bufl));
-        if(in_bufl > DST_BUF_SIZE) {
+        if(in_bufl > DST_READER_BUF_SIZE) {
             throw PRadException("READ DST", "read-in buffer size (" + std::to_string(in_bufl) + ") exceeds limit!");
         }
         ifs.read(in_buf, in_bufl);

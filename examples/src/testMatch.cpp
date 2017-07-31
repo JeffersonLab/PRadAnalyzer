@@ -88,7 +88,7 @@ void testMatch(const string &path)
     while(dst_parser->Read())
     {
         if(dst_parser->EventType() == PRadDSTParser::Type::event) {
-            auto &event = dst_parser->GetEvent();
+            auto event = dst_parser->GetEvent();
 
             // only interested in physics event
             if(!event.is_physics_event())
@@ -156,12 +156,12 @@ void testMatch(const string &path)
             }
 
             if(matched.size() >= 1 && matched.size() <= 2)
-                dst_parser->WriteEvent(event);
+                dst_parser->Write(event);
 
         } else if(dst_parser->EventType() == PRadDSTParser::Type::epics) {
             // save epics into handler, otherwise get epicsvalue won't work
-            epics->AddEvent(dst_parser->GetEPICSEvent());
-            dst_parser->WriteEPICS();
+            auto ep = dst_parser->GetEPICS();
+            dst_parser->Write(ep);
         }
     }
 

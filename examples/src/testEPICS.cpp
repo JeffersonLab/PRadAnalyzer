@@ -40,7 +40,7 @@ void testEPICS(const char *path, const char *channel)
     {
         if(dst_parser->EventType() == PRadDSTParser::Type::epics) {
             // save event into epics system, otherwise find epicsvalue won't work
-            epics->AddEvent(dst_parser->GetEPICSEvent());
+            epics->AddEvent(dst_parser->GetEPICS());
             epics->GetValue(channel);
             cout << channel << ", event = "
                  << epics->GetEventNumber() << ", value = "

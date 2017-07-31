@@ -137,9 +137,9 @@ void RejectCosmic(const char *path, const char *nnid_file, const char *out_dir,
 
             // in the rejected list
             if(rej_list.find(event.event_number) != rej_list.end()) {
-                dst_parser2.WriteEvent(event);
+                dst_parser2.Write(event);
             } else {
-                dst_parser.WriteEvent(event);
+                dst_parser.Write(event);
             }
 
         } else if(dst_parser.EventType() == PRadDSTParser::Type::epics) {

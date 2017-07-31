@@ -84,7 +84,7 @@ void reconstruct(const char *path)
     {
         if(dst_parser.EventType() == PRadDSTParser::Type::event) {
 
-            auto &event = dst_parser.GetEvent();
+            auto event = dst_parser.GetEvent();
             if(!event.is_physics_event())
                 continue;
 
@@ -148,7 +148,7 @@ void reconstruct(const char *path)
 
         } else if(dst_parser.EventType() == PRadDSTParser::Type::epics) {
             // save epics into handler, otherwise get epicsvalue won't work
-            epics.AddEvent(dst_parser.GetEPICSEvent());
+            epics.AddEvent(dst_parser.GetEPICS());
         }
     }
 
