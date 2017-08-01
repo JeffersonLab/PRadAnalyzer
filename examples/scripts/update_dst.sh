@@ -32,7 +32,7 @@ else
 fi
 LEN=${#out_dir}-1
 if [ "${out_dir:LEN}" != "/" ]; then
-    out_dir=$in_dir"/"
+    out_dir=$out_dir"/"
 fi
 
 # check dirs
