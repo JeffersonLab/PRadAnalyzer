@@ -442,7 +442,9 @@ throw(PRadException)
         for(uint16_t i = 0; i < out_map.maps.size(); ++i)
         {
             const auto &cur_map = out_map.GetType(static_cast<Type>(i));
-            ost_write(dst_out, Header(MapHeader, i, cur_map.size()));
+            uint32_t size = cur_map.size();
+            ost_write(dst_out, Header(MapHeader, i, vec_buf_size(cur_map) + sizeof(size)));
+            ost_write(dst_out, size);
             dst_out.write((char*) &cur_map[0], vec_buf_size(cur_map));
         }
 
@@ -476,7 +478,8 @@ bool PRadDSTParser::ReadMap()
     case Type::epics:
         {
             auto &this_map = in_map.GetType(map_type);
-            this_map.resize(header.length);
+            uint32_t size = ist_read<uint32_t>(dst_in);
+            this_map.resize(size);
             dst_in.read((char*) &this_map[0], vec_buf_size(this_map));
         }
         break;

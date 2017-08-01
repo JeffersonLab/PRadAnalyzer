@@ -7,6 +7,7 @@
 #include <vector>
 #include <deque>
 #include <utility>
+#include <cstdint>
 #include "generalstruct.h"
 #include "datastruct.h"
 
@@ -23,7 +24,7 @@
 //============================================================================//
 struct RunInfo
 {
-    int run_number;
+    int32_t run_number;
     double beam_charge;
     double dead_count;
     double ungated_count;
@@ -106,7 +107,7 @@ struct OnlineInfo
 //============================================================================//
 struct EpicsData
 {
-    int event_number;
+    int32_t event_number;
     std::vector<float> values;
 
     EpicsData()
@@ -139,13 +140,13 @@ struct EpicsData
 //============================================================================//
 typedef struct ChannelData
 {
-    unsigned short channel_id;
-    unsigned short value;
+    uint16_t channel_id;
+    uint16_t value;
 
     ChannelData()
     : channel_id(0), value(0)
     {}
-    ChannelData(const unsigned short &i, const unsigned short &v)
+    ChannelData(const uint16_t &i, const uint16_t &v)
     : channel_id(i), value(v)
     {}
 
@@ -153,27 +154,27 @@ typedef struct ChannelData
 
 struct DSC_Data
 {
-    unsigned int gated_count;
-    unsigned int ungated_count;
+    uint32_t gated_count;
+    uint32_t ungated_count;
 
     DSC_Data()
     : gated_count(0), ungated_count(0)
     {}
-    DSC_Data(const unsigned int &g1, const unsigned int &g2)
+    DSC_Data(const uint32_t &g1, const uint32_t &g2)
     : gated_count(g1), ungated_count(g2)
     {}
 };
 
 struct GEMChannelAddress
 {
-    unsigned char fec;
-    unsigned char adc;
-    unsigned char strip;
+    uint8_t fec;
+    uint8_t adc;
+    uint8_t strip;
 
     GEMChannelAddress() {}
-    GEMChannelAddress(const unsigned char &f,
-                      const unsigned char &a,
-                      const unsigned char &s)
+    GEMChannelAddress(const uint8_t &f,
+                      const uint8_t &a,
+                      const uint8_t &s)
     : fec(f), adc(a), strip(s)
     {}
 };
@@ -184,15 +185,15 @@ struct GEM_Data
     std::vector<float> values;
 
     GEM_Data() {}
-    GEM_Data(const unsigned char &f,
-             const unsigned char &a,
-             const unsigned char &s)
+    GEM_Data(const uint8_t &f,
+             const uint8_t &a,
+             const uint8_t &s)
     : addr(f, a, s)
     {}
 
-    void set_address (const unsigned char &f,
-                      const unsigned char &a,
-                      const unsigned char &s)
+    void set_address (const uint8_t &f,
+                      const uint8_t &a,
+                      const uint8_t &s)
     {
         addr.fec = f;
         addr.adc = a;
@@ -217,9 +218,9 @@ struct GEM_Data
 struct EventData
 {
     // event info
-    int event_number;
-    unsigned char type;
-    unsigned char trigger;
+    int32_t event_number;
+    uint8_t type;
+    uint8_t trigger;
     uint64_t timestamp;
 
     // data banks
@@ -232,16 +233,16 @@ struct EventData
     EventData()
     : event_number(0), type(0), trigger(0), timestamp(0)
     {}
-    EventData(const unsigned char &t)
+    EventData(const uint8_t &t)
     : event_number(0), type(t), trigger(0), timestamp(0)
     {}
-    EventData(const unsigned char &t,
+    EventData(const uint8_t &t,
               const PRadTriggerType &trg,
               std::vector<ADC_Data> &adc,
               std::vector<TDC_Data> &tdc,
               std::vector<GEM_Data> &gem,
               std::vector<DSC_Data> &dsc)
-    : event_number(0), type(t), trigger((unsigned char)trg), timestamp(0),
+    : event_number(0), type(t), trigger((uint8_t)trg), timestamp(0),
       adc_data(adc), tdc_data(tdc), gem_data(gem), dsc_data(dsc)
     {}
 
@@ -257,12 +258,12 @@ struct EventData
         dsc_data.clear();
     }
 
-    void update_type(const unsigned char &t) {type = t;}
-    void update_trigger(const unsigned char &t) {trigger = t;}
+    void update_type(const uint8_t &t) {type = t;}
+    void update_trigger(const uint8_t &t) {trigger = t;}
     void update_time(const uint64_t &t) {timestamp = t;}
 
-    unsigned int get_type() const {return type;}
-    unsigned int get_trigger() const {return trigger;}
+    uint32_t get_type() const {return type;}
+    uint32_t get_trigger() const {return trigger;}
     uint64_t get_time() const {return timestamp;}
 
     void add_adc(const ADC_Data &a) {adc_data.emplace_back(a);}
@@ -380,7 +381,7 @@ struct EventData
         uint64_t ungated_scaled = (dsc_data.at(idx).ungated_count*ref_pulser)/REF_PULSER_FREQ;
         uint64_t gated_scaled = (dsc_data.at(idx).gated_count*ref_pulser)/REF_PULSER_FREQ;
 
-        return DSC_Data((unsigned int)gated_scaled, (unsigned int)ungated_scaled);
+        return DSC_Data((uint32_t)gated_scaled, (uint32_t)ungated_scaled);
     }
 
     bool operator == (const int &ev) const {return ev == event_number;}
@@ -401,7 +402,7 @@ struct EventData
 //============================================================================//
 struct ModuleHit
 {
-    int id;                         // module id
+    int32_t id;                     // module id
     Geometry geo;                   // module geometry
     Layout layout;                  // module layout
     float energy;                   // participated energy, may be splitted
@@ -486,7 +487,7 @@ struct ModuleCluster
 //============================================================================//
 struct StripHit
 {
-    int strip;
+    int32_t strip;
     float charge;
     float position;
     bool cross_talk;
@@ -583,15 +584,15 @@ class HyCalHit : public BaseHit
 {
 public:
 #define TIME_MEASURE_SIZE 3
-    unsigned int flag;  // overall status of the cluster
-    short type;         // Cluster types: 0,1,2,3,4;-1
-    short status;       // Spliting status
-    short nblocks;      // Number of blocks in a cluster
-    short npos;         // Number of blocks participated in position reconstruction
-    short cid;          // Cluster's central cell ID
-    float E_leak;       // Leakage correction on energy (MeV)
-    float lin_corr;     // Non Linearity factor for energy correction E_f = E_i*lin_corr
-    unsigned short time[TIME_MEASURE_SIZE];      // time information from central TDC group
+    uint32_t flag;          // overall status of the cluster
+    int16_t type;           // Cluster types: 0,1,2,3,4;-1
+    int16_t status;         // Spliting status
+    int16_t nblocks;        // Number of blocks in a cluster
+    int16_t npos;           // Number of blocks participated in position reconstruction
+    int16_t cid;            // Cluster's central cell ID
+    float E_leak;           // Leakage correction on energy (MeV)
+    float lin_corr;         // Non Linearity factor for energy correction E_f = E_i*lin_corr
+    uint16_t time[TIME_MEASURE_SIZE];      // time information from central TDC group
 
     HyCalHit()
     : flag(0), type(0), status(0), nblocks(0), npos(0), cid(0), E_leak(0.), lin_corr(1.)
@@ -599,7 +600,7 @@ public:
         clear_time();
     }
 
-    HyCalHit(short id, unsigned int f, float ene, float leak)
+    HyCalHit(int16_t id, uint32_t f, float ene, float leak)
     : BaseHit(0., 0., 0., ene), flag(f), type(0), status(0), nblocks(0), npos(0),
       cid(id), E_leak(leak), lin_corr(1.)
     {
@@ -612,7 +613,7 @@ public:
             time[i] = 0;
     }
 
-    void set_time(const std::vector<unsigned short> &t)
+    void set_time(const std::vector<uint16_t> &t)
     {
         for(int i = 0; i < TIME_MEASURE_SIZE; ++i)
         {
@@ -628,13 +629,13 @@ public:
 class GEMHit : public BaseHit
 {
 public:
-    int det_id;       // which GEM detector it belongs to
-    float x_charge;   // x charge
-    float y_charge;   // y charge
-    float x_peak;     // x peak charge
-    float y_peak;     // y peak charge
-    int x_size;       // x hits size
-    int y_size;       // y hits size
+    int32_t det_id;         // which GEM detector it belongs to
+    float x_charge;         // x charge
+    float y_charge;         // y charge
+    float x_peak;           // x peak charge
+    float y_peak;           // y peak charge
+    int32_t x_size;         // x hits size
+    int32_t y_size;         // y hits size
 
     GEMHit()
     : det_id(-1), x_charge(0.), y_charge(0.), x_peak(0.), y_peak(0.),
@@ -667,10 +668,10 @@ public:
     GEMHit gem;
     std::vector<GEMHit> gem1;
     std::vector<GEMHit> gem2;
-    unsigned int mflag;
+    uint32_t mflag;
     // this index is kept because of decoder/physCalib is using it
     // TODO revamp physCalib and remove this member
-    unsigned int hycal_idx;
+    uint32_t hycal_idx;
 
     MatchHit(const HyCalHit &hit)
     : BaseHit(hit.x, hit.y, hit.z, hit.E), hycal(hit), mflag(0)
