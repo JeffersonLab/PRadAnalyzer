@@ -305,7 +305,7 @@ void PRadDSTParser::WriteEvent()
 throw(PRadException)
 {
     try {
-        if(!cur_evh.Check(EventHeader, Type::event)) {
+        if(cur_evh.Check(EventHeader, Type::event)) {
             Write(GetEvent());
         } else {
             throw PRadException("WRITE DST", "Current buffer has no event.");
@@ -388,7 +388,7 @@ void PRadDSTParser::WriteEPICS()
 throw(PRadException)
 {
     try {
-        if(!cur_evh.Check(EventHeader, Type::epics)) {
+        if(cur_evh.Check(EventHeader, Type::epics)) {
             Write(GetEPICS());
         } else {
             throw PRadException("WRITE DST", "Current buffer has no EPICS event.");
