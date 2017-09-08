@@ -8,35 +8,28 @@ std::vector<std::vector<PRadHyCalModule*>> __groups;
 
 struct LineParam
 {
-    bool success;
-    double k, b, rsq, chisq;
+    double success, k, b, rsq, chisq;
 
     LineParam()
-    : success(false), rsq(0.), chisq(10.) {};
+    : success(-1), k(0.), b(0.), rsq(0.), chisq(10.) {}
 };
 
 struct EnergyParam
 {
-    double total;
-    double maximum;
-    double uniform;
+    double total, maximum, uniform;
 
     EnergyParam()
-    : total(0.), maximum(0.), uniform(10.)
-    {};
+    : total(0.), maximum(0.), uniform(10.) {}
 };
 
 struct EventParam
 {
-    EnergyParam group_energy;
-    LineParam group_line;
-    unsigned int group_size;
-    unsigned int max_group_size;
-    EnergyParam max_group_energy;
-    LineParam max_group_line;
+    uint32_t n_groups, group_hits[100], group_size, max_group_size;
+    EnergyParam group_energy, max_group_energy;
+    LineParam group_line, max_group_line;
 
     EventParam()
-    : group_size(0), max_group_size(0) {};
+    : n_groups(0), group_size(0), max_group_size(0) {};
 
     std::vector<double> GetParamList()
     const
@@ -65,17 +58,21 @@ EventParam AnalyzeEvent(PRadHyCalSystem *sys, const EventData &event, double thr
     res.group_line = LinearRegression(__modules);
     res.group_energy = EvalEnergy(__modules);
 
+    res.group_size = __modules.size();
     GroupHits(__modules, __groups);
+    res.n_groups = (__groups.size() > 100) ? 100 : __groups.size();
+    for(size_t i = 0; i < res.n_groups && i < 100; ++i)
+    {
+        res.group_hits[i] = __groups.at(i).size();
+    }
 
     if(__groups.empty())
         return res;
 
-    res.group_size = __groups.size();
-
     // find the group that has the most hits
-    unsigned int max = 0;
-    unsigned int i_max = 0;
-    for(unsigned int i = 0; i < __groups.size(); ++i)
+    uint32_t max = 0;
+    uint32_t i_max = 0;
+    for(uint32_t i = 0; i < __groups.size(); ++i)
     {
         if(__groups.at(i).size() > max)
         {
@@ -218,6 +215,7 @@ LineParam LinearRegression(const std::vector<PRadHyCalModule*> &group)
     if(denom == 0.)
         return res;
 
+    res.success = 1;
     res.k = numer/denom;
     res.b = ave_y - res.k*ave_x;
 

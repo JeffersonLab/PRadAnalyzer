@@ -4,7 +4,7 @@
 # form the file name as (BASE + RUN + SUFF)
 # get the raw data files from mss and then replay it with a specified program (RE_FUNC)
 
-$FUNC = "/work/hallb/prad/PRadAnalyzer/examples/bin/NNAE_Prepare";
+$FUNC = "/work/hallb/prad/PRadAnalyzer/examples/bin/NNAE_Prepare2";
 $IN_DIR = "/work/hallb/prad/replay/event_sel";
 $OUT_DIR = "/work/hallb/prad/NNAE_Files";
 
@@ -13,7 +13,7 @@ sub get_input {
 }
 
 sub get_output {
-    return $OUT_DIR."/prad_".$_[0]."_NNAE.root";
+    return $OUT_DIR."/prad_".$_[0]."_NNAE2.root";
 }
 
 open (INPUT, "<./runlist.txt");
