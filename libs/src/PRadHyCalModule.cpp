@@ -26,13 +26,13 @@ static const char *__module_type_list[] = {"PbGlass", "PbWO4"};
 PRadHyCalModule::PRadHyCalModule(const std::string &n,
                                  const Geometry &geo,
                                  PRadHyCalDetector *det)
-: detector(det), daq_ch(nullptr), name(n), geometry(geo), trigger_eff(1.0)
+: detector(det), daq_ch(nullptr), name(n), geometry(geo)
 {
     id = name_to_primex_id(n);
 }
 
 PRadHyCalModule::PRadHyCalModule(int pid, const Geometry &geo, PRadHyCalDetector *det)
-: detector(det), daq_ch(nullptr), id(pid), geometry(geo), trigger_eff(1.0)
+: detector(det), daq_ch(nullptr), id(pid), geometry(geo)
 {
     if(geo.type == PbGlass)
         name = "G";
@@ -46,7 +46,7 @@ PRadHyCalModule::PRadHyCalModule(int pid, const Geometry &geo, PRadHyCalDetector
 PRadHyCalModule::PRadHyCalModule(const PRadHyCalModule &that)
 : detector(nullptr), daq_ch(nullptr), name(that.name), id(that.id),
   geometry(that.geometry), layout(that.layout), cal_const(that.cal_const),
-  trigger_eff(that.trigger_eff)
+  trg_const(that.trg_const)
 {
     // place holder
 }
@@ -55,7 +55,7 @@ PRadHyCalModule::PRadHyCalModule(const PRadHyCalModule &that)
 PRadHyCalModule::PRadHyCalModule(PRadHyCalModule &&that)
 : detector(nullptr), daq_ch(nullptr), name(std::move(that.name)), id(that.id),
   geometry(that.geometry), layout(that.layout), cal_const(that.cal_const),
-  trigger_eff(that.trigger_eff)
+  trg_const(that.trg_const)
 {
     // place holder
 }
@@ -77,7 +77,7 @@ PRadHyCalModule &PRadHyCalModule::operator =(const PRadHyCalModule &rhs)
     id = rhs.id;
     geometry = rhs.geometry;
     cal_const = rhs.cal_const;
-    trigger_eff = rhs.trigger_eff;
+    trg_const = rhs.trg_const;
     return *this;
 }
 
@@ -90,7 +90,7 @@ PRadHyCalModule &PRadHyCalModule::operator =(PRadHyCalModule &&rhs)
     id = rhs.id;
     geometry = rhs.geometry;
     cal_const = std::move(rhs.cal_const);
-    trigger_eff = rhs.trigger_eff;
+    trg_const = rhs.trg_const;
     return *this;
 }
 

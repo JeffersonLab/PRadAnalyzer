@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <iostream>
-#include "ConfigParser.h"
 
 // LMS1 LMS2 LMS3
 #define DEFAULT_REF_NUM 3

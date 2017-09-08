@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include "PRadCalibConst.h"
+#include "PRadTriggerConst.h"
 // Geometry and Layout definition
 #include "generalstruct.h"
 
@@ -56,7 +57,7 @@ public:
     void SetLayout(const Layout &lay) {layout = lay;}
     void SetLayoutFlag(unsigned int &flag) {layout.flag = flag;}
     void SetCalibConst(const PRadCalibConst &c) {cal_const = c;}
-    void SetTriggerEfficiency(const double &eff) {trigger_eff = eff;}
+    void SetTriggerConst(const PRadTriggerConst &c) {trg_const = c;}
     void GainCorrection(const double &g, const int &ref) {cal_const.GainCorrection(g, ref);}
 
     // energy related
@@ -95,7 +96,7 @@ public:
     double GetNonLinearConst() const {return cal_const.non_linear;}
     double GetCalibrationEnergy() const {return cal_const.base_energy;}
     double GetReferenceGain(int ref) const {return cal_const.GetRefGain(ref);}
-    double GetTriggerEfficiency() const {return trigger_eff;}
+    double GetTriggerEfficiency(double energy) const {return trg_const.GetTriggerEfficiency(energy);}
     PRadTDCChannel *GetTDC() const;
 
     // compare operator
@@ -119,7 +120,7 @@ protected:
     Geometry geometry;
     Layout layout;
     PRadCalibConst cal_const;
-    double trigger_eff;
+    PRadTriggerConst trg_const;
 };
 
 std::ostream &operator <<(std::ostream &os, const PRadHyCalModule &m);

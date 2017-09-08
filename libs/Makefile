@@ -88,7 +88,8 @@ CXX_SOURCES   = canalib \
                 PRadEPICSystem \
                 PRadInfoCenter \
                 PRadTaggerSystem \
-				PRadMollerGen
+				PRadMollerGen \
+				PRadTriggerConst
 
 
 # fortran part

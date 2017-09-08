@@ -445,18 +445,22 @@ bool PRadHyCalSystem::ReadTriggerEffFile(const std::string &path)
     }
 
     std::string name;
-    double eff;
+    // TRGEFF_NPAR defined in PRadTriggerConst.h
+    double pars[TRGEFF_NPAR];
+
     while(c_parser.ParseLine())
     {
-        if(!c_parser.CheckElements(2))
+        if(!c_parser.CheckElements(1 + TRGEFF_NPAR))
             continue;
 
-        c_parser >> name >> eff;
+        c_parser >> name;
+        for(auto &par : pars)
+            par = c_parser.TakeFirst().Double();
 
         PRadHyCalModule *module = GetModule(name);
 
         if(module) {
-            module->SetTriggerEfficiency(eff);
+            module->SetTriggerConst(PRadTriggerConst(pars));
         }
     }
 
