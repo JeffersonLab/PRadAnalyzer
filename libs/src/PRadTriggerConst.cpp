@@ -60,9 +60,10 @@ void PRadTriggerConst::SetTriggerParams(const double *pars)
         params[i] = pars[i];
 }
 
+// energy needs to be in MeV
 double PRadTriggerConst::GetTriggerEfficiency(double energy)
 const
 {
-    return params[0]*(1. - std::exp(params[1]*energy + params[2]));
+    return params[0]*(1. - std::exp(-params[1]*energy/1000. - params[2]));
 }
 

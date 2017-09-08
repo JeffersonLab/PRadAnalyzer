@@ -20,6 +20,7 @@ public:
     void SetTriggerParams(const std::initializer_list<double> &pars);
     void SetTriggerParams(const double *pars);
 
+    // energy needs to be in MeV
     double GetTriggerEfficiency(double energy) const;
 
 private:
