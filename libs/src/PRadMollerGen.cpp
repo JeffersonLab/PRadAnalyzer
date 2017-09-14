@@ -259,9 +259,10 @@ const
     {
         double rnd = rng()*t_dist.back().cdf;
         auto interval = cana::binary_search_interval(t_dist.begin(), t_dist.end(), rnd);
+        const auto &fp = interval.first, &sp = interval.second;
 
         // should not happen
-        if(interval.first == t_dist.end() || interval.second == t_dist.end()) {
+        if(fp == t_dist.end() || sp == t_dist.end()) {
             std::cerr << "Could not find CDF value at " << rnd << std::endl;
             i--;
             continue;
@@ -272,16 +273,14 @@ const
         double sig_rad, sig_nrad, rnd_rad;
 
         // exactly matched one point
-        if(interval.first == interval.second) {
-            t = interval.first->val;
+        if(fp == sp) {
+            t = fp->val;
 
-            sig_rad = interval.first->sig_rad;
-            sig_nrad = interval.first->sig_nrad;
+            sig_rad = fp->sig_rad;
+            sig_nrad = fp->sig_nrad;
             rnd_rad = (rnd2*(sig_nrad + sig_rad) - sig_nrad)/sig_rad;
             if(rnd_rad > 0.) {
-                v = cana::uni2dist(interval.first->v_dist.begin(),
-                                   interval.first->v_dist.end(),
-                                   rnd*interval.first->v_dist.back().cdf);
+                v = cana::uni2dist(fp->v_dist.begin(), fp->v_dist.end(), rnd*fp->v_dist.back().cdf);
                 t1 = merad_sample_t1(t, v, 0., rng());
                 z = merad_sample_z(t, t1, v, 0., rng());
             } else {
@@ -289,28 +288,20 @@ const
             }
         // in an interval, interpolate everything between two points
         } else {
-            t = cana::linear_interp(interval.first->cdf, interval.first->val,
-                                    interval.second->cdf, interval.second->val,
-                                    rnd);
+            t = cana::linear_interp(fp->cdf, fp->val, sp->cdf, sp->val, rnd);
+            sig_nrad = cana::linear_interp(fp->cdf, fp->sig_nrad, sp->cdf, sp->sig_nrad, rnd);
+            sig_rad = cana::linear_interp(fp->cdf, fp->sig_rad, sp->cdf, sp->sig_rad, rnd);
 
-            sig_nrad = cana::linear_interp(interval.first->cdf, interval.first->sig_nrad,
-                                           interval.second->cdf, interval.second->sig_nrad,
-                                           rnd);
-            sig_rad = cana::linear_interp(interval.first->cdf, interval.first->sig_rad,
-                                          interval.second->cdf, interval.second->sig_rad,
-                                          rnd);
             rnd_rad = (rnd2*(sig_nrad + sig_rad) - sig_nrad)/sig_rad;
             if(rnd_rad > 0.) {
-                double v1 = cana::uni2dist(interval.first->v_dist.begin(),
-                                           interval.first->v_dist.end(),
-                                           rnd_rad*interval.first->v_dist.back().cdf);
-                double v2 = cana::uni2dist(interval.second->v_dist.begin(),
-                                           interval.second->v_dist.end(),
-                                           rnd_rad*interval.second->v_dist.back().cdf);
+                double v1 = cana::uni2dist(fp->v_dist.begin(),
+                                           fp->v_dist.end(),
+                                           rnd_rad*fp->v_dist.back().cdf);
+                double v2 = cana::uni2dist(sp->v_dist.begin(),
+                                           sp->v_dist.end(),
+                                           rnd_rad*sp->v_dist.back().cdf);
 
-                v = cana::linear_interp(interval.first->cdf, v1,
-                                        interval.second->cdf, v2,
-                                        rnd);
+                v = cana::linear_interp(fp->cdf, v1, sp->cdf, v2, rnd);
                 t1 = merad_sample_t1(t, v, 0., rng());
                 z = merad_sample_z(t, t1, v, 0., rng());
             } else {
