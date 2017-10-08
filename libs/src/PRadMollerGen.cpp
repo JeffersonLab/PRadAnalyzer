@@ -411,17 +411,22 @@ const
     double sig_vert = sig_vertt + sig_vertu;
     double sig_B = sig_Bt + sig_Bu;
 
+    // v1 = vmin separates soft and hard photon
+    // v2 = vcut is the cut end of photons
+    double v2 = cana::clamp(v_cut, v_cut, v_limit);
+    double v1 = cana::clamp(v_min, v_min, v2);
+
     // infrared divergent part of real photon emission
     // NOTE that the t and u channels are not separated
-    double sig_IR = SigmaIR(s, t, cana::clamp(v_min, v_min, v_limit));
+    double sig_IR = SigmaIR(s, t, v1);
 
     // infrared free part of real photon emission, "soft" part
-    double sig_Fs = SigmaFs(s, t, cana::clamp(v_min, v_min, v_limit));
+    double sig_Fs = SigmaFs(s, t, v1);
 
     sig_nrad = sig_born + sig_IR + sig_S + sig_vert + sig_B + sig_Fs;
 
     // radiative cross section, infrared free part of real photon emission, "hard" part
-    sig_rad = SigmaRad(s, t, cana::clamp(v_min, v_min, v_cut), cana::clamp(v_cut, v_cut, v_limit));
+    sig_rad = SigmaRad(s, t, v1, v2);
 
 #ifdef MOLLER_TEST_MERA
     merad_init(s);
@@ -476,12 +481,14 @@ const
     double sig_vert = sig_vertt + sig_vertu;
     double sig_B = sig_Bt + sig_Bu;
 
+    double v1 = cana::clamp(v_min, v_min, v_cut);
+
     // infrared divergent part of real photon emission
     // NOTE that the t and u channels are not separated
-    double sig_IR = SigmaIR(s, t, cana::clamp(v_min, v_min, v_cut));
+    double sig_IR = SigmaIR(s, t, v1);
 
     // infrared free part of real photon emission, "soft" part
-    double sig_Fs = SigmaFs(s, t, cana::clamp(v_min, v_min, v_cut));
+    double sig_Fs = SigmaFs(s, t, v1);
 
     return sig_born + sig_IR + sig_S + sig_vert + sig_B + sig_Fs;
 }
@@ -500,14 +507,14 @@ const
     double v_limit = 0.99*(s*t + sqrt(s*(s - 4.*m2)*t*(t - 4.*m2)))/2./m2;
 
     // integration range
-    double v_end = cana::clamp(v_cut, v_cut, v_limit);
-    double v_beg = cana::clamp(v_min, v_min, v_end);
+    double v2 = cana::clamp(v_cut, v_cut, v_limit);
+    double v1 = cana::clamp(v_min, v_min, v2);
 
     // set initial v bins
-    double v_step = (v_end - v_beg)/(double)min_bins;
+    double v_step = (v2 - v1)/(double)min_bins;
     for(size_t i = 0; i <= min_bins; ++i)
     {
-        double v = v_beg + i*v_step;
+        double v = v1 + i*v_step;
         res.emplace_back(v, merad_sigfh(v, t, 0.));
     }
 
@@ -592,15 +599,15 @@ void PRadMollerGen::SigmaVph(double s, double t,
 
     // singularity term, appears in delta_ver and delta_box
     // we only need the divergence free part of the sigma_ver and simga_box,
-    // which are obtained by substituting lamda = m so log(lamda/m) = 0
-    double log_m = 0.; // log(lamda/m), where lamda is the infinitesimal photon mass
+    // which are obtained by substituting lambda = m so log(lambda/m) = 0
+    double log_m = 0.; // log(lambda/m), where lambda is the infinitesimal photon mass
 
     // other frequently used variables
     // Q^2 (-t) related, equation (27) - (29) in [1]
     double Q2_m = -t + 2.*m2;
-    double lamda_m = t*t - 4.*m2*t;
-    double slamda_m = sqrt(lamda_m);
-    double L_m = 1./slamda_m*log((slamda_m - t)/(slamda_m + t));
+    double lambda_m = t*t - 4.*m2*t;
+    double slambda_m = sqrt(lambda_m);
+    double L_m = 1./slambda_m*log((slambda_m - t)/(slambda_m + t));
 
     // s related
     double log_s = log((1. + xi_s)/(1. - xi_s));
@@ -624,12 +631,12 @@ void PRadMollerGen::SigmaVph(double s, double t,
     // equation (41) in [1] with Q^2 -> -t
     double delta_vac = 0.;
     double lepton_mass[3] = {cana::ele_mass, cana::mu_mass, cana::tau_mass};
-    for(auto &vac_m : lepton_mass)
+    for(auto &vm : lepton_mass)
     {
-        double vac_m2 = vac_m*vac_m;
-        double vac_slamda_m = sqrt(t*t - 4.*vac_m2*t);
-        double vac_L_m = log((vac_slamda_m - t)/(vac_slamda_m + t))/vac_slamda_m;
-        delta_vac += 2./3.*(-t + 2*vac_m2)*vac_L_m - 10./9. - 8./3.*vac_m2/t*(1. - 2.*vac_m2*vac_L_m);
+        double vm2 = vm*vm;
+        double vslambda_m = sqrt(t*t - 4.*vm2*t);
+        double vL_m = log((vslambda_m - t)/(vslambda_m + t))/vslambda_m;
+        delta_vac += 2./3.*(-t + 2*vm2)*vL_m - 10./9. - 8./3.*vm2/t*(1. - 2.*vm2*vL_m);
     }
 
     // equation (50) in [1]
@@ -638,7 +645,7 @@ void PRadMollerGen::SigmaVph(double s, double t,
     // vertex correction, factorized part
     // equation (36) in [1] with Q^2 -> -t
     double delta_vert = 2.*(Q2_m*L_m - 1.)*log_m + (4.*m2 - 3./2.*t)*L_m - 2.
-                        - Q2_m/slamda_m*(lamda_m*L_m*L_m/2. + 2.*cana::spence(2.*slamda_m/(slamda_m - t)) - pi2/2.);
+                        - Q2_m/slambda_m*(lambda_m*L_m*L_m/2. + 2.*cana::spence(2.*slambda_m/(slambda_m - t)) - pi2/2.);
 
     // vertex correction, non-factorized part, anomalous magnetic moment
     // equation (52) in [1]
@@ -747,16 +754,16 @@ double PRadMollerGen::SigmaIR(double s, double t, double v_max)
     // equation (A.14) - (A.15) in [1]
     auto S_phi = [](const double &s_1, const double &s_2, const double &s_3)
                  {
-                     double lamda_1 = s_1*s_1 - 16.*m2*m2, slamda_1 = sqrt(lamda_1);
-                     double lamda_2 = s_2*s_2 - 16.*m2*m2, slamda_2 = sqrt(lamda_2);
-                     double lamda_3 = s_3*s_3 - 16.*m2*m2, slamda_3 = sqrt(lamda_3);
+                     double lambda_1 = s_1*s_1 - 16.*m2*m2, slambda_1 = sqrt(lambda_1);
+                     double lambda_2 = s_2*s_2 - 16.*m2*m2, slambda_2 = sqrt(lambda_2);
+                     double lambda_3 = s_3*s_3 - 16.*m2*m2, slambda_3 = sqrt(lambda_3);
                      // z_u and z_d
-                     double z_ud[2] = {slamda_1/slamda_2 - 1., (s_1*s_2 - 4.*m2*s_3)/lamda_2 - 1.};
+                     double z_ud[2] = {slambda_1/slambda_2 - 1., (s_1*s_2 - 4.*m2*s_3)/lambda_2 - 1.};
                      // z_1, z_2, z_3, z_4
-                     double z[4] = {1./slamda_2*(4.*m2*(s_3 - slamda_3)/(s_2 - slamda_2) - s_1 - slamda_2),
-                                    1./slamda_2*(4.*m2*(s_3 + slamda_3)/(s_2 - slamda_2) - s_1 - slamda_2),
-                                    1./slamda_2*(s_1 - slamda_2 - 4.*m2*(s_3 + slamda_3)/(s_2 + slamda_2)),
-                                    1./slamda_2*(s_1 - slamda_2 - 4.*m2*(s_3 - slamda_3)/(s_2 + slamda_2))};
+                     double z[4] = {1./slambda_2*(4.*m2*(s_3 - slambda_3)/(s_2 - slambda_2) - s_1 - slambda_2),
+                                    1./slambda_2*(4.*m2*(s_3 + slambda_3)/(s_2 - slambda_2) - s_1 - slambda_2),
+                                    1./slambda_2*(s_1 - slambda_2 - 4.*m2*(s_3 + slambda_3)/(s_2 + slambda_2)),
+                                    1./slambda_2*(s_1 - slambda_2 - 4.*m2*(s_3 - slambda_3)/(s_2 + slambda_2))};
                      // Sj
                      double Sj[4] = {1, 1, -1, -1};
                      // (-1)^(i + 1), i from 1 to 4 but index is from 0 to 3
@@ -771,7 +778,7 @@ double PRadMollerGen::SigmaIR(double s, double t, double v_max)
                          // it is noted in the reference that
                          // S_phi(s1, s2, s3) == S_phi(s2, s1, s3)
                          // but this part could not satisfy the relation
-                         double term = log((s_2 - slamda_2)/(s_2 + slamda_2))
+                         double term = log((s_2 - slambda_2)/(s_2 + slambda_2))
                                        * log((z_ud[k] - z[0])*(z_ud[k] - z[2])/(z_ud[k] - z[1])/(z_ud[k] - z[3]));
 
                          double sum_term = 0.;
@@ -792,7 +799,7 @@ double PRadMollerGen::SigmaIR(double s, double t, double v_max)
                              }
                          }
 
-                         result += s_3/2./slamda_3*(term + sum_term)*Sk[k];
+                         result += s_3/2./slambda_3*(term + sum_term)*Sk[k];
                      }
                      return result;
                  };
@@ -884,7 +891,7 @@ double PRadMollerGen::SigmaRad(double s, double t, double v_min, double v_max, d
 // azimuthal angle based on the Appendix A in ref. [2]
 // units are in MeV
 // incident particles are in CM frame
-// k1[0] = p1[0] = sqrt(s)/2, k1p = p1p = sqrt(lamda_s/s)/2
+// k1[0] = p1[0] = sqrt(s)/2, k1p = p1p = sqrt(lambda_s/s)/2
 // rnd1 is a random number (0, 1) to sample azimuthal angle phi
 // rnd2 is a random number (0, 1) to switch sign
 void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
@@ -894,73 +901,73 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     double phi = rnd1*cana::pi*2.;
 
     // frequently used variables
-    double lamda_1, lamda_2, lamda_3, lamda_4, lamda_5, lamda_6, lamda_7, lamda_8;
+    double lambda_1, lambda_2, lambda_3, lambda_4, lambda_5, lambda_6, lambda_7, lambda_8;
 
-    double lamda_s = s*(s - 4.*m2);
+    double lambda_s = s*(s - 4.*m2);
 
-    // when it is non-radiative, some of the lamda is exactly 0
+    // when it is non-radiative, some of the lambda is exactly 0
     // but due to the precision of real number, it may get a very small negative
     // number in the end, which destroy the momentum reconstruction
     // thus separate two cases here
     if(v == 0.) {
-        lamda_1 = s*s - 4.*s*m2;
-        lamda_2 = 2.*t + s - 4.*m2;
-        lamda_3 = -s*t*(s + t - 4.*m2);
-        lamda_4 = s*(s - 4.*m2);
-        lamda_5 = 0.;
-        lamda_6 = 0.;
-        lamda_7 = 0.;
-        lamda_8 = 0.;
+        lambda_1 = s*s - 4.*s*m2;
+        lambda_2 = 2.*t + s - 4.*m2;
+        lambda_3 = -s*t*(s + t - 4.*m2);
+        lambda_4 = s*(s - 4.*m2);
+        lambda_5 = 0.;
+        lambda_6 = 0.;
+        lambda_7 = 0.;
+        lambda_8 = 0.;
     } else {
-        lamda_1 = pow2(s - v) - 4.*s*m2;
-        lamda_2 = 2.*t + s - v - 4.*m2;
-        lamda_3 = -s*t*(s + t - v - 4.*m2) - pow2(m*v);
-        lamda_4 = s*(s - v - 4.*m2) - (s + v)*z;
-        lamda_5 = v*z*(s - v - z) - pow2(m*(v + z));
-        lamda_6 = s*(v - z) - v*(v + z);
-        lamda_7 = (s + 2.*t1 - z - 4.*m2)*lamda_1 - lamda_2*lamda_4;
-        lamda_8 = 16.*lamda_3*lamda_5 - lamda_7*lamda_7;
+        lambda_1 = pow2(s - v) - 4.*s*m2;
+        lambda_2 = 2.*t + s - v - 4.*m2;
+        lambda_3 = -s*t*(s + t - v - 4.*m2) - pow2(m*v);
+        lambda_4 = s*(s - v - 4.*m2) - (s + v)*z;
+        lambda_5 = v*z*(s - v - z) - pow2(m*(v + z));
+        lambda_6 = s*(v - z) - v*(v + z);
+        lambda_7 = (s + 2.*t1 - z - 4.*m2)*lambda_1 - lambda_2*lambda_4;
+        lambda_8 = 16.*lambda_3*lambda_5 - lambda_7*lambda_7;
     }
 
-    double lamda_34 = lamda_3*lamda_4;
-    double lamda_27 = lamda_2*lamda_7;
-    double lamda_36 = lamda_3*lamda_6;
-    double lamda_1_s3 = lamda_1*sqrt(lamda_s*lamda_3);
+    double lambda_34 = lambda_3*lambda_4;
+    double lambda_27 = lambda_2*lambda_7;
+    double lambda_36 = lambda_3*lambda_6;
+    double lambda_1_s3 = lambda_1*sqrt(lambda_s*lambda_3);
 
     // NOTICE, this sign change is from MERADGEN's code but it is not mentioned
     // in ref. [2]
     // it probably is related to t/u channel photon emission
-    double slamda_s18 = sqrt(lamda_s*lamda_1*lamda_8);
+    double slambda_s18 = sqrt(lambda_s*lambda_1*lambda_8);
     if(rnd2 > 0.5)
-        slamda_s18 *= -1.;
+        slambda_s18 *= -1.;
 /*
     // outgoing electron 1
     k2[0] = (s - v)/sqrt(s)/2.;
-    k2[1] = sqrt(lamda_3/lamda_s)*cos(phi);
-    k2[2] = sqrt(lamda_3/lamda_s)*sin(phi);
-    k2[3] = sqrt(s/lamda_s)*lamda_2/2.;
+    k2[1] = sqrt(lambda_3/lambda_s)*cos(phi);
+    k2[2] = sqrt(lambda_3/lambda_s)*sin(phi);
+    k2[3] = sqrt(s/lambda_s)*lambda_2/2.;
 
     // outgoing electron 2
     // NOTE that the formula in ref. [2] cannot satisfy energy and momentum
-    // conservation, changing the sign before terms have lamda_7 will recover
+    // conservation, changing the sign before terms have lambda_7 will recover
     // the conservation laws, thanks to C. Gu who pointed out this
     p2[0] = (s - z)/sqrt(s)/2.;
-    p2[1] = -(slamda_s18*sin(phi) + (4.*lamda_34 - s*lamda_27)*cos(phi))/4./lamda_1_s3;
-    p2[2] = (slamda_s18*cos(phi) - (4.*lamda_34 - s*lamda_27)*sin(phi))/4./lamda_1_s3;
-    p2[3] = sqrt(s/lamda_s)*(-lamda_7 - lamda_2*lamda_4)/lamda_1/2.;
+    p2[1] = -(slambda_s18*sin(phi) + (4.*lambda_34 - s*lambda_27)*cos(phi))/4./lambda_1_s3;
+    p2[2] = (slambda_s18*cos(phi) - (4.*lambda_34 - s*lambda_27)*sin(phi))/4./lambda_1_s3;
+    p2[3] = sqrt(s/lambda_s)*(-lambda_7 - lambda_2*lambda_4)/lambda_1/2.;
 */
     // outgoing photon
     k[0] = (v + z)/sqrt(s)/2.;
-    k[1] = (slamda_s18*sin(phi) + (4.*lamda_36 - s*lamda_27)*cos(phi))/4./lamda_1_s3;
-    k[2] = (-slamda_s18*cos(phi) + (4.*lamda_36 - s*lamda_27)*sin(phi))/4./lamda_1_s3;
-    k[3] = sqrt(s/lamda_s)*(lamda_7 + lamda_2*lamda_6)/lamda_1/2.;
+    k[1] = (slambda_s18*sin(phi) + (4.*lambda_36 - s*lambda_27)*cos(phi))/4./lambda_1_s3;
+    k[2] = (-slambda_s18*cos(phi) + (4.*lambda_36 - s*lambda_27)*sin(phi))/4./lambda_1_s3;
+    k[3] = sqrt(s/lambda_s)*(lambda_7 + lambda_2*lambda_6)/lambda_1/2.;
 
     // p2 - p1
     double vp[4];
     vp[0] = -z/sqrt(s)/2.;
-    vp[1] = -(slamda_s18*sin(phi) + (4.*lamda_34 - s*lamda_27)*cos(phi))/4./lamda_1_s3;
-    vp[2] = (slamda_s18*cos(phi) - (4.*lamda_34 - s*lamda_27)*sin(phi))/4./lamda_1_s3;
-    vp[3] = (lamda_s*lamda_1 - s*(lamda_7 + lamda_2*lamda_4))/2./sqrt(s*lamda_s)/lamda_1;
+    vp[1] = -(slambda_s18*sin(phi) + (4.*lambda_34 - s*lambda_27)*cos(phi))/4./lambda_1_s3;
+    vp[2] = (slambda_s18*cos(phi) - (4.*lambda_34 - s*lambda_27)*sin(phi))/4./lambda_1_s3;
+    vp[3] = (lambda_s*lambda_1 - s*(lambda_7 + lambda_2*lambda_4))/2./sqrt(s*lambda_s)/lambda_1;
 
     // outgoing electron 1
     // p2 - p1 = k1 - k2 - k
@@ -968,14 +975,14 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     k2[0] = sqrt(s)/2. - vp[0] - k[0];
     k2[1] = -vp[1] - k[1];
     k2[2] = -vp[2] - k[2];
-    k2[3] = sqrt(lamda_s/s)/2. - vp[3] - k[3];
+    k2[3] = sqrt(lambda_s/s)/2. - vp[3] - k[3];
 
     // outgoing electron 2
     // p2 = vp + p1
     p2[0] = vp[0] + sqrt(s)/2.;
     p2[1] = vp[1];
     p2[2] = vp[2];
-    p2[3] = vp[3] - sqrt(lamda_s/s)/2.;
+    p2[3] = vp[3] - sqrt(lambda_s/s)/2.;
 
 }
 

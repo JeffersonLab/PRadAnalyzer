@@ -1,6 +1,7 @@
 #include "ConfigParser.h"
 #include "ConfigObject.h"
 #include "PRadMollerGen.h"
+#include "PRadEpElasGen.h"
 #include "canalib.h"
 
 using namespace std;
@@ -249,4 +250,143 @@ void show_ep_gen(const char *path)
     c1->cd(2);
     hist_th->Draw("colz");
 }
+
+void interpolate_F1F2(const char *path, const char *outf, double step = 1.0)
+{
+    ConfigParser c_parser;
+    c_parser.OpenFile(path);
+
+    double nu, F1, F2;
+    std::vector<double> vnu, vF1, vF2;
+    TGraph *f1a, *f2a, *f1b, *f2b;
+    f1a = new TGraph();
+    f1b = new TGraph();
+    f2a = new TGraph();
+    f2b = new TGraph();
+
+    // read table
+    while(c_parser.ParseLine())
+    {
+        c_parser >> nu >> F1 >> F2;
+        vnu.push_back(nu);
+        vF1.push_back(F1);
+        vF2.push_back(F2);
+        f1a->SetPoint(f1a->GetN(), nu, F1);
+        f2a->SetPoint(f2a->GetN(), nu, F2);
+    }
+
+    // spline fit
+    TSpline3 F1_spl("F1 Spline", &vnu[0], &vF1[0], vnu.size(), "b3e3");
+    TSpline3 F2_spl("F2 Spline", &vnu[0], &vF2[0], vnu.size(), "b3e3");
+
+    // output
+    ofstream output(outf);
+    for(double nu_val = vnu.front(); nu_val <= vnu.back(); nu_val += 1.0)
+    {
+        double F1_interp = F1_spl.Eval(nu_val);
+        double F2_interp = F2_spl.Eval(nu_val);
+        output << setw(8) << nu_val
+               << setw(15) << F1_interp
+               << setw(15) << F2_interp
+               << endl;
+        f1b->SetPoint(f1b->GetN(), nu_val, F1_interp);
+        f2b->SetPoint(f2b->GetN(), nu_val, F2_interp);
+    }
+
+    f1a->SetMarkerStyle(20);
+    f1a->SetMarkerColor(2);
+    f1b->SetMarkerStyle(22);
+    f2a->SetMarkerStyle(20);
+    f2a->SetMarkerColor(2);
+    f2b->SetMarkerStyle(22);
+
+    // show the interpolate result
+    TCanvas *c1 = new TCanvas("Interp_F1F2", "F1 F2 Interpolation", 200, 10, 1200, 500);
+    c1->Divide(2, 1);
+    c1->cd(1);
+    f1a->Draw("AP");
+    f1b->Draw("P");
+    c1->cd(2);
+    f2a->Draw("AP");
+    f2b->Draw("P");
+}
+
+void ep_test(double energy)
+{
+    double S = 2.*energy*cana::proton_mass;
+    TCanvas *c1 = new TCanvas("Elastic Ep XS", "EpXS", 200, 10, 700, 500);
+    TGraph *g1 = new TGraph();
+
+    PRadEpElasGen ep_gen;
+
+    for(double logq2 = -6; logq2 < -2; logq2 += 0.01)
+    {
+        double q2 = std::pow(10., logq2)*1e6;
+        double born, non_rad, rad;
+        ep_gen.GetXSdQsq(S, q2, born, non_rad, rad);
+        std::cout << q2 << ", " << born << ", " << non_rad << std::endl;
+        g1->SetPoint(g1->GetN(), q2, (non_rad/born - 1.)*100.);
+    }
+
+    c1->SetLogx();
+    g1->Draw("AP");
+}
+
+void ep_vmin_test(double energy = 2142, double v_max = 1000)
+{
+    TGraph *g1 = new TGraph();
+    TGraph *g2 = new TGraph();
+    TGraph *g3 = new TGraph();
+    TGraph *g4 = new TGraph();
+    TGraph *g5 = new TGraph();
+    TGraph *g6 = new TGraph();
+
+    PRadEpElasGen ep1(1., v_max);
+    PRadEpElasGen ep2(5., v_max);
+    PRadEpElasGen ep3(20., v_max);
+
+    double S = 2.*energy*cana::proton_mass;
+    for(double logq2 = -4; logq2 < -2; logq2 += 0.01)
+    {
+        double Q2 = std::pow(10., logq2)*1e6;
+        double born, non_rad, rad, xs1, xs2, xs3;
+        ep1.GetXSdQsq(S, Q2, born, non_rad, rad);
+        xs1 = non_rad + rad;
+        ep2.GetXSdQsq(S, Q2, born, non_rad, rad);
+        xs2 = non_rad + rad;
+        ep3.GetXSdQsq(S, Q2, born, non_rad, rad);
+        xs3 = non_rad + rad;
+
+        g1->SetPoint(g1->GetN(), Q2, xs1);
+        g2->SetPoint(g2->GetN(), Q2, xs2);
+        g3->SetPoint(g3->GetN(), Q2, xs3);
+
+        g4->SetPoint(g4->GetN(), Q2, 0.);
+        g5->SetPoint(g5->GetN(), Q2, (xs2 - xs1)/xs1*100.);
+        g6->SetPoint(g6->GetN(), Q2, (xs3 - xs1)/xs1*100.);
+
+        std::cout << Q2 << ", " << (xs2 - xs1)/xs1*100. << ", " << (xs3 - xs1)/xs1*100. << std::endl;
+    }
+
+    TCanvas *c1 = new TCanvas("v_min test", "v_min test", 200, 10, 1200, 500);
+    c1->Divide(2, 1);
+    c1->SetGrid();
+    c1->SetLogx();
+
+    g2->SetLineColor(2);
+    g5->SetLineColor(2);
+    g3->SetLineColor(4);
+    g6->SetLineColor(4);
+
+    c1->cd(1);
+    g1->Draw("AC");
+    g2->Draw("C");
+    g3->Draw("C");
+
+    c1->cd(2);
+    g6->Draw("AC");
+    g5->Draw("C");
+    g4->Draw("C");
+}
+
 

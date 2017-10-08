@@ -14,7 +14,7 @@
 
 
 // limit of bins for simpson integration by precision
-#define MAX_SIMPSON_BINS 60000
+#define MAX_SIMPSON_BINS 30000
 
 namespace cana
 {
@@ -39,6 +39,9 @@ namespace cana
     double landau_straggle(double x, double xi = 1., double x0 = 0., bool fit = true);
     double spence(double z, double res = 1e-15);
     inline double spence_tr(double z, double res, int nmax);
+
+    inline bool is_odd(int i) {return i&1;}
+    inline double minus_pow(int i) {return ((is_odd(i))?-1.:1.);}
 
     // clamp values to be restricted inside [min, max]
     template<typename T>
@@ -114,7 +117,7 @@ namespace cana
     template<class T, typename F, typename... Args>
     double gauss_quad(const legendre_nodes &ln, F (T::*f), T *t, double a, double b, Args&&... args)
     {
-        // wrapper member function
+        // wrapper of a member function
         auto fn = [t, f] (double val, Args&&... args2)
                   {
                       return (t->*f)(val, args2...);
