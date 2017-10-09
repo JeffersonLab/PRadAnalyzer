@@ -67,18 +67,6 @@ inline double t_min(double Q2, double v)
     return (2.*M2*Q2 + v*(Q2 + v - sqrt(pow2(Q2 + v) + 4.*M2*Q2)))/(2.*(M2 + v));
 }
 
-inline double vt_min(double Q2, double t, double v)
-{
-    double v_t = std::max((t - Q2)*(sqrt(t) + sqrt(4.*M2 + t))/2./sqrt(t),
-                          (t - Q2)*(sqrt(t) - sqrt(4.*M2 + t))/2./sqrt(t));
-    return std::max(v, v_t);
-}
-
-inline double vt_max(double S, double Q2, double t)
-{
-    return std::max(S - Q2*S/t, S + t - Q2 - S*t/Q2);
-}
-
 //============================================================================//
 // Constructor, destructor                                                    //
 //============================================================================//
@@ -112,7 +100,7 @@ const
     static double GMp2[6] = {1., 9.70703681, 3.7357e-4, 6.0e-8, 9.9527277, 12.7977739};
 
     // convert MeV^2 to GeV^2
-    double tau = -Q2/4./M2/1e6;
+    double tau = Q2/4./M2;
     double x[6];
     x[0] = 1.;
     for(int i = 1; i < 6; ++i) x[i] = x[i - 1]*tau;
@@ -156,18 +144,13 @@ const
     double v2 = cana::clamp(v_cut, v_cut, v_limit);
     double v1 = cana::clamp(v_min, v_min, v2);
 
-    double delta_VR, delta_vac, delta_inf, sig_AMM;
-
-    CalcVphIR(S, Q2, v1, sig_born, sig_AMM, delta_VR, delta_vac, delta_inf);
-
-    double sig_Fs = SigmaFs(t_min(Q2, v1), t_max(Q2, v1), 0., v1, S, Q2);
+    sig_born = SigmaBorn(S, Q2);
 
     // equation (39) without hard photon emission part of sigmaF
-    sig_nrad = sig_born*(1. + alp_pi*(delta_VR + delta_vac - delta_inf))*exp(alp_pi*delta_inf)
-               + sig_AMM + sig_Fs;
+    sig_nrad = SigmaVphIR(S, Q2, v1) + SigmaFs(1e-6, v1, S, Q2);
 
     // hard photon emission part
-    sig_rad = SigmaFh(t_min(Q2, v2), t_max(Q2, v2), v1, v2, S, Q2);
+    sig_rad = SigmaFh(v1, v2, S, Q2);
 }
 
 // Differential cross section dsigma/dQ^2 at Born level
@@ -191,11 +174,15 @@ const
 inline double S_phi(double s, double l, double a, double b)
 {
     static double delta[4] = {1, 1, -1, -1};
+    static double sign[4] = {-1, 1, -1, 1};
     double sqrt_l = sqrt(l), sqrt_b = sqrt(b);
     double D = (s + a)*(l*a - s*b) + pow2(l + b)/4.;
     double gamma_u = (sqrt(b + l) - sqrt_b)/sqrt_l;
-    double gamma[2] = { -(sqrt_b - sqrt_l)/(b - l),
-                        (sqrt_b + sqrt_l)/(b - l) };
+    // NOTICE
+    // gamma_1,2 is different with paper [1], but it has to be dimension-less
+    // so the paper probably has a misprint on this term
+    double gamma[2] = { -pow2(sqrt_b - sqrt_l)/(b - l),
+                        pow2(sqrt_b + sqrt_l)/(b - l) };
     double i_sign, a_j, tau_j, delta_j, gamma_i, gamma_jk;
 
     auto S_term = [&i_sign, &gamma_i, &gamma_jk] (double g)
@@ -203,18 +190,18 @@ inline double S_phi(double s, double l, double a, double b)
                            + cana::spence((g + i_sign)/(gamma_jk + i_sign)); };
 
     double res = 0.;
-    for(int i = 1; i < 2; ++i)
+    for(int i = 0; i < 2; ++i)
     {
-        i_sign = cana::minus_pow(i);
-        gamma_i = gamma[i - 1];
-        for(int j = 1; j < 4; ++j)
+        i_sign = sign[i];
+        gamma_i = gamma[i];
+        for(int j = 0; j < 4; ++j)
         {
-            delta_j = delta[j - 1];
+            delta_j = delta[j];
             a_j = s - delta_j*sqrt_l;
-            tau_j = -a*sqrt_l + delta_j*(b - l)/2. + cana::minus_pow(j)*sqrt(D);
-            for(int k = 1; k < 2; ++k)
+            tau_j = -a*sqrt_l + delta_j*(b - l)/2. + sign[j]*sqrt(D);
+            for(int k = 0; k < 2; ++k)
             {
-                gamma_jk = -(a_j*sqrt_b - cana::minus_pow(k)*sqrt(b*a_j*a_j + tau_j*tau_j))/tau_j;
+                gamma_jk = -(a_j*sqrt_b - sign[k]*sqrt(b*a_j*a_j + tau_j*tau_j))/tau_j;
                 res += i_sign*delta_j*(S_term(gamma_u) - S_term(gamma[0]));
             }
         }
@@ -226,9 +213,7 @@ inline double S_phi(double s, double l, double a, double b)
 // Cross section including virtual photon part and the Infrared part of the
 // photon emission of the ep elastic cross section
 // input variables S, Q^2 in MeV^2, v_max for the photonic variable in MeV^2
-void PRadEpElasGen::CalcVphIR(double S, double Q2, double v_min,
-                              double &sig_born, double &sig_AMM,
-                              double &delta_VR, double &delta_vac, double &delta_inf)
+double PRadEpElasGen::SigmaVphIR(double S, double Q2, double v1)
 const
 {
     // substitute S - Q2 with X
@@ -252,6 +237,8 @@ const
     // equation (7), (8)
     double theta_B1 = Q2 - 2.*m2;
     double theta_B2 = 1./(2.*M2)*(S*X - M2*Q2);
+
+    double sig_born, sig_AMM, delta_VR, delta_vac, delta_inf, delta_add;
 
     // equation (3)
     sig_born = twopi*alp2/lambda_S/Q2/Q2*(F01*theta_B1 + F02*theta_B2);
@@ -279,8 +266,15 @@ const
     // equation (42)
     delta_inf = (Q2_m*L_m - 1.)*log(v_max*v_max/S/X);
 
+    // factorized part from sigma_Fs
+    // adding this term just change the v_max in delta_VR to v_min in the first order
+    delta_add = -2.*(Q2_m*L_m - 1.)*log(v_max/v1);
+
     // equation (38)
     sig_AMM = alp3*m2*L_m*(12.*M2*F01 - (Q2 + 4.*M2)*F02)/(2.*M2*Q2*lambda_S);
+
+    return sig_born*(1. + alp_pi*(delta_VR + delta_vac - delta_inf))*exp(alp_pi*delta_inf)
+           + alp_pi*delta_add*sig_born*exp(alp_pi*delta_inf) + sig_AMM;
 }
 
 // The Bremsstrahlung differential cross section with hard photon emission
@@ -332,12 +326,11 @@ const
     GetHadStrFunc(t, F01, F02);
 
     // equation (43), first part
-    return -alp3/2./twopi/lambda_S*(theta_1j*F01 + theta_2j*F02)/t/t;
+    return -alp3/2./lambda_S*(theta_1j*F01 + theta_2j*F02)/t/t;
 }
 
-// The Bremsstrahlung differential cross section with hard photon emission
-// radiative cross section integrated over phik dsig/dQ2/dt/dv
-// finite, true means the finite part of this differential cross section
+// Analytical integration of SigmaBrem over phik dsig/dQ2/dt/dv
+// finite = true means the finite part of this differential cross section
 double PRadEpElasGen::SigmaBrem_phik(double v, double t, double S, double Q2, bool finite)
 const
 {
@@ -383,41 +376,40 @@ const
     GetHadStrFunc(t, F01, F02);
 
     // equation (43)
-    double res = -alp3/2./twopi/lambda_S*(theta_1j*F01 + theta_2j*F02)/t/t;
+    double res = -alp3/2./lambda_S*(theta_1j*F01 + theta_2j*F02)/t/t;
 
     if(finite) {
-        res += alp_pi/twopi*F_IR/R/R*SigmaBorn(S, Q2);
+        res += alp_pi*F_IR/R/R*SigmaBorn(S, Q2);
     }
 
     return res;
 }
 
-auto nodes = cana::calc_legendre_nodes(2048);
-
-double PRadEpElasGen::SigmaBrem_phik_v(double t, double v1, double v2, double S, double Q2, bool finite)
+// numerical integration of SigmaBrem_phik over t, dsig/dQ2/dv
+double PRadEpElasGen::SigmaBrem_phik_t(double v, double S, double Q2, bool finite)
 const
 {
     // wrapper of member function
-    auto fn = [this] (double v, double t, double S, double Q2, bool finite)
+    auto fn = [this] (double t, double v, double S, double Q2, bool finite)
               { return SigmaBrem_phik(v, t, S, Q2, finite); };
 
-    return cana::gauss_quad(nodes, fn, vt_min(Q2, t, v1), vt_max(S, Q2, t), t, S, Q2, finite);
+    return cana::simpson(fn, t_min(Q2, v), t_max(Q2, v), 10000, v, S, Q2, finite);
 }
 
-double PRadEpElasGen::SigmaFh(double t1, double t2, double v1, double v2, double S, double Q2)
+double PRadEpElasGen::SigmaFh(double v1, double v2, double S, double Q2)
 const
 {
-    auto fn = [this] (double t, double v1, double v2, double S, double Q2)
-              { return SigmaBrem_phik_v(t, v1, v2, S, Q2, false); };
+    auto fn = [this] (double v, double S, double Q2)
+              { return SigmaBrem_phik_t(v, S, Q2, false); };
 
-    return cana::gauss_quad(nodes, fn, t1, t2, v1, v2, S, Q2);
+    return cana::simpson_prec(fn, v1, v2, v_prec, S, Q2);
 }
 
-double PRadEpElasGen::SigmaFs(double t1, double t2, double v1, double v2, double S, double Q2)
+double PRadEpElasGen::SigmaFs(double v1, double v2, double S, double Q2)
 const
 {
-    auto fn = [this] (double t, double v1, double v2, double S, double Q2)
-              { return SigmaBrem_phik_v(t, v1, v2, S, Q2, true); };
+    auto fn = [this] (double v, double S, double Q2)
+              { return SigmaBrem_phik_t(v, S, Q2, true); };
 
-    return cana::gauss_quad(nodes, fn, t1, t2, v1, v2, S, Q2);
+    return cana::simpson_prec(fn, v1, v2, v_prec, S, Q2);
 }

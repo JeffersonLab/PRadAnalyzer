@@ -350,6 +350,7 @@ void ep_vmin_test(double energy = 2142, double v_max = 1000)
     {
         double Q2 = std::pow(10., logq2)*1e6;
         double born, non_rad, rad, xs1, xs2, xs3;
+
         ep1.GetXSdQsq(S, Q2, born, non_rad, rad);
         xs1 = non_rad + rad;
         ep2.GetXSdQsq(S, Q2, born, non_rad, rad);

@@ -41,7 +41,6 @@ namespace cana
     inline double spence_tr(double z, double res, int nmax);
 
     inline bool is_odd(int i) {return i&1;}
-    inline double minus_pow(int i) {return ((is_odd(i))?-1.:1.);}
 
     // clamp values to be restricted inside [min, max]
     template<typename T>
