@@ -67,6 +67,18 @@ inline double t_min(double Q2, double v)
     return (2.*M2*Q2 + v*(Q2 + v - sqrt(pow2(Q2 + v) + 4.*M2*Q2)))/(2.*(M2 + v));
 }
 
+inline double vt_min(double Q2, double t, double v)
+{
+    double v_t = std::max((t - Q2)*(sqrt(t) + sqrt(4.*M2 + t))/2./sqrt(t),
+                          (t - Q2)*(sqrt(t) - sqrt(4.*M2 + t))/2./sqrt(t));
+    return std::max(v, v_t);
+}
+
+inline double vt_max(double S, double Q2, double t)
+{
+    return std::max(S - Q2*S/t, S + t - Q2 - S*t/Q2);
+}
+
 //============================================================================//
 // Constructor, destructor                                                    //
 //============================================================================//
@@ -146,7 +158,7 @@ const
 
     double delta_VR, delta_vac, delta_inf, sig_AMM;
 
-    CalcVphIR(S, Q2, v2, sig_born, sig_AMM, delta_VR, delta_vac, delta_inf);
+    CalcVphIR(S, Q2, v1, sig_born, sig_AMM, delta_VR, delta_vac, delta_inf);
 
     double sig_Fs = SigmaFs(t_min(Q2, v1), t_max(Q2, v1), 0., v1, S, Q2);
 
@@ -214,7 +226,7 @@ inline double S_phi(double s, double l, double a, double b)
 // Cross section including virtual photon part and the Infrared part of the
 // photon emission of the ep elastic cross section
 // input variables S, Q^2 in MeV^2, v_max for the photonic variable in MeV^2
-void PRadEpElasGen::CalcVphIR(double S, double Q2, double v_max,
+void PRadEpElasGen::CalcVphIR(double S, double Q2, double v_min,
                               double &sig_born, double &sig_AMM,
                               double &delta_VR, double &delta_vac, double &delta_inf)
 const
@@ -232,6 +244,8 @@ const
     double L_X0 = log((X + sqrt_lX0)/(X - sqrt_lX0))/sqrt_lX0;
     double a = (S*X - 2*M2*(Q2 - 2.*m2))/2./M2;
     double b = (Q2*(S*X - M2*Q2) - m2*Q2*(Q2 + 4.*M2))/M2;
+
+    double v_max = 2.*Q2*(lambda_S - Q2*(S + m2 + M2))/(Q2*(S + 2.*m2) + sqrt(lambda_S*lambda_m));
 
     double F01, F02;
     GetHadStrFunc(Q2, F01, F02);
@@ -378,6 +392,8 @@ const
     return res;
 }
 
+auto nodes = cana::calc_legendre_nodes(2048);
+
 double PRadEpElasGen::SigmaBrem_phik_v(double t, double v1, double v2, double S, double Q2, bool finite)
 const
 {
@@ -385,7 +401,7 @@ const
     auto fn = [this] (double v, double t, double S, double Q2, bool finite)
               { return SigmaBrem_phik(v, t, S, Q2, finite); };
 
-    return cana::simpson(fn, v1, v2, 500, t, S, Q2, finite);
+    return cana::gauss_quad(nodes, fn, vt_min(Q2, t, v1), vt_max(S, Q2, t), t, S, Q2, finite);
 }
 
 double PRadEpElasGen::SigmaFh(double t1, double t2, double v1, double v2, double S, double Q2)
@@ -394,7 +410,7 @@ const
     auto fn = [this] (double t, double v1, double v2, double S, double Q2)
               { return SigmaBrem_phik_v(t, v1, v2, S, Q2, false); };
 
-    return cana::simpson(fn, t1, t2, 500, v1, v2, S, Q2);
+    return cana::gauss_quad(nodes, fn, t1, t2, v1, v2, S, Q2);
 }
 
 double PRadEpElasGen::SigmaFs(double t1, double t2, double v1, double v2, double S, double Q2)
@@ -403,5 +419,5 @@ const
     auto fn = [this] (double t, double v1, double v2, double S, double Q2)
               { return SigmaBrem_phik_v(t, v1, v2, S, Q2, true); };
 
-    return cana::simpson(fn, t1, t2, 500, v1, v2, S, Q2);
+    return cana::gauss_quad(nodes, fn, t1, t2, v1, v2, S, Q2);
 }

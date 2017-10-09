@@ -346,7 +346,7 @@ void ep_vmin_test(double energy = 2142, double v_max = 1000)
     PRadEpElasGen ep3(20., v_max);
 
     double S = 2.*energy*cana::proton_mass;
-    for(double logq2 = -4; logq2 < -2; logq2 += 0.01)
+    for(double logq2 = -4; logq2 < -2; logq2 += 0.03)
     {
         double Q2 = std::pow(10., logq2)*1e6;
         double born, non_rad, rad, xs1, xs2, xs3;
