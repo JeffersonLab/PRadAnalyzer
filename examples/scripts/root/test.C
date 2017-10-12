@@ -342,8 +342,8 @@ void ep_vmin_test(double energy = 2142, double v_max = 1000)
     TGraph *g6 = new TGraph();
 
     PRadEpElasGen ep1(1., v_max);
-    PRadEpElasGen ep2(5., v_max);
-    PRadEpElasGen ep3(20., v_max);
+    PRadEpElasGen ep2(50., v_max);
+    PRadEpElasGen ep3(200., v_max);
 
     double S = 2.*energy*cana::proton_mass;
     for(double logq2 = -4; logq2 < -2; logq2 += 0.03)
@@ -352,6 +352,7 @@ void ep_vmin_test(double energy = 2142, double v_max = 1000)
         double born, non_rad, rad, xs1, xs2, xs3;
 
         ep1.GetXSdQsq(S, Q2, born, non_rad, rad);
+        std::cout << non_rad << ", " << rad << std::endl;
         xs1 = non_rad + rad;
         ep2.GetXSdQsq(S, Q2, born, non_rad, rad);
         xs2 = non_rad + rad;

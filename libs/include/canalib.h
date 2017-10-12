@@ -14,7 +14,9 @@
 
 
 // limit of bins for simpson integration by precision
-#define MAX_SIMPSON_BINS 30000
+#define MAX_SIMPSON_BINS 50000
+// limit of bin size for simpson method (relative diff. b/a - 1.)
+#define MIN_SIMPSON_SIZE 1e-15
 
 namespace cana
 {
@@ -164,7 +166,11 @@ namespace cana
     {
         double c = (a + b)/2.;
         double f_c = f(c, args...);
-        if(++count < MAX_SIMPSON_BINS && std::abs(1. - (f_a + f_b)/2./f_c) > prec) {
+        if((++count < MAX_SIMPSON_BINS) &&
+           (f_c != 0.) &&
+           (std::abs(a/c - 1.) > MIN_SIMPSON_SIZE) &&
+           (std::abs(1. - (f_a + f_b)/2./f_c) > prec)) {
+
             return simpson_prec_helper(f, a, f_a, c, f_c, prec, count, args...)
                    + simpson_prec_helper(f, c, f_c, b, f_b, prec, count, args...);
         } else {

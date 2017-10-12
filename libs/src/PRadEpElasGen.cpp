@@ -56,24 +56,13 @@ inline double pow3(double val) {return val*val*val;}
 // power of 4
 inline double pow4(double val) {double val2 = pow2(val); return val2*val2;}
 
-// t_max, t_min
-inline double t_max(double Q2, double v)
-{
-    return (2.*M2*Q2 + v*(Q2 + v + sqrt(pow2(Q2 + v) + 4.*M2*Q2)))/(2.*(M2 + v));
-}
-
-inline double t_min(double Q2, double v)
-{
-    return (2.*M2*Q2 + v*(Q2 + v - sqrt(pow2(Q2 + v) + 4.*M2*Q2)))/(2.*(M2 + v));
-}
-
 //============================================================================//
 // Constructor, destructor                                                    //
 //============================================================================//
 
 // constructor
-PRadEpElasGen::PRadEpElasGen(double vmin, double vmax, int nbins, double t_res, double v_res)
-: v_min(vmin), v_cut(vmax), min_bins(nbins), t_prec(t_res), v_prec(v_res)
+PRadEpElasGen::PRadEpElasGen(double vmin, double vmax, int nbins, double q2_res, double v_res)
+: v_min(vmin), v_cut(vmax), min_bins(nbins), q2_prec(q2_res), v_prec(v_res)
 {
     // place holder
 }
@@ -278,18 +267,17 @@ const
 }
 
 // The Bremsstrahlung differential cross section with hard photon emission
-// radiative cross section dsig/dQ2/dt/dv/dphik
-// t = Q2 + tau*v/(1 + tau) = Q2 + R*tau
-double PRadEpElasGen::SigmaBrem(double v, double t, double phik, double S, double Q2)
+// radiative cross section dsig/dQ2/dtau/dv/dphik
+double PRadEpElasGen::SigmaBrem(double v, double tau, double phik, double S, double Q2, bool finite)
 const
 {
     // varibles to simplify equations
     double lambda_S = S*S - 4.*m2*M2;
-    double R = Q2 + v - t; // R = v/(1 + tau)
+    double R = v/(1. + tau);
+    double t = Q2 + tau*R;
     double X = S - R - t;
     double SmX = S - X; // R + t = Q2 + v
     double SpX = S + X;
-    double tau = (t - Q2)/R;
 
     // equation (13)
     double lambda_Y = SmX*SmX + 4.*M2*Q2;
@@ -311,36 +299,46 @@ const
 
     double F_IR = F_2p - (Q2 + 2.*m2)*F_d;
 
-    // equation (16) ~ (21)
-    double theta_11 = 4.*(Q2 - 2.*m2)*F_IR;
-    double theta_12 = 4.*tau*F_IR;
-    double theta_13 = -4.*F - 2.*tau*tau*F_d;
-    double theta_21 = 2.*(S*X - M2*Q2)*F_IR/M2;
-    double theta_22 = (2.*SpX*F_2m + SpX*SmX*F_1p + 2.*(SmX - 2.*M2*tau)*F_IR - tau*SpX*SpX*F_d)/2./M2;
-    double theta_23 = (4.*M2*F + (4.*m2 + 2.*M2*tau*tau - SmX*tau)*F_d - SpX*F_1p)/2./M2;
+    // equation (43)
+    double res;
+    // second term
+    if(finite) {
+        res = alp_pi*F_IR/R*SigmaBorn(S, Q2)/(1. + tau);
+    // first term
+    } else {
+        // equation (16) ~ (21)
+        double theta_11 = 4.*(Q2 - 2.*m2)*F_IR;
+        double theta_12 = 4.*tau*F_IR;
+        double theta_13 = -4.*F - 2.*tau*tau*F_d;
+        double theta_21 = 2.*(S*X - M2*Q2)*F_IR/M2;
+        double theta_22 = (2.*SpX*F_2m + SpX*SmX*F_1p + 2.*(SmX - 2.*M2*tau)*F_IR - tau*SpX*SpX*F_d)/2./M2;
+        double theta_23 = (4.*M2*F + (4.*m2 + 2.*M2*tau*tau - SmX*tau)*F_d - SpX*F_1p)/2./M2;
 
-    double theta_1j = theta_11/R/R + theta_12/R + theta_13;
-    double theta_2j = theta_21/R/R + theta_22/R + theta_23;
+        // R^(j - 2)*theta_ij
+        double theta_1j = theta_11/R + theta_12 + theta_13*R;
+        double theta_2j = theta_21/R + theta_22 + theta_23*R;
 
-    double F01, F02;
-    GetHadStrFunc(t, F01, F02);
+        double F01, F02;
+        GetHadStrFunc(t, F01, F02);
 
-    // equation (43), first part
-    return -alp3/2./lambda_S*(theta_1j*F01 + theta_2j*F02)/t/t;
+        res = -alp3/2./lambda_S*(theta_1j*F01 + theta_2j*F02)/t/t/(1. + tau);
+    }
+
+    return res;
 }
 
-// Analytical integration of SigmaBrem over phik dsig/dQ2/dt/dv
+// Analytical integration of SigmaBrem over phik dsig/dQ2/dtau/dv
 // finite = true means the finite part of this differential cross section
-double PRadEpElasGen::SigmaBrem_phik(double v, double t, double S, double Q2, bool finite)
+double PRadEpElasGen::SigmaBrem_phik(double v, double tau, double S, double Q2, bool finite)
 const
 {
     // varibles to simplify equations
     double lambda_S = S*S - 4.*m2*M2;
-    double R = Q2 + v - t; // R = v/(1 + tau)
+    double R = v/(1. + tau);
+    double t = Q2 + tau*R;
     double X = S - R - t;
     double SmX = S - X; // R + t = Q2 + v
     double SpX = S + X;
-    double tau = (t - Q2)/R;
 
     double lambda_Y = SmX*SmX + 4.*M2*Q2;
     double sqrt_lY = sqrt(lambda_Y);
@@ -361,55 +359,69 @@ const
 
     double F_IR = F_2p - (Q2 + 2.*m2)*F_d;
 
-    // equation (16) ~ (21)
-    double theta_11 = 4.*(Q2 - 2.*m2)*F_IR;
-    double theta_12 = 4.*tau*F_IR;
-    double theta_13 = -4.*F - 2.*tau*tau*F_d;
-    double theta_21 = 2.*(S*X - M2*Q2)*F_IR/M2;
-    double theta_22 = (2.*SpX*F_2m + SpX*SmX*F_1p + 2.*(SmX - 2.*M2*tau)*F_IR - tau*SpX*SpX*F_d)/2./M2;
-    double theta_23 = (4.*M2*F + (4.*m2 + 2.*M2*tau*tau - SmX*tau)*F_d - SpX*F_1p)/2./M2;
-
-    double theta_1j = theta_11/R/R + theta_12/R + theta_13;
-    double theta_2j = theta_21/R/R + theta_22/R + theta_23;
-
-    double F01, F02;
-    GetHadStrFunc(t, F01, F02);
-
     // equation (43)
-    double res = -alp3/2./lambda_S*(theta_1j*F01 + theta_2j*F02)/t/t;
-
+    double res;
+    // second term
     if(finite) {
-        res += alp_pi*F_IR/R/R*SigmaBorn(S, Q2);
+        res = alp_pi*F_IR/R*SigmaBorn(S, Q2)/(1. + tau);
+    // first term
+    } else {
+        // equation (16) ~ (21)
+        double theta_11 = 4.*(Q2 - 2.*m2)*F_IR;
+        double theta_12 = 4.*tau*F_IR;
+        double theta_13 = -4.*F - 2.*tau*tau*F_d;
+        double theta_21 = 2.*(S*X - M2*Q2)*F_IR/M2;
+        double theta_22 = (2.*SpX*F_2m + SpX*SmX*F_1p + 2.*(SmX - 2.*M2*tau)*F_IR - tau*SpX*SpX*F_d)/2./M2;
+        double theta_23 = (4.*M2*F + (4.*m2 + 2.*M2*tau*tau - SmX*tau)*F_d - SpX*F_1p)/2./M2;
+
+        // R^(j - 2)*theta_ij
+        double theta_1j = theta_11/R + theta_12 + theta_13*R;
+        double theta_2j = theta_21/R + theta_22 + theta_23*R;
+
+        double F01, F02;
+        GetHadStrFunc(t, F01, F02);
+
+        res = -alp3/2./lambda_S*(theta_1j*F01 + theta_2j*F02)/t/t/(1. + tau);
     }
 
     return res;
 }
 
-// numerical integration of SigmaBrem_phik over t, dsig/dQ2/dv
-double PRadEpElasGen::SigmaBrem_phik_t(double v, double S, double Q2, bool finite)
+// numerical integration of SigmaBrem_phik over tau, dsig/dQ2/dv
+// finite = true means the integration of the second term of equation (43)
+double PRadEpElasGen::SigmaBrem_phik_tau(double v, double S, double Q2, bool finite, double prec)
 const
 {
     // wrapper of member function
-    auto fn = [this] (double t, double v, double S, double Q2, bool finite)
-              { return SigmaBrem_phik(v, t, S, Q2, finite); };
+    auto fn = [this] (double tau, double v, double S, double Q2, bool finite)
+              { return SigmaBrem_phik(v, tau, S, Q2, finite); };
 
-    return cana::simpson(fn, t_min(Q2, v), t_max(Q2, v), 10000, v, S, Q2, finite);
+    // equation (13), tau range
+    double sqrt_lY = sqrt(pow2(Q2 + v) + 4.*M2*Q2);
+    double tau_min = (Q2 + v - sqrt_lY)/2./M2;
+    double tau_max = (Q2 + v + sqrt_lY)/2./M2;
+
+    return cana::simpson_prec(fn, tau_min, tau_max, prec, v, S, Q2, finite);
 }
 
+// hard Bremsstrahlung part
 double PRadEpElasGen::SigmaFh(double v1, double v2, double S, double Q2)
 const
 {
     auto fn = [this] (double v, double S, double Q2)
-              { return SigmaBrem_phik_t(v, S, Q2, false); };
+              { return SigmaBrem_phik_tau(v, S, Q2, false, 1e-4); };
 
     return cana::simpson_prec(fn, v1, v2, v_prec, S, Q2);
 }
 
+// soft Bremsstrahlung part
 double PRadEpElasGen::SigmaFs(double v1, double v2, double S, double Q2)
 const
 {
+    // two terms are separated because it helps the integration converge
     auto fn = [this] (double v, double S, double Q2)
-              { return SigmaBrem_phik_t(v, S, Q2, true); };
+              { return SigmaBrem_phik_tau(v, S, Q2, true, 1e-4)
+                       + SigmaBrem_phik_tau(v, S, Q2, false, 1e-4);};
 
     return cana::simpson_prec(fn, v1, v2, v_prec, S, Q2);
 }

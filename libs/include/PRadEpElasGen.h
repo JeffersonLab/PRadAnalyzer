@@ -9,7 +9,7 @@ class PRadEpElasGen
 {
 public:
     PRadEpElasGen(double vmin = 5, double vmax = 400, int mbins = 100,
-                  double t_res = 1e-6, double v_res = 1e-4);
+                  double q2_res = 1e-6, double v_res = 1e-4);
     virtual ~PRadEpElasGen();
 
 
@@ -20,9 +20,9 @@ public:
 
     double SigmaBorn(double S, double Q2) const;
     double SigmaVphIR(double S, double Q2, double v_min) const;
-    double SigmaBrem(double v, double t, double phik, double S, double Q2) const;
-    double SigmaBrem_phik(double v, double t, double S, double Q2, bool finite) const;
-    double SigmaBrem_phik_t(double v, double S, double Q2, bool finite) const;
+    double SigmaBrem(double v, double tau, double phik, double S, double Q2, bool finite) const;
+    double SigmaBrem_phik(double v, double tau, double S, double Q2, bool finite) const;
+    double SigmaBrem_phik_tau(double v, double S, double Q2, bool finite, double prec) const;
     double SigmaFh(double v1, double v2, double S, double Q2) const;
     double SigmaFs(double v1, double v2, double S, double Q2) const;
 
@@ -33,7 +33,7 @@ private:
     // minimum theta bins
     unsigned int min_bins;
     // required theta interpolation precision
-    double t_prec, v_prec;
+    double q2_prec, v_prec;
 };
 
 #endif
