@@ -56,6 +56,17 @@ inline double pow3(double val) {return val*val*val;}
 // power of 4
 inline double pow4(double val) {double val2 = pow2(val); return val2*val2;}
 
+inline double tau_ext1(double v, double S, double Q2)
+{
+    return 1./(8.*m2*M2 + 2.*S*S)*(4.*m2*(Q2 + 1.) - 2.*S*Q2);
+}
+
+inline double tau_ext2(double v, double S, double Q2)
+{
+    double X = S - Q2 - v;
+    return 1./(8.*m2*M2 + 2.*X*X)*(4.*m2*(Q2 + 1.) + 2.*X*Q2);
+}
+
 //============================================================================//
 // Constructor, destructor                                                    //
 //============================================================================//
@@ -289,7 +300,8 @@ const
     double lambda_Z = (tau - tau_min)*(tau_max - tau)*(S*X*Q2 - M2*Q2*Q2 - m2*lambda_Y);
     double sqrt_lZ = sqrt(lambda_Z);
     double z1 = (Q2*SpX + tau*(S*SmX + 2.*M2*Q2) - 2.*M*cos(phik)*sqrt_lZ)/lambda_Y;
-    double z2 = (Q2*SpX + tau*(S*SmX - 2.*M2*Q2) - 2.*M*cos(phik)*sqrt_lZ)/lambda_Y;
+    // NOTICE, probably typo in the original paper
+    double z2 = (Q2*SpX + tau*(X*SmX - 2.*M2*Q2) - 2.*M*cos(phik)*sqrt_lZ)/lambda_Y;
 
     double F = 1./(sqrt_lY*twopi);
     double F_d = F/(z1*z2);
@@ -401,7 +413,13 @@ const
     double tau_min = (Q2 + v - sqrt_lY)/2./M2;
     double tau_max = (Q2 + v + sqrt_lY)/2./M2;
 
-    return cana::simpson_prec(fn, tau_min, tau_max, prec, v, S, Q2, finite);
+    // high peak at the center
+    double tau_step = (tau_max - tau_min)*0.01;
+    double tau_left = tau_ext1(v, S, Q2) - tau_step, tau_right = tau_ext2(v, S, Q2) + tau_step;
+    double res1 = cana::simpson(fn, tau_min, tau_left, 200, v, S, Q2, finite);
+    double res2 = cana::simpson_prec(fn, tau_left, tau_right, prec, v, S, Q2, finite);
+    double res3 = cana::simpson(fn, tau_right, tau_max, 200, v, S, Q2, finite);
+    return res1 + res2 + res3;
 }
 
 // hard Bremsstrahlung part

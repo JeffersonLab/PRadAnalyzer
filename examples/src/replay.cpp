@@ -22,17 +22,6 @@
 
 using namespace std;
 
-void print_instruction()
-{
-    cout << "usage: replay <in_file> <out_file>" << endl
-         << "\t" << "-s <value>: spliting file number, default -1 (no splitting)\n"
-         << "\t" << "--init-evio: initialize from evio.0 file\n"
-         << "\t" << "--init-database: initialize from database\n"
-         << "\t" << "-r <value>: only has effect if --init-database is set, default -1 (determined from file name)\n"
-         << "\t" << "-h " << "show options\n"
-         << endl;
-}
-
 int main(int argc, char * argv[])
 {
     ConfigOption conf_opt;
