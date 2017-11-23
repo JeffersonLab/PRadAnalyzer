@@ -6,6 +6,7 @@
 #include <string>
 #include <iostream>
 #include <unordered_map>
+#include "generalstruct.h"
 #include "PRadException.h"
 #include "PRadHyCalModule.h"
 #include "PRadDetector.h"
@@ -16,6 +17,7 @@
 #define CORNER_ADJACENT 1.5
 // value to judge if two modules are sharing a side line
 #define SIDE_ADJACENT 1.3
+
 
 class PRadHyCalSystem;
 class PRadHyCalCluster;
@@ -38,6 +40,12 @@ public:
         Max_Sector,
     };
 
+    struct SectorInfo
+    {
+        std::vector<Point2D<double>> boundpts;
+        double msize_x, msize_y;
+    };
+
 public:
     // constructor
     PRadHyCalDetector(const std::string &name = "HyCal", PRadHyCalSystem *sys = nullptr);
@@ -58,6 +66,7 @@ public:
     void UnsetSystem(bool force_unset = false);
     virtual bool ReadModuleList(const std::string &path);
     bool ReadCalibrationFile(const std::string &path);
+    void UpdateSectorInfo();
     void SaveModuleList(const std::string &path) const;
     void SaveCalibrationFile(const std::string &path) const;
     bool AddModule(PRadHyCalModule *module);
@@ -90,6 +99,9 @@ public:
     std::vector<HyCalHit> &GetHits() {return hycal_hits;}
     const std::vector<HyCalHit> &GetHits() const {return hycal_hits;}
 
+    // module related
+    double QuantizedDist(PRadHyCalModule *m1, PRadHyCalModule *m2) const;
+
 public:
     static int get_sector_id(const char *name);
     static const char *get_sector_name(int sec);
@@ -113,6 +125,7 @@ protected:
     std::vector<ModuleHit> dead_hits;
     std::vector<ModuleCluster> module_clusters;
     std::vector<HyCalHit> hycal_hits;
+    std::vector<SectorInfo> sector_info;
 };
 
 #endif

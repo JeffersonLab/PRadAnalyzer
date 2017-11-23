@@ -225,6 +225,9 @@ bool HyCalScene::ReadModuleList(const std::string &path)
     // sort the module by id
     SortModuleList();
 
+    // update sector information
+    UpdateSectorInfo();
+
     return true;
 }
 

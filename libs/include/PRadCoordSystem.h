@@ -10,6 +10,8 @@
 #include "PRadEventStruct.h"
 
 
+typedef Point3D<float> Point;
+typedef Transform3D<float> DetCoord;
 
 // coordinates information in a run
 struct RunCoord
@@ -116,7 +118,7 @@ public:
                     int det_id = (int)PRadDetector::HyCal)
     const
     {
-        float zf = current_coord.dets[det_id].z_ori;
+        float zf = current_coord.dets[det_id].trans.z;
         Projection(t.x, t.y, t.z, pi.x, pi.y, pi.z, zf);
     }
 
@@ -136,7 +138,7 @@ public:
                     int det_id = (int)PRadDetector::HyCal)
     const
     {
-        float zf = current_coord.dets[det_id].z_ori;
+        float zf = current_coord.dets[det_id].trans.z;
         for(int i = 0; i < NCluster; ++i)
         {
             Projection(t[i].x, t[i].y, t[i].z, pi.x, pi.y, pi.z, zf);
@@ -159,7 +161,7 @@ public:
                     int det_id = (int)PRadDetector::HyCal)
     const
     {
-        float zf = current_coord.dets[det_id].z_ori;
+        float zf = current_coord.dets[det_id].trans.z;
         for(T_it it = first; it != last; ++it)
         {
             Projection((*it).x, (*it).y, (*it).z, pi.x, pi.y, pi.z, zf);

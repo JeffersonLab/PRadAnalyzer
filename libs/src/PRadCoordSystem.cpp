@@ -208,25 +208,25 @@ const
     // Rx(a) = ( 1           0         0  )
     //         ( 0       cos(a)   -sin(a) )
     //         ( 0       sin(a)    cos(a) )
-    y = y*cos(coord.theta_x*0.001) + z*sin(coord.theta_x*0.001);
-    z = -y*sin(coord.theta_x*0.001) + z*cos(coord.theta_x*0.001);
+    y = y*cos(coord.rot.x*0.001) + z*sin(coord.rot.x*0.001);
+    z = -y*sin(coord.rot.x*0.001) + z*cos(coord.rot.x*0.001);
 
     // Ry(a) = ( cos(a)      0     sin(a) )
     //         ( 0           1         0  )
     //         (-sin(a)      0     cos(a) )
-    x = x*cos(coord.theta_y*0.001) - z*sin(coord.theta_y*0.001);
-    z = x*sin(coord.theta_y*0.001) + z*cos(coord.theta_x*0.001);
+    x = x*cos(coord.rot.y*0.001) - z*sin(coord.rot.y*0.001);
+    z = x*sin(coord.rot.y*0.001) + z*cos(coord.rot.x*0.001);
 
     // Rz(a) = ( cos(a) -sin(a)        0  )
     //         ( sin(a)  cos(a)        0  )
     //         ( 0           0         1  )
-    x = x*cos(coord.theta_z*0.001) + y*sin(coord.theta_z*0.001);
-    y = -x*sin(coord.theta_z*0.001) + y*cos(coord.theta_z*0.001);
+    x = x*cos(coord.rot.z*0.001) + y*sin(coord.rot.z*0.001);
+    y = -x*sin(coord.rot.z*0.001) + y*cos(coord.rot.z*0.001);
 
     // then correct the origin
-    x += coord.x_ori;
-    y += coord.y_ori;
-    z += coord.z_ori;
+    x += coord.trans.x;
+    y += coord.trans.y;
+    z += coord.trans.z;
 }
 
 // projection from (xi, yi, zi) to zf
@@ -284,12 +284,12 @@ std::ostream &operator <<(std::ostream &os, const RunCoord &coord)
         const auto &det = coord.dets.at(i);
         os << std::setw(8)  << coord.run_number
            << std::setw(12) << PRadDetector::getName(i)
-           << std::setw(12) << det.x_ori
-           << std::setw(12) << det.y_ori
-           << std::setw(12) << det.z_ori
-           << std::setw(8) << det.theta_x
-           << std::setw(8) << det.theta_y
-           << std::setw(8) << det.theta_z
+           << std::setw(12) << det.trans.x
+           << std::setw(12) << det.trans.y
+           << std::setw(12) << det.trans.z
+           << std::setw(8) << det.rot.x
+           << std::setw(8) << det.rot.y
+           << std::setw(8) << det.rot.z
            << std::endl;
     }
 

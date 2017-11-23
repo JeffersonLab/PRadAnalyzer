@@ -186,6 +186,18 @@ const
     return 0.;
 }
 
+void PRadHyCalModule::GetBoundaries(double &xmin, double &ymin, double &zmin,
+                                    double &xmax, double &ymax, double &zmax)
+const
+{
+    xmin = geometry.x - geometry.size_x/2.;
+    xmax = geometry.x + geometry.size_x/2.;
+    ymin = geometry.y - geometry.size_y/2.;
+    ymax = geometry.y + geometry.size_y/2.;
+    zmin = geometry.z - geometry.size_z/2.;
+    zmax = geometry.z + geometry.size_z/2.;
+}
+
 //============================================================================//
 // Public Static Member Functions                                             //
 //============================================================================//
@@ -196,7 +208,7 @@ int PRadHyCalModule::name_to_primex_id(const std::string &name)
     try {
         // lead tungstate module
         if(name.at(0) == 'W' || name.at(0) == 'w')
-            return std::stoi(name.substr(1)) + 1000;
+            return std::stoi(name.substr(1)) + PWO_ID0;
 
         // lead glass module
         if(name.at(0) == 'G' || name.at(0) == 'g')

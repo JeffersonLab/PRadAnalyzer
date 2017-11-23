@@ -53,6 +53,37 @@ namespace cana
         return val;
     }
 
+    // get the intersection
+    // of line (x1, y1) (x2, y2) and line (x3, y3) (x4, y4)
+    // return status
+    // -1 two lines are parallel, no intersection point found
+    // 0 intersection point found, within both line segments
+    // 1 intersection point found, out of the former line segment (x1, y1)&(x2, y2)
+    // 2 intersection point found, out of the latter line segment (x3, y3)&(x4, y4)
+    // 3 intersection point found, out of both line segments
+    template<typename T>
+    inline int intersection(T x1, T y1, T x2, T y2, T x3, T y3, T x4, T y4,
+                            T &xc, T &yc, T inf = 0.001)
+    {
+        // denominator
+        double denom = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4);
+
+        // parallel
+        if(std::abs(denom) < inf) return -1;
+
+        // find the cross point
+        xc = ((x1*y2 - y1*x2)*(x3 - x4) - (x3*y4 - y3*x4)*(x1 - x2))/denom;
+        yc = ((x1*y2 - y1*x2)*(y3 - y4) - (x3*y4 - y3*x4)*(y1 - y2))/denom;
+
+        // check if the cross point is on the boundary line
+        bool out_of_line1 = ((x1 - xc)*(xc - x2) < -inf) || ((y1 - yc)*(yc - y2) < -inf);
+        bool out_of_line2 = ((x3 - xc)*(xc - x4) < -inf) || ((y3 - yc)*(yc - y4) < -inf);
+
+        int status = (out_of_line1) ? 1 : 0;
+        status += (out_of_line2) ? 2 : 0;
+        return status;
+    }
+
     // linear interpolation of two points (x1, y1), (x2, y2)
     template<typename T>
     inline T linear_interp(T x1, T y1, T x2, T y2, T val)

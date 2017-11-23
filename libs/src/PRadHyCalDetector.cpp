@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
+#include "canalib.h"
 
 
 // enum name lists
@@ -175,6 +176,9 @@ bool PRadHyCalDetector::ReadModuleList(const std::string &path)
 
     // sort the module by id
     SortModuleList();
+
+    // update sector information
+    UpdateSectorInfo();
 
     return true;
 }
@@ -526,6 +530,119 @@ const
     return energy;
 }
 
+
+void PRadHyCalDetector::UpdateSectorInfo()
+{
+    int Ns = static_cast<int>(Max_Sector);
+    sector_info.clear();
+    sector_info.resize(Ns);
+    std::vector<bool> init(Ns, false);
+    std::vector<double> xmin(Ns), ymin(Ns), xmax(Ns), ymax(Ns);
+
+    double x1, y1, z1, x2, y2, z2;
+    for(auto &module : module_list)
+    {
+        int i = module->GetSectorID();
+        if(i < 0 || i >= Ns)
+            continue;
+
+        module->GetBoundaries(x1, y1, z1, x2, y2, z2);
+        // update boundary
+        if(init[i]) {
+            xmin[i] = std::min(xmin[i], x1);
+            ymin[i] = std::min(ymin[i], y1);
+            xmax[i] = std::max(xmax[i], x2);
+            ymax[i] = std::max(ymax[i], y2);
+        // initialize
+        } else {
+            xmin[i] = x1;
+            ymin[i] = y1;
+            xmax[i] = x2;
+            ymax[i] = y2;
+            init[i] = true;
+            sector_info[i].msize_x = module->GetSizeX();
+            sector_info[i].msize_y = module->GetSizeY();
+        }
+    }
+
+    // form boundary points
+    for(int i = 0; i < Ns; ++i)
+    {
+        sector_info[i].boundpts.clear();
+        // align in counter-clockwise
+        sector_info[i].boundpts.emplace_back(xmin[i], ymax[i]);
+        sector_info[i].boundpts.emplace_back(xmin[i], ymin[i]);
+        sector_info[i].boundpts.emplace_back(xmax[i], ymin[i]);
+        sector_info[i].boundpts.emplace_back(xmax[i], ymax[i]);
+    }
+}
+
+// the distance quantized by the module size
+// module size is dependent on the Moliere radius
+double PRadHyCalDetector::QuantizedDist(PRadHyCalModule *m1, PRadHyCalModule *m2)
+const
+{
+    double x1 = m1->GetX(), y1 = m1->GetY(), x2 = m2->GetX(), y2 = m2->GetY();
+    double dx = 0., dy = 0.;
+    // in the same sector
+    if(m1->GetSectorID() == m2->GetSectorID()) {
+        dx = (x1 - x2)/m1->GetSizeX();
+        dy = (y1 - y2)/m1->GetSizeY();
+
+    // in different sectors, and with different types of module
+    // NOTICE highly specific for the current HyCal layout
+    // the center sector is for crystal modules
+    } else if (m1->GetType() != m2->GetType()) {
+        auto &boundary = sector_info[static_cast<int>(Center)].boundpts;
+        for(size_t i = 0; i < boundary.size(); ++i)
+        {
+            // boundary line from two points
+            size_t ip = (i == 0) ? boundary.size() - 1 : i - 1;
+            auto &p1 = boundary[ip], &p2 = boundary[i];
+
+            double xc = 0., yc = 0.;
+            int inter = cana::intersection(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2, xc, yc);
+
+            if(inter == 0) {
+                dx = (x1 - xc)/m1->GetSizeX() + (xc - x2)/m2->GetSizeX();
+                dy = (y1 - yc)/m1->GetSizeX() + (yc - y2)/m2->GetSizeY();
+                // there will be only one boundary satisfies all the conditions
+                break;
+            }
+        }
+    // in different sectors but with the same type of module
+    } else {
+        // 2 possibilities, pass through the center part or not
+        auto &spwo = sector_info[static_cast<int>(Center)];
+
+        double xc[2], yc[2];
+        int ic = 0;
+        for(size_t i = 0; i < spwo.boundpts.size(); ++i)
+        {
+            size_t ip = (i == 0) ? spwo.boundpts.size() - 1 : i - 1;
+            auto &p1 = spwo.boundpts[ip], &p2 = spwo.boundpts[i];
+            int inter = cana::intersection(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2, xc[ic], yc[ic]);
+
+            // find two points
+            if(inter == 0 && ic++ > 0) break;
+        }
+
+        if(ic > 1) {
+            double dxc = std::abs(xc[0] - xc[1]);
+            double dyc = std::abs(yc[0] - yc[1]);
+            double dxt = std::abs(x1 - x2) - dxc;
+            double dyt = std::abs(y1 - y2) - dyc;
+            dx = dxt/m1->GetSizeX() + dxc/spwo.msize_x;
+            dy = dyt/m1->GetSizeY() + dyc/spwo.msize_y;
+        } else {
+            dx = (x1 - x2)/(m1->GetSizeX());
+            dy = (y1 - y2)/(m1->GetSizeY());
+        }
+    }
+
+    return sqrt(dx*dx + dy*dy);
+}
+
 // using primex id to get layout information
 // TODO now it is highly specific to the current HyCal layout, make it configurable
 void PRadHyCalDetector::setLayout(PRadHyCalModule &module)
@@ -536,9 +653,9 @@ const
 
     // calculate geometry information
     flag = 0;
-    if(pid > 1000) {
+    if(pid > PWO_ID0) {
         // crystal module
-        pid -= 1001;
+        pid -= PWO_ID0 + 1;
         sector = (int)Center;
         row = pid/34 + 1;
         col = pid%34 + 1;

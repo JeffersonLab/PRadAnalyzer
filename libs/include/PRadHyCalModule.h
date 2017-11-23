@@ -8,6 +8,10 @@
 // Geometry and Layout definition
 #include "generalstruct.h"
 
+// crystal module starts from id 1000
+#define PWO_ID0 1000
+
+
 class PRadHyCalDetector;
 class PRadADCChannel;
 class PRadTDCChannel;
@@ -87,6 +91,7 @@ public:
     double GetSizeX() const {return geometry.size_x;}
     double GetSizeY() const {return geometry.size_y;}
     double GetSizeZ() const {return geometry.size_z;}
+    void GetBoundaries(double &xmin, double &ymin, double &zmin, double &xmax, double &ymax, double &zmax) const;
     int GetSectorID() const {return layout.sector;}
     std::string GetSectorName() const;
     int GetRow() const {return layout.row;}

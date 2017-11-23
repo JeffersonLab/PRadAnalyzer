@@ -40,65 +40,56 @@ struct Layout
     {};
 };
 
-// 3D point
-struct Point
+// 2D point
+template<typename T>
+struct Point2D
 {
-    float x;
-    float y;
-    float z;
+    T x, y;
 
-    Point() : x(0), y(0), z(0)
-    {};
-    Point(float xi, float yi, float zi)
-    : x(xi), y(yi), z(zi)
-    {};
+    Point2D() : x(0.), y(0.) {}
+    Point2D(T xi, T yi) : x(xi), y(yi) {}
 };
 
-// detector coordinates in a certain frame
-struct DetCoord
+// 3D point
+template<typename T>
+struct Point3D
 {
-    float x_ori;    // origin x
-    float y_ori;    // origin y
-    float z_ori;    // origin z
-    float theta_x;  // tilting angle on x axis
-    float theta_y;  // tilting angle on y axis
-    float theta_z;  // tilting angle on z axis
+    T x, y, z;
 
-    DetCoord()
-    : x_ori(0), y_ori(0), z_ori(0),
-      theta_x(0), theta_y(0), theta_z(0)
-    {};
+    Point3D() : x(0.), y(0.), z(0.) {}
+    Point3D(T xi, T yi, T zi) : x(xi), y(yi), z(zi) {}
+};
 
-    DetCoord(float x, float y, float z)
-    : x_ori(x), y_ori(y), z_ori(z),
-      theta_x(0), theta_y(0), theta_z(0)
-    {};
+// 3D transformation
+template<typename T>
+struct Transform3D
+{
+    Point3D<T> trans, rot;
 
-    DetCoord(float x, float y, float z, float tx, float ty, float tz)
-    : x_ori(x), y_ori(y), z_ori(z),
-      theta_x(tx), theta_y(ty), theta_z(tz)
-    {};
+    Transform3D() : trans(0., 0., 0.), rot(0. ,0. ,0.) {}
+    Transform3D(T x, T y, T z) : trans(x, y, z), rot(0., 0., 0.) {}
+    Transform3D(T x, T y, T z, T rx, T ry, T rz) : trans(x, y, z), rot(rx, ry, rz) {}
 
     // these functions help to retrieve values in array or set values in array
-    float GetCoord(int i)
+    T GetCoord(int i)
     {
-        if(i == 0) return x_ori;
-        if(i == 1) return y_ori;
-        if(i == 2) return z_ori;
-        if(i == 3) return theta_x;
-        if(i == 4) return theta_y;
-        if(i == 5) return theta_z;
+        if(i == 0) return trans.x;
+        if(i == 1) return trans.y;
+        if(i == 2) return trans.z;
+        if(i == 3) return rot.x;
+        if(i == 4) return rot.y;
+        if(i == 5) return rot.z;
         return 0.;
     }
 
-    void SetCoord(int i, float val)
+    void SetCoord(int i, T val)
     {
-        if(i == 0) x_ori = val;
-        if(i == 1) y_ori = val;
-        if(i == 2) z_ori = val;
-        if(i == 3) theta_x = val;
-        if(i == 4) theta_y = val;
-        if(i == 5) theta_z = val;
+        if(i == 0) trans.x = val;
+        if(i == 1) trans.y = val;
+        if(i == 2) trans.z = val;
+        if(i == 3) rot.x = val;
+        if(i == 4) rot.y = val;
+        if(i == 5) rot.z = val;
     }
 };
 

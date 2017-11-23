@@ -61,6 +61,7 @@ int main(int /*argc*/, char * /*argv*/ [])
 
     // test reconstruction performance
 //    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
+
     dst_parser->OpenInput("prad_1310_select.dst");
     dst_parser->OpenOutput("prad_1310_leak.dst");
     TFile *f = new TFile("prad_1310_cluster.root", "RECREATE");
