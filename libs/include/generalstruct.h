@@ -7,12 +7,8 @@
 struct Geometry
 {
     int type;
-    double size_x;
-    double size_y;
-    double size_z;
-    double x;
-    double y;
-    double z;
+    double size_x, size_y, size_z;
+    double x, y, z;
 
     Geometry()
     : type(-1), size_x(0), size_y(0), size_z(0), x(0), y(0), z(0)
@@ -28,9 +24,7 @@ struct Geometry
 struct Layout
 {
     unsigned int flag;
-    int sector;
-    int row;
-    int column;
+    int sector, row, column;
 
     Layout() : flag(0), sector(-1), row(0), column(0)
     {};

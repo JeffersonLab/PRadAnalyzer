@@ -16,6 +16,7 @@ public:
     void InitializeWeights();
     void SetLearnFactor(double f) {learn_factor = f;}
     void SetNormFactor(double n) {output_norm = n;}
+    void SetShift(double s) {output_shift = s;}
     void Update(const std::vector<double> &input);
     void Train(const std::vector<double> &input, const std::vector<double> &expect);
 
@@ -30,7 +31,7 @@ private:
     std::vector<CNeuronLayer> layers;
     std::vector<double> output;
     double learn_factor;
-    double output_norm;
+    double output_norm, output_shift;
 };
 
 #endif

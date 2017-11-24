@@ -186,8 +186,8 @@ const
     return 0.;
 }
 
-void PRadHyCalModule::GetBoundaries(double &xmin, double &ymin, double &zmin,
-                                    double &xmax, double &ymax, double &zmax)
+void PRadHyCalModule::GetBoundary(double &xmin, double &ymin, double &zmin,
+                                  double &xmax, double &ymax, double &zmax)
 const
 {
     xmin = geometry.x - geometry.size_x/2.;

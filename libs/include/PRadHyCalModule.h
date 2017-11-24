@@ -75,6 +75,7 @@ public:
     bool IsLeadGlass() const {return geometry.type == PbGlass;}
 
     // get members
+    PRadHyCalDetector *GetDetector() const {return detector;};
     unsigned short GetID() const {return id;}
     const std::string &GetName() const {return name;}
     const Geometry &GetGeometry() const {return geometry;}
@@ -91,7 +92,7 @@ public:
     double GetSizeX() const {return geometry.size_x;}
     double GetSizeY() const {return geometry.size_y;}
     double GetSizeZ() const {return geometry.size_z;}
-    void GetBoundaries(double &xmin, double &ymin, double &zmin, double &xmax, double &ymax, double &zmax) const;
+    void GetBoundary(double &xmin, double &ymin, double &zmin, double &xmax, double &ymax, double &zmax) const;
     int GetSectorID() const {return layout.sector;}
     std::string GetSectorName() const;
     int GetRow() const {return layout.row;}

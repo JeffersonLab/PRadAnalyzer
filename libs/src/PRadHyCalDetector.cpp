@@ -36,7 +36,7 @@ PRadHyCalDetector::PRadHyCalDetector(const std::string &det, PRadHyCalSystem *sy
 PRadHyCalDetector::PRadHyCalDetector(const PRadHyCalDetector &that)
 : PRadDetector(that), system(nullptr), module_hits(that.module_hits),
   dead_hits(that.dead_hits), module_clusters(that.module_clusters),
-  hycal_hits(that.hycal_hits)
+  hycal_hits(that.hycal_hits), sector_info(that.sector_info)
 {
     for(auto module : that.module_list)
     {
@@ -49,7 +49,8 @@ PRadHyCalDetector::PRadHyCalDetector(PRadHyCalDetector &&that)
 : PRadDetector(that), system(nullptr), module_list(std::move(that.module_list)),
   id_map(std::move(that.id_map)), name_map(std::move(that.name_map)),
   module_hits(std::move(that.module_hits)), dead_hits(std::move(that.dead_hits)),
-  module_clusters(std::move(that.module_clusters)), hycal_hits(std::move(that.hycal_hits))
+  module_clusters(std::move(that.module_clusters)), hycal_hits(std::move(that.hycal_hits)),
+  sector_info(std::move(that.sector_info))
 {
     // reset the connections between module and HyCal
     for(auto module : module_list)
@@ -95,6 +96,7 @@ PRadHyCalDetector &PRadHyCalDetector::operator =(PRadHyCalDetector &&rhs)
     dead_hits = std::move(rhs.dead_hits);
     module_clusters = std::move(rhs.module_clusters);
     hycal_hits = std::move(rhs.hycal_hits);
+    sector_info = std::move(rhs.sector_info);
 
     for(auto module : module_list)
         module->SetDetector(this);
@@ -482,7 +484,7 @@ void PRadHyCalDetector::ClearHits()
     module_hits.clear();
 }
 
-PRadHyCalModule *PRadHyCalDetector::GetModule(const int &id)
+PRadHyCalModule *PRadHyCalDetector::GetModule(int id)
 const
 {
     auto it = id_map.find(id);
@@ -500,17 +502,17 @@ const
     return it->second;
 }
 
-PRadHyCalModule *PRadHyCalDetector::GetModule(const float &x, const float &y)
+PRadHyCalModule *PRadHyCalDetector::GetModule(double x, double y)
 const
 {
     for(auto &module : module_list)
     {
-        float pos_x = module->GetX();
-        float size_x = module->GetSizeX();
+        double pos_x = module->GetX();
+        double size_x = module->GetSizeX();
         if((x > pos_x + size_x/2.) || (x < pos_x - size_x/2.))
             continue;
-        float pos_y = module->GetY();
-        float size_y = module->GetSizeY();
+        double pos_y = module->GetY();
+        double size_y = module->GetSizeY();
         if((y > pos_y + size_y/2.) || (y < pos_y - size_x/2.))
             continue;
 
@@ -546,7 +548,7 @@ void PRadHyCalDetector::UpdateSectorInfo()
         if(i < 0 || i >= Ns)
             continue;
 
-        module->GetBoundaries(x1, y1, z1, x2, y2, z2);
+        module->GetBoundary(x1, y1, z1, x2, y2, z2);
         // update boundary
         if(init[i]) {
             xmin[i] = std::min(xmin[i], x1);

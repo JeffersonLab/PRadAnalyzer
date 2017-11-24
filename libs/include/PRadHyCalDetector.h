@@ -6,7 +6,6 @@
 #include <string>
 #include <iostream>
 #include <unordered_map>
-#include "generalstruct.h"
 #include "PRadException.h"
 #include "PRadHyCalModule.h"
 #include "PRadDetector.h"
@@ -89,9 +88,9 @@ public:
 
     // get parameters
     PRadHyCalSystem *GetSystem() const {return system;}
-    PRadHyCalModule *GetModule(const int &primex_id) const;
+    PRadHyCalModule *GetModule(int primex_id) const;
+    PRadHyCalModule *GetModule(double x, double y) const;
     PRadHyCalModule *GetModule(const std::string &module_name) const;
-    PRadHyCalModule *GetModule(const float &x, const float &y) const;
     double GetEnergy() const;
     const std::vector<PRadHyCalModule*> &GetModuleList() const {return module_list;}
     const std::vector<ModuleHit> &GetModuleHits() const {return module_hits;}
@@ -112,6 +111,7 @@ public:
         // a/E ++ b/sqrt(E) ++ c, ++ means quadratic sum
         return sqrt(a/E*a/E + b*b/E + c*c);
     }
+    static float hit_distance(float x1, float y1, float x2, float y2);
 
 protected:
     virtual void setLayout(PRadHyCalModule &module) const;

@@ -15,7 +15,7 @@
 
 // constructor
 CNeuralNetwork::CNeuralNetwork(double factor)
-: learn_factor(factor), output_norm(1.0)
+: learn_factor(factor), output_norm(1.0), output_shift(0.0)
 {
     // place holder
 }
@@ -140,6 +140,7 @@ unsigned int CNeuralNetwork::CreateNet(const char *path)
 
     // read in normalization factor
     __cnn_read_real64(inf, output_norm);
+    __cnn_read_real64(inf, output_shift);
 
     // build connections
     for(unsigned int i = 1; i < layers.size(); ++i)
@@ -149,7 +150,8 @@ unsigned int CNeuralNetwork::CreateNet(const char *path)
 
     std::cout << "Create neural network from file "
               << "\"" << path << "\"\n"
-              << "Output Normalization Factor: " << output_norm
+              << "Output Normalization Factor: " << output_norm << "\n"
+              << "Output Shift: " << output_shift
               << std::endl;
 
     __cnn_print_structure(layers);
@@ -234,6 +236,7 @@ const
 
     // output normalization factor
     __cnn_write_real64(outf, output_norm);
+    __cnn_write_real64(outf, output_shift);
 
     std::cout << "Neural network data saved to "
               << "\"" << path << "\""
@@ -256,7 +259,7 @@ void CNeuralNetwork::Update(const std::vector<double> &input)
     auto &outn = layers.back().GetNeurons();
     output.clear();
     for(auto &neuron : outn)
-        output.push_back(neuron.signal*output_norm);
+        output.push_back((neuron.signal + output_shift)*output_norm);
 }
 
 // Training with erro back propagation
