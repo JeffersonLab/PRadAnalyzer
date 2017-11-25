@@ -41,8 +41,9 @@ public:
 
     struct SectorInfo
     {
-        std::vector<Point2D<double>> boundpts;
+        int id, mtype;
         double msize_x, msize_y;
+        std::vector<Point2D<double>> boundpts;
     };
 
 public:
@@ -92,14 +93,18 @@ public:
     PRadHyCalModule *GetModule(double x, double y) const;
     PRadHyCalModule *GetModule(const std::string &module_name) const;
     double GetEnergy() const;
+    int GetSectorID(double x, double y) const;
     const std::vector<PRadHyCalModule*> &GetModuleList() const {return module_list;}
     const std::vector<ModuleHit> &GetModuleHits() const {return module_hits;}
     const std::vector<ModuleCluster> &GetModuleClusters() const {return module_clusters;}
     std::vector<HyCalHit> &GetHits() {return hycal_hits;}
     const std::vector<HyCalHit> &GetHits() const {return hycal_hits;}
+    const std::vector<SectorInfo> &GetSectorInfo() const {return sector_info;}
 
     // module related
-    double QuantizedDist(PRadHyCalModule *m1, PRadHyCalModule *m2) const;
+    double QuantizedDist(const PRadHyCalModule *m1, const PRadHyCalModule *m2) const;
+    double QuantizedDist(double x1, double y1, double x2, double y2) const;
+    double QuantizedDist(double x1, double y1, int s1, double x2, double y2, int s2) const;
 
 public:
     static int get_sector_id(const char *name);

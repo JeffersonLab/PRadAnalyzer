@@ -532,6 +532,17 @@ const
     return energy;
 }
 
+int PRadHyCalDetector::GetSectorID(double x, double y)
+const
+{
+    for(auto &sec : sector_info)
+    {
+        if(cana::inside_polygon_2d(Point2D<double>(x, y), sec.boundpts.begin(), sec.boundpts.end()))
+            return sec.id;
+    }
+
+    return static_cast<int>(Undefined_Sector);
+}
 
 void PRadHyCalDetector::UpdateSectorInfo()
 {
@@ -557,13 +568,15 @@ void PRadHyCalDetector::UpdateSectorInfo()
             ymax[i] = std::max(ymax[i], y2);
         // initialize
         } else {
+            sector_info[i].id = module->GetID();
+            sector_info[i].mtype = module->GetType();
+            sector_info[i].msize_x = module->GetSizeX();
+            sector_info[i].msize_y = module->GetSizeY();
             xmin[i] = x1;
             ymin[i] = y1;
             xmax[i] = x2;
             ymax[i] = y2;
             init[i] = true;
-            sector_info[i].msize_x = module->GetSizeX();
-            sector_info[i].msize_y = module->GetSizeY();
         }
     }
 
@@ -581,21 +594,40 @@ void PRadHyCalDetector::UpdateSectorInfo()
 
 // the distance quantized by the module size
 // module size is dependent on the Moliere radius
-double PRadHyCalDetector::QuantizedDist(PRadHyCalModule *m1, PRadHyCalModule *m2)
+double PRadHyCalDetector::QuantizedDist(const PRadHyCalModule *m1, const PRadHyCalModule *m2)
 const
 {
-    double x1 = m1->GetX(), y1 = m1->GetY(), x2 = m2->GetX(), y2 = m2->GetY();
-    double dx = 0., dy = 0.;
-    // in the same sector
-    if(m1->GetSectorID() == m2->GetSectorID()) {
-        dx = (x1 - x2)/m1->GetSizeX();
-        dy = (y1 - y2)/m1->GetSizeY();
+    return QuantizedDist(m1->GetX(), m1->GetY(), m1->GetSectorID(),
+                         m2->GetX(), m2->GetY(), m2->GetSectorID());
+}
 
-    // in different sectors, and with different types of module
+double PRadHyCalDetector::QuantizedDist(double x1, double x2, double y1, double y2)
+const
+{
+    return QuantizedDist(x1, y1, GetSectorID(x1, y1),
+                         x2, y2, GetSectorID(x2, y2));
+}
+
+double PRadHyCalDetector::QuantizedDist(double x1, double y1, int s1,
+                                        double x2, double y2, int s2)
+const
+{
+    const auto &sec1 = sector_info[s1], &sec2 = sector_info[s2];
+    // in the same sector
+    if(s1 == s2) {
+        double dx = (x1 - x2)/sec1.msize_x;
+        double dy = (y1 - y2)/sec1.msize_y;
+        return sqrt(dx*dx + dy*dy);
+    }
+
     // NOTICE highly specific for the current HyCal layout
     // the center sector is for crystal modules
-    } else if (m1->GetType() != m2->GetType()) {
-        auto &boundary = sector_info[static_cast<int>(Center)].boundpts;
+    double dx = 0., dy = 0.;
+    const auto &center = sector_info[static_cast<int>(Center)];
+    const auto &boundary = center.boundpts;
+
+    // in different sectors, and with different types of module
+    if(sec1.mtype != sec2.mtype) {
         for(size_t i = 0; i < boundary.size(); ++i)
         {
             // boundary line from two points
@@ -606,23 +638,21 @@ const
             int inter = cana::intersection(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2, xc, yc);
 
             if(inter == 0) {
-                dx = (x1 - xc)/m1->GetSizeX() + (xc - x2)/m2->GetSizeX();
-                dy = (y1 - yc)/m1->GetSizeX() + (yc - y2)/m2->GetSizeY();
+                dx = (x1 - xc)/sec1.msize_x + (xc - x2)/sec2.msize_x;
+                dy = (y1 - yc)/sec1.msize_y + (yc - y2)/sec2.msize_y;
                 // there will be only one boundary satisfies all the conditions
                 break;
             }
         }
     // in different sectors but with the same type of module
+    // 2 possibilities, pass through the center part or not
     } else {
-        // 2 possibilities, pass through the center part or not
-        auto &spwo = sector_info[static_cast<int>(Center)];
-
         double xc[2], yc[2];
         int ic = 0;
-        for(size_t i = 0; i < spwo.boundpts.size(); ++i)
+        for(size_t i = 0; i < boundary.size(); ++i)
         {
-            size_t ip = (i == 0) ? spwo.boundpts.size() - 1 : i - 1;
-            auto &p1 = spwo.boundpts[ip], &p2 = spwo.boundpts[i];
+            size_t ip = (i == 0) ? boundary.size() - 1 : i - 1;
+            auto &p1 = boundary[ip], &p2 = boundary[i];
             int inter = cana::intersection(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2, xc[ic], yc[ic]);
 
             // find two points
@@ -634,11 +664,11 @@ const
             double dyc = std::abs(yc[0] - yc[1]);
             double dxt = std::abs(x1 - x2) - dxc;
             double dyt = std::abs(y1 - y2) - dyc;
-            dx = dxt/m1->GetSizeX() + dxc/spwo.msize_x;
-            dy = dyt/m1->GetSizeY() + dyc/spwo.msize_y;
+            dx = dxt/sec1.msize_x + dxc/center.msize_x;
+            dy = dyt/sec1.msize_y + dyc/center.msize_y;
         } else {
-            dx = (x1 - x2)/(m1->GetSizeX());
-            dy = (y1 - y2)/(m1->GetSizeY());
+            dx = (x1 - x2)/sec1.msize_x;
+            dy = (y1 - y2)/sec1.msize_y;
         }
     }
 
