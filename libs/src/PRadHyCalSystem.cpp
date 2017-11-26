@@ -200,8 +200,12 @@ void PRadHyCalSystem::Configure(const std::string &path)
     // original primex method needs to load the profile into fortran code
     PRadPrimexCluster *method = static_cast<PRadPrimexCluster*>(GetClusterMethod("Primex"));
     if(method) {
-        method->LoadCrystalProfile(pwo_prof);
-        method->LoadLeadGlassProfile(lg_prof);
+        auto pr = ConfigParser::decompose_path(pwo_prof);
+        pr.dir += "/old";
+        method->LoadCrystalProfile(ConfigParser::compose_path(pr));
+        pr = ConfigParser::decompose_path(lg_prof);
+        pr.dir += "/old";
+        method->LoadLeadGlassProfile(ConfigParser::compose_path(pr));
     }
 #endif
 
@@ -671,6 +675,9 @@ void PRadHyCalSystem::SetDetector(PRadHyCalDetector *h)
 
     if(hycal)
         hycal->SetSystem(this);
+
+    for(auto &it : recon_map)
+        it.second->SetDetector(hycal);
 }
 
 // remove current detector
@@ -935,6 +942,7 @@ bool PRadHyCalSystem::AddClusterMethod(const std::string &name, PRadHyCalCluster
         return false;
     }
 
+    c->SetDetector(hycal);
     recon_map[key] = c;
     return true;
 }

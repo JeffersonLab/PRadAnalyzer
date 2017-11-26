@@ -7,6 +7,7 @@
 #include "ConfigObject.h"
 #include "PRadEventStruct.h"
 #include "PRadHyCalDetector.h"
+#include "PRadClusterProfile.h"
 
 // we use 3x3 adjacent hits to reconstruct position
 // here gives a larger volume to save the information
@@ -24,6 +25,8 @@ public:
     virtual void LeakCorr(ModuleCluster &cluster, const std::vector<ModuleHit> &dead) const;
 
     void ReadVModuleList(const std::string &path);
+    void SetDetector(PRadHyCalDetector *ptr) {detector = ptr;}
+    PRadHyCalDetector *GetDetector() const {return detector;}
     float GetWeight(const float &E, const float &E0) const;
     float GetShowerDepth(int module_type, const float &E) const;
     void AddVirtHits(ModuleCluster &cluster, const std::vector<ModuleHit> &dead) const;
@@ -38,8 +41,13 @@ protected:
                  const ModuleHit &center,
                  const std::vector<ModuleHit> &hits) const;
     void reconstructPos(BaseHit *temp, int count, BaseHit *recon) const;
+    PRadClusterProfile::Value getProf(double cx, double cy, double cE, const ModuleHit &hit) const;
+    PRadClusterProfile::Value getProf(const BaseHit &center, const ModuleHit &hit) const;
+    PRadClusterProfile::Value getProf(const ModuleHit &center, const ModuleHit &hit) const;
+    double evalCluster(const BaseHit &center, const ModuleCluster &cluster) const;
 
 protected:
+    PRadHyCalDetector *detector;
     bool depth_corr;
     bool leak_corr;
     bool linear_corr;

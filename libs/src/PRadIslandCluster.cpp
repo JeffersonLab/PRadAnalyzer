@@ -16,12 +16,10 @@
 #include <algorithm>
 #include <iostream>
 #include "PRadIslandCluster.h"
-#include "PRadClusterProfile.h"
 #include "PRadHyCalDetector.h"
 #include "PRadADCChannel.h"
 #include "PRadTDCChannel.h"
 
-const PRadClusterProfile &__ic_prof = PRadClusterProfile::Instance();
 
 PRadIslandCluster::PRadIslandCluster(const std::string &path)
 {
@@ -261,7 +259,7 @@ const
         for(size_t j = 0; j < hits.size(); ++j)
         {
             auto &hit = *hits.at(j);
-            __ic_frac[j][i] = __ic_prof.GetProfile(center, hit).frac*center.energy;
+            __ic_frac[j][i] = getProf(center, hit).frac*center.energy;
         }
     }
 
@@ -340,7 +338,7 @@ const
             for(size_t j = 0; j < hits.size(); ++j)
             {
                 auto &hit = *hits.at(j);
-                __ic_frac[j][i] = __ic_prof.GetProfile(recon.x, recon.y, hit).frac*tot_E;
+                __ic_frac[j][i] = getProf(recon, hit).frac*tot_E;
             }
         }
     }
@@ -440,7 +438,7 @@ const
         auto &center = clusters.at(indices.at(i)).center;
         // we are comparing the relative amount of energy to be shared, so use of
         // center energy should be equivalent to total cluster energy
-        frac[i] = __ic_prof.GetProfile(center, hit).frac * center.energy;
+        frac[i] = getProf(center, hit).frac * center.energy;
         total_frac += frac[i];
     }
 

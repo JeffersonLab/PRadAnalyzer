@@ -568,7 +568,7 @@ void PRadHyCalDetector::UpdateSectorInfo()
             ymax[i] = std::max(ymax[i], y2);
         // initialize
         } else {
-            sector_info[i].id = module->GetID();
+            sector_info[i].id = i;
             sector_info[i].mtype = module->GetType();
             sector_info[i].msize_x = module->GetSizeX();
             sector_info[i].msize_y = module->GetSizeY();

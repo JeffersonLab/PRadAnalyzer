@@ -217,7 +217,7 @@ const
     BaseHit cl[POS_RECON_HITS], temp_hit(center.geo.x, center.geo.y, 0., cluster.energy);
 
     // estimator to check if virtual hits will improve the profile
-    float estimator = __hc_prof.EvalEstimator(temp_hit, cluster);
+    float estimator = evalCluster(temp_hit, cluster);
 
     // this cluster is too bad
     if(estimator > 5.)
@@ -237,7 +237,7 @@ const
         // check profile to update dead hits' energies
         for(unsigned int i = 0; i < dead.size(); ++i)
         {
-            float frac = __hc_prof.GetProfile(temp_hit.x, temp_hit.y, dead.at(i)).frac;
+            float frac = getProf(temp_hit, dead.at(i)).frac;
             // full correction would be frac/(1 - frac), but it may result in divergence
             temp_energy[i] = cluster.energy*frac;
         }
@@ -267,7 +267,7 @@ const
         reconstructPos(cl, count, &temp_hit);
 
         // check if the correction helps improve the cluster profile
-        float new_est = __hc_prof.EvalEstimator(temp_hit, cluster);
+        float new_est = evalCluster(temp_hit, cluster);
         // not improving, stop!
         if(new_est > estimator)
             break;
@@ -370,7 +370,7 @@ const
             continue;
 
         // check profile
-        float frac = __hc_prof.GetProfile(x, y, *it).frac;
+        float frac = getProf(x, y, cluster.energy, *it).frac;
 
         // full energy correction because we trust the position
         if(frac > 0. && frac < 1.) {
@@ -385,3 +385,71 @@ const
     // update energy
     cluster.energy += cluster.leakage;
 }
+
+typedef PRadClusterProfile::Value ProfVal;
+
+ProfVal PRadHyCalCluster::getProf(const ModuleHit &c, const ModuleHit &hit)
+const
+{
+    double dist = detector->QuantizedDist(c.geo.x, c.geo.y, c.layout.sector,
+                                          hit.geo.x, hit.geo.y, hit.layout.sector);
+    // magic number 0.78, the center module contains about 78% of the total energy
+    return __hc_prof.GetProfile(c.geo.type, dist, c.energy/0.78);
+}
+
+ProfVal PRadHyCalCluster::getProf(double cx, double cy, double cE, const ModuleHit &hit)
+const
+{
+    int sid = detector->GetSectorID(cx, cy);
+    int type = detector->GetSectorInfo().at(sid).mtype;
+    double dist = detector->QuantizedDist(cx, cy, sid,
+                                          hit.geo.x, hit.geo.y, hit.layout.sector);
+    return __hc_prof.GetProfile(type, dist, cE);
+}
+
+ProfVal PRadHyCalCluster::getProf(const BaseHit &c, const ModuleHit &hit)
+const
+{
+    int sid = detector->GetSectorID(c.x, c.y);
+    // out of hycal, use the lead glass sector
+    if(sid < 0) sid = static_cast<int>(PRadHyCalDetector::Top);
+
+    int type = detector->GetSectorInfo().at(sid).mtype;
+    double dist = detector->QuantizedDist(c.x, c.y, sid,
+                                          hit.geo.x, hit.geo.y, hit.layout.sector);
+    return __hc_prof.GetProfile(type, dist, c.E);
+}
+
+// evaluate how well this cluster can be described by the profile
+double PRadHyCalCluster::evalCluster(const BaseHit &c, const ModuleCluster &cl)
+const
+{
+    double est = 0.;
+
+    // determine energy resolution
+    double res = 0.026;  // 2.6% for PbWO4
+    if(TEST_BIT(cl.center.layout.flag, kPbGlass))
+        res = 0.065;    // 6.5% for PbGlass
+    if(TEST_BIT(cl.center.layout.flag, kTransition))
+        res = 0.050;    // 5.0% for transition
+    res /= sqrt(c.E/1000.);
+
+    int count = 0;
+    for(auto &hit : cl.hits)
+    {
+        auto prof = getProf(c, hit);
+        if(prof.frac < 0.01)
+            continue;
+
+        ++count;
+
+        double diff = hit.energy - c.E*prof.frac;
+        double sigma2 = 0.816*hit.energy + res*c.E*prof.err;
+
+        // log likelyhood for double exponential distribution
+        est += fabs(diff)/sqrt(sigma2);
+    }
+
+    return est/count;
+}
+

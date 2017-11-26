@@ -1,20 +1,26 @@
 #ifndef PRAD_CLUSTER_PROFILE_H
 #define PRAD_CLUSTER_PROFILE_H
 
+#include <vector>
 #include <string>
-#include "PRadHyCalDetector.h"
 #include "PRadEventStruct.h"
+
+#define CLPROF_MIN_ENE 200      // max energy in the profile, MeV
+#define CLPROF_MAX_ENE 2100     // min energy in the profile, MeV
+#define CLPROF_MAX_DIST 5       // max distance in the profile, module size
+#define CLPROF_STEP_ENE 100     // each step in energy
+#define CLPROF_STEP_DIST 0.001  // each step in distance
+
+class PRadHyCalDetector;
 
 class PRadClusterProfile
 {
 public:
-    struct Profile
+    struct Value
     {
-        float frac;
-        float err;
+        double frac, err;
 
-        Profile() : frac(0), err(0) {}
-        Profile(float f, float e) : frac(f), err(e) {}
+        Value(double f = 0., double e = 0.) : frac(f), err(e) {}
     };
 
 public:
@@ -35,26 +41,14 @@ public:
     PRadClusterProfile &operator =(const PRadClusterProfile &rhs) = delete;
     PRadClusterProfile &operator =(PRadClusterProfile &&rhs) = delete;
 
-    void Resize(int type, int xsize, int ysize);
-    void Clear();
     void LoadProfile(int type, const std::string &path);
-    const Profile &GetProfile(int type, int x, int y) const;
-    const Profile &GetProfile(const ModuleHit &m1, const ModuleHit &m2) const;
-    const Profile &GetProfile(const float &x, const float &y, const ModuleHit &hit) const;
-    float EvalEstimator(const BaseHit &hit, const ModuleCluster &cluster) const;
+    Value GetProfile(int type, double dist, double energy) const;
 
 private:
-    PRadClusterProfile(int type = 2, int xsize = 501, int ysize = 501);
-    void reserve();
-    void release();
+    PRadClusterProfile();
 
 private:
-    int types;
-    int x_steps;
-    int y_steps;
-    Profile ***profiles;
-    Profile empty_prof;
-    Profile trans_prof;
+    std::vector<std::vector<std::vector<Value>>> profiles;
 };
 
 #endif

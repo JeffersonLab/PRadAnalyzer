@@ -7,13 +7,10 @@
 //============================================================================//
 
 #include "PRadSquareCluster.h"
-#include "PRadClusterProfile.h"
 #include <algorithm>
 #include <cmath>
 
 
-
-const PRadClusterProfile &__sc_prof = PRadClusterProfile::Instance();
 
 PRadSquareCluster::PRadSquareCluster(const std::string &path)
 {
@@ -137,7 +134,7 @@ const
         auto &center = clusters.at(indices.at(i)).center;
         // we are comparing the relative amount of energy to be shared, so use of
         // center energy should be equivalent to total cluster energy
-        frac[i] = __sc_prof.GetProfile(center, hit).frac * center.energy;
+        frac[i] = getProf(center, hit).frac * center.energy;
         total_frac += frac[i];
     }
 
