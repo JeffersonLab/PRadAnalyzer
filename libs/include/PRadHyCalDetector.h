@@ -101,8 +101,6 @@ public:
     double QuantizedDist(const PRadHyCalModule *m1, const PRadHyCalModule *m2) const;
     double QuantizedDist(double x1, double y1, double x2, double y2) const;
     double QuantizedDist(double x1, double y1, int s1, double x2, double y2, int s2) const;
-    void QuantizedDist(double x1, double y1, int s1, double x2, double y2, int s2,
-                       double &dx, double &dy) const;
 
 public:
     static int get_sector_id(const char *name);

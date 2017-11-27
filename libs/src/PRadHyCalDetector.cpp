@@ -14,8 +14,79 @@
 #include "canalib.h"
 
 
+
 // enum name lists
 static const char *__hycal_sector_list[] = {"Center", "Top", "Right", "Bottom", "Left"};
+
+// a helper function to determine the quantized distance between modules
+inline void qdist(double x1, double y1, int s1, double x2, double y2, int s2,
+                  const std::vector<PRadHyCalDetector::SectorInfo> &secs,
+                  double &dx, double &dy)
+{
+    const auto &sec1 = secs[s1], &sec2 = secs[s2];
+
+    // in different sections
+    if(s1 != s2) {
+        // NOTICE highly specific for the current HyCal layout
+        // the center sector is for crystal modules
+        const auto &center = secs[static_cast<int>(PRadHyCalDetector::Center)];
+        const auto &boundary = center.boundpts;
+
+        // in different sectors, and with different types of module
+        if(sec1.mtype != sec2.mtype) {
+            for(size_t i = 0; i < boundary.size(); ++i)
+            {
+                // boundary line from two points
+                size_t ip = (i == 0) ? boundary.size() - 1 : i - 1;
+                auto &p1 = boundary[ip], &p2 = boundary[i];
+
+                double xc = 0., yc = 0.;
+                int inter = cana::intersection(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2, xc, yc);
+
+                if(inter == 0) {
+                    dx = (x2 - xc)/sec2.msize_x + (xc - x1)/sec1.msize_x;
+                    dy = (y2 - yc)/sec2.msize_y + (yc - y1)/sec1.msize_y;
+                    // there will be only one boundary satisfies all the conditions
+                    return;
+                }
+            }
+        // in different sectors but with the same type of module
+        // 2 possibilities, pass through the center part or not
+        } else {
+            double xc[2], yc[2];
+            size_t ic = 0;
+            for(size_t i = 0; i < boundary.size(); ++i)
+            {
+                size_t ip = (i == 0) ? boundary.size() - 1 : i - 1;
+                auto &p1 = boundary[ip], &p2 = boundary[i];
+                int inter = cana::intersection(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2,
+                                               xc[ic], yc[ic]);
+
+                // found two points
+                if(inter == 0 && ic++ > 0) break;
+            }
+
+            // pass over the centeral part
+            if(ic > 1) {
+                double dxt = x2 - x1, dyt = y2 - y1;
+                double dxc = xc[0] - xc[1], dyc = yc[0] - yc[1];
+
+                // the two segments should have the same sign
+                double sign = (dxt*dxc > 0.) ? 1. : -1.;
+                dxc *= sign;
+                dyc *= sign;
+
+                dx = (dxt - dxc)/sec1.msize_x + dxc/center.msize_x;
+                dy = (dyt - dyc)/sec1.msize_y + dyc/center.msize_y;
+                return;
+            }
+        }
+    }
+
+    dx = (x2 - x1)/sec1.msize_x;
+    dy = (y2 - y1)/sec1.msize_y;
+}
+
 
 
 
@@ -554,9 +625,9 @@ void PRadHyCalDetector::InitLayout()
         for(auto itn = std::next(it); itn != module_list.end(); ++itn)
         {
             double dx, dy;
-            QuantizedDist((*it)->GetX(), (*it)->GetY(), (*it)->GetSectorID(),
-                          (*itn)->GetX(), (*itn)->GetY(), (*itn)->GetSectorID(),
-                          dx, dy);
+            qdist((*it)->GetX(), (*it)->GetY(), (*it)->GetSectorID(),
+                  (*itn)->GetX(), (*itn)->GetY(), (*itn)->GetSectorID(),
+                  sector_info, dx, dy);
             if(std::abs(dx) < 1.01 && std::abs(dy) < 1.01) {
                 (*it)->AddNeighbor(*itn, dx, dy);
                 (*itn)->AddNeighbor(*it, -dx, -dy);
@@ -618,15 +689,19 @@ void PRadHyCalDetector::UpdateSectorInfo()
 double PRadHyCalDetector::QuantizedDist(const PRadHyCalModule *m1, const PRadHyCalModule *m2)
 const
 {
-    return QuantizedDist(m1->GetX(), m1->GetY(), m1->GetSectorID(),
-                         m2->GetX(), m2->GetY(), m2->GetSectorID());
+    double dx, dy;
+    qdist(m1->GetX(), m1->GetY(), m1->GetSectorID(),
+          m2->GetX(), m2->GetY(), m2->GetSectorID(),
+          sector_info, dx, dy);
+    return std::sqrt(dx*dx + dy*dy);
 }
 
 double PRadHyCalDetector::QuantizedDist(double x1, double x2, double y1, double y2)
 const
 {
-    return QuantizedDist(x1, y1, GetSectorID(x1, y1),
-                         x2, y2, GetSectorID(x2, y2));
+    double dx, dy;
+    qdist(x1, y1, GetSectorID(x1, y1), x2, y2, GetSectorID(x2, y2), sector_info, dx, dy);
+    return std::sqrt(dx*dx + dy*dy);
 }
 
 double PRadHyCalDetector::QuantizedDist(double x1, double y1, int s1,
@@ -634,78 +709,8 @@ double PRadHyCalDetector::QuantizedDist(double x1, double y1, int s1,
 const
 {
     double dx, dy;
-    QuantizedDist(x1, y1, s1, x2, y2, s2, dx, dy);
+    qdist(x1, y1, s1, x2, y2, s2, sector_info, dx, dy);
     return std::sqrt(dx*dx + dy*dy);
-}
-
-void PRadHyCalDetector::QuantizedDist(double x1, double y1, int s1,
-                                      double x2, double y2, int s2,
-                                      double &dx, double &dy)
-const
-{
-    const auto &sec1 = sector_info[s1], &sec2 = sector_info[s2];
-    // in the same sector
-    if(s1 == s2) {
-        dx = (x2 - x1)/sec1.msize_x;
-        dy = (y2 - y1)/sec1.msize_y;
-        return;
-    }
-
-    // NOTICE highly specific for the current HyCal layout
-    // the center sector is for crystal modules
-    const auto &center = sector_info[static_cast<int>(Center)];
-    const auto &boundary = center.boundpts;
-
-    // in different sectors, and with different types of module
-    if(sec1.mtype != sec2.mtype) {
-        for(size_t i = 0; i < boundary.size(); ++i)
-        {
-            // boundary line from two points
-            size_t ip = (i == 0) ? boundary.size() - 1 : i - 1;
-            auto &p1 = boundary[ip], &p2 = boundary[i];
-
-            double xc = 0., yc = 0.;
-            int inter = cana::intersection(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2, xc, yc);
-
-            if(inter == 0) {
-                dx = (x2 - xc)/sec2.msize_x + (xc - x1)/sec1.msize_x;
-                dy = (y2 - yc)/sec2.msize_y + (yc - y1)/sec1.msize_y;
-                // there will be only one boundary satisfies all the conditions
-                break;
-            }
-        }
-    // in different sectors but with the same type of module
-    // 2 possibilities, pass through the center part or not
-    } else {
-        double xc[2], yc[2];
-        int ic = 0;
-        for(size_t i = 0; i < boundary.size(); ++i)
-        {
-            size_t ip = (i == 0) ? boundary.size() - 1 : i - 1;
-            auto &p1 = boundary[ip], &p2 = boundary[i];
-            int inter = cana::intersection(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2, xc[ic], yc[ic]);
-
-            // found two points
-            if(inter == 0 && ic++ > 0) break;
-        }
-
-        // pass over the centeral part
-        if(ic > 1) {
-            double dxt = x2 - x1, dyt = y2 - y1;
-            double dxc = xc[0] - xc[1], dyc = yc[0] - yc[1];
-
-            // the two segments should have the same sign
-            double sign = (dxt*dxc > 0.) ? 1. : -1.;
-            dxc *= sign;
-            dyc *= sign;
-
-            dx = (dxt - dxc)/sec1.msize_x + dxc/center.msize_x;
-            dy = (dyt - dyc)/sec1.msize_y + dyc/center.msize_y;
-        } else {
-            dx = (x2 - x1)/sec1.msize_x;
-            dy = (y2 - y1)/sec1.msize_y;
-        }
-    }
 }
 
 // using primex id to get layout information
