@@ -222,11 +222,8 @@ bool HyCalScene::ReadModuleList(const std::string &path)
         addItem(module);
     }
 
-    // sort the module by id
-    SortModuleList();
-
     // update sector information
-    UpdateSectorInfo();
+    InitLayout();
 
     return true;
 }

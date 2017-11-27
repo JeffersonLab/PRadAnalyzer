@@ -176,11 +176,8 @@ bool PRadHyCalDetector::ReadModuleList(const std::string &path)
             delete module;
     }
 
-    // sort the module by id
-    SortModuleList();
-
-    // update sector information
-    UpdateSectorInfo();
+    // update sector information and build neighbors
+    InitLayout();
 
     return true;
 }
@@ -308,6 +305,11 @@ void PRadHyCalDetector::RemoveModule(PRadHyCalModule *module)
     name_map.erase(module->GetName());
 
     module->UnsetDetector(true);
+    for(auto &neighbor : module->GetNeighbors())
+    {
+        neighbor.ptr->RemoveNeighbor(module);
+    }
+
     delete module;
 
     // rebuild module list
@@ -404,21 +406,15 @@ void PRadHyCalDetector::CreateDeadHits()
         }
     }
 
-    // check if any modules are very close to this dead module, and set a bit
-    // for the future correction
+    // check if the module is a neighbor of a dead module, and set a bit for
+    // the future correction
     for(auto module : module_list)
     {
-        const auto &geo = module->GetGeometry();
-
-        for(auto &dead : dead_hits)
+        for(auto &neighbor : module->GetNeighbors())
         {
-            float dx = (geo.x - dead.geo.x)/(geo.size_x + dead.geo.size_x);
-            float dy = (geo.y - dead.geo.y)/(geo.size_y + dead.geo.size_y);
-
-            if(sqrt(dx*dx + dy*dy)*2. < CORNER_ADJACENT)
-            {
-               SET_BIT(module->layout.flag, kDeadNeighbor);
-               break;
+            if(TEST_BIT(neighbor.ptr->layout.flag, kDeadModule)) {
+                SET_BIT(module->layout.flag, kDeadNeighbor);
+                break;
             }
         }
     }
@@ -537,11 +533,36 @@ const
 {
     for(auto &sec : sector_info)
     {
-        if(cana::inside_polygon_2d(Point2D<double>(x, y), sec.boundpts.begin(), sec.boundpts.end()))
+        if(cana::inside_polygon_2d(x, y, sec.boundpts.begin(), sec.boundpts.end()))
             return sec.id;
     }
 
     return static_cast<int>(Undefined_Sector);
+}
+
+void PRadHyCalDetector::InitLayout()
+{
+    // update sector information first, this is essential for QuantizedDist
+    UpdateSectorInfo();
+
+    // update neighbors for each module
+    for(auto &module : module_list)
+        module->ClearNeighbors();
+
+    for(auto it = module_list.begin(); it != module_list.end(); ++it)
+    {
+        for(auto itn = std::next(it); itn != module_list.end(); ++itn)
+        {
+            double dx, dy;
+            QuantizedDist((*it)->GetX(), (*it)->GetY(), (*it)->GetSectorID(),
+                          (*itn)->GetX(), (*itn)->GetY(), (*itn)->GetSectorID(),
+                          dx, dy);
+            if(std::abs(dx) < 1.01 && std::abs(dy) < 1.01) {
+                (*it)->AddNeighbor(*itn, dx, dy);
+                (*itn)->AddNeighbor(*it, -dx, -dy);
+            }
+        }
+    }
 }
 
 void PRadHyCalDetector::UpdateSectorInfo()
@@ -612,17 +633,26 @@ double PRadHyCalDetector::QuantizedDist(double x1, double y1, int s1,
                                         double x2, double y2, int s2)
 const
 {
+    double dx, dy;
+    QuantizedDist(x1, y1, s1, x2, y2, s2, dx, dy);
+    return std::sqrt(dx*dx + dy*dy);
+}
+
+void PRadHyCalDetector::QuantizedDist(double x1, double y1, int s1,
+                                      double x2, double y2, int s2,
+                                      double &dx, double &dy)
+const
+{
     const auto &sec1 = sector_info[s1], &sec2 = sector_info[s2];
     // in the same sector
     if(s1 == s2) {
-        double dx = (x1 - x2)/sec1.msize_x;
-        double dy = (y1 - y2)/sec1.msize_y;
-        return sqrt(dx*dx + dy*dy);
+        dx = (x2 - x1)/sec1.msize_x;
+        dy = (y2 - y1)/sec1.msize_y;
+        return;
     }
 
     // NOTICE highly specific for the current HyCal layout
     // the center sector is for crystal modules
-    double dx = 0., dy = 0.;
     const auto &center = sector_info[static_cast<int>(Center)];
     const auto &boundary = center.boundpts;
 
@@ -638,8 +668,8 @@ const
             int inter = cana::intersection(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2, xc, yc);
 
             if(inter == 0) {
-                dx = (x1 - xc)/sec1.msize_x + (xc - x2)/sec2.msize_x;
-                dy = (y1 - yc)/sec1.msize_y + (yc - y2)/sec2.msize_y;
+                dx = (x2 - xc)/sec2.msize_x + (xc - x1)/sec1.msize_x;
+                dy = (y2 - yc)/sec2.msize_y + (yc - y1)/sec1.msize_y;
                 // there will be only one boundary satisfies all the conditions
                 break;
             }
@@ -655,24 +685,27 @@ const
             auto &p1 = boundary[ip], &p2 = boundary[i];
             int inter = cana::intersection(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2, xc[ic], yc[ic]);
 
-            // find two points
+            // found two points
             if(inter == 0 && ic++ > 0) break;
         }
 
+        // pass over the centeral part
         if(ic > 1) {
-            double dxc = std::abs(xc[0] - xc[1]);
-            double dyc = std::abs(yc[0] - yc[1]);
-            double dxt = std::abs(x1 - x2) - dxc;
-            double dyt = std::abs(y1 - y2) - dyc;
-            dx = dxt/sec1.msize_x + dxc/center.msize_x;
-            dy = dyt/sec1.msize_y + dyc/center.msize_y;
+            double dxt = x2 - x1, dyt = y2 - y1;
+            double dxc = xc[0] - xc[1], dyc = yc[0] - yc[1];
+
+            // the two segments should have the same sign
+            double sign = (dxt*dxc > 0.) ? 1. : -1.;
+            dxc *= sign;
+            dyc *= sign;
+
+            dx = (dxt - dxc)/sec1.msize_x + dxc/center.msize_x;
+            dy = (dyt - dyc)/sec1.msize_y + dyc/center.msize_y;
         } else {
-            dx = (x1 - x2)/sec1.msize_x;
-            dy = (y1 - y2)/sec1.msize_y;
+            dx = (x2 - x1)/sec1.msize_x;
+            dy = (y2 - y1)/sec1.msize_y;
         }
     }
-
-    return sqrt(dx*dx + dy*dy);
 }
 
 // using primex id to get layout information
@@ -746,17 +779,6 @@ const
     }
 
     module.SetLayout(Layout(flag, sector, row-1, col-1));
-}
-
-// quantize the distance between two modules by there sizes
-// by this way we can indiscriminately check modules with different size
-// only useful for adjacent module checking
-float PRadHyCalDetector::hit_distance(const ModuleHit &m1, const ModuleHit &m2)
-{
-    float dx = (m1.geo.x - m2.geo.x)/(m1.geo.size_x + m2.geo.size_x);
-    float dy = (m1.geo.y - m2.geo.y)/(m1.geo.size_y + m2.geo.size_y);
-
-    return sqrt(dx*dx + dy*dy)*2.;
 }
 
 // get enum HyCalSector by its name

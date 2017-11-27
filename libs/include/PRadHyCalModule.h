@@ -1,6 +1,7 @@
 #ifndef PRAD_HYCAL_MODULE_H
 #define PRAD_HYCAL_MODULE_H
 
+#include <cmath>
 #include <string>
 #include <iostream>
 #include "PRadCalibConst.h"
@@ -30,6 +31,18 @@ public:
         PbWO4 = 1,
         // max number of types
         Max_Type,
+    };
+
+    struct Neighbor
+    {
+        PRadHyCalModule *ptr;
+        double dx, dy, dist;
+
+        Neighbor(PRadHyCalModule *p = nullptr, double x = 0., double y = 0.)
+        : ptr(p), dx(x), dy(y)
+        {
+            dist = std::sqrt(dx*dx + dy*dy);
+        }
     };
 
 public:
@@ -63,16 +76,20 @@ public:
     void SetCalibConst(const PRadCalibConst &c) {cal_const = c;}
     void SetTriggerConst(const PRadTriggerConst &c) {trg_const = c;}
     void GainCorrection(const double &g, const int &ref) {cal_const.GainCorrection(g, ref);}
+    void AddNeighbor(PRadHyCalModule *m, double dx, double dy) {neighbors.emplace_back(m, dx, dy);}
+    void ClearNeighbors() {neighbors.clear();}
+    void RemoveNeighbor(PRadHyCalModule *m);
 
     // energy related
     double Calibration(const unsigned short &adcVal) const;
     double GetEnergy() const;
     double GetEnergy(const double &value) const;
 
-    // check type
+    // check
     bool IsHyCalModule() const {return (geometry.type == PbGlass) || (geometry.type == PbWO4);}
     bool IsLeadTungstate() const {return geometry.type == PbWO4;}
     bool IsLeadGlass() const {return geometry.type == PbGlass;}
+    bool IsNeighbor(int id, bool square_or_circle = true) const;
 
     // get members
     PRadHyCalDetector *GetDetector() const {return detector;};
@@ -104,6 +121,7 @@ public:
     double GetReferenceGain(int ref) const {return cal_const.GetRefGain(ref);}
     double GetTriggerEfficiency(double energy) const {return trg_const.GetTriggerEfficiency(energy);}
     PRadTDCChannel *GetTDC() const;
+    const std::vector<Neighbor> &GetNeighbors() {return neighbors;}
 
     // compare operator
     bool operator < (const PRadHyCalModule &rhs) const
@@ -127,6 +145,7 @@ protected:
     Layout layout;
     PRadCalibConst cal_const;
     PRadTriggerConst trg_const;
+    std::vector<Neighbor> neighbors;
 };
 
 std::ostream &operator <<(std::ostream &os, const PRadHyCalModule &m);

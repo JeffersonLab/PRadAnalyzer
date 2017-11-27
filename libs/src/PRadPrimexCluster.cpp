@@ -291,7 +291,7 @@ const
     {
         for(auto &m2 : c2.hits)
         {
-            if(PRadHyCalDetector::hit_distance(m1, m2) < adj_dist) {
+            if(hitDistance(m1, m2) < adj_dist) {
                 return true;
             }
         }

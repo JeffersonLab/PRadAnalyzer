@@ -13,6 +13,12 @@
 // here gives a larger volume to save the information
 #define POS_RECON_HITS 15
 
+// value to judge if two modules are connected at corner, quantized to module size
+#define CORNER_ADJACENT 1.5
+// value to judge if two modules are sharing a side line
+#define SIDE_ADJACENT 1.3
+
+
 class PRadHyCalCluster : public ConfigObject
 {
 public:
@@ -45,6 +51,12 @@ protected:
     PRadClusterProfile::Value getProf(const BaseHit &center, const ModuleHit &hit) const;
     PRadClusterProfile::Value getProf(const ModuleHit &center, const ModuleHit &hit) const;
     double evalCluster(const BaseHit &center, const ModuleCluster &cluster) const;
+    inline double hitDistance(const ModuleHit &m1, const ModuleHit &m2)
+    const
+    {
+        return detector->QuantizedDist(m1.geo.x, m1.geo.y, m1.layout.sector,
+                                       m2.geo.x, m2.geo.y, m2.layout.sector);
+    }
 
 protected:
     PRadHyCalDetector *detector;

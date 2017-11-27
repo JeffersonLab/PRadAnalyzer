@@ -461,7 +461,7 @@ namespace cana
     //        its first and last vertices
     // output: winding number, 0 means outside
     template<class Iter, typename T>
-    int inside_polygon_2d(const T& point, Iter pv_beg, Iter pv_end)
+    int inside_polygon_2d(T x, T y, Iter pv_beg, Iter pv_end)
     {
         int wn = 0;    // the  winding number counter
 
@@ -475,20 +475,20 @@ namespace cana
                 it_next = pv_beg;
 
             // start y <= point.y
-            if(it->y <= point.y)
+            if(it->y <= y)
             {
                 // upward crossing
-                if(it_next->y > point.y)
+                if(it_next->y > y)
                     // left of this boundary
-                    if(is_left(point.x, point.y, it->x, it->y, it_next->x, it_next->y) > 0)
+                    if(is_left(x, y, it->x, it->y, it_next->x, it_next->y) > 0)
                         ++wn;
             }
             else
             {
                 // downward crossing
-                if(it_next->y <= point.y)
+                if(it_next->y <= y)
                     // right of this boundary
-                    if(is_left(point.x, point.y, it->x, it->y, it_next->x, it_next->y) < 0)
+                    if(is_left(x, y, it->x, it->y, it_next->x, it_next->y) < 0)
                         --wn;
             }
         }

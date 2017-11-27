@@ -10,6 +10,7 @@
 #include "PRadEventStruct.h"
 
 
+
 typedef Point3D<float> Point;
 typedef Transform3D<float> DetCoord;
 
@@ -170,6 +171,7 @@ public:
 
 public:
     //static public members
+    static inline float hycal_z() {return 5725;}
     static inline Point origin() {return Point(0., 0., 0.);}
     // target cell center is at z = 88.9 mm from survey data
     static inline Point target() {return Point(0., 0., 88.9);}
@@ -186,13 +188,13 @@ public:
     static Point ProjectionCoordDiff(Point p1, Point p2, Point ori, float proj_z);
 
     template<class T1, class T2>
-    static inline float ProjectionDistance(const T1 &t1, const T2 &t2, Point ori = target(), float proj_z = 5725)
+    static inline float ProjectionDistance(const T1 &t1, const T2 &t2, Point ori = target(), float proj_z = hycal_z())
     {
         return ProjectionDistance(Point(t1.x, t1.y, t1.z), Point(t2.x, t2.y, t2.z), ori, proj_z);
     }
 
     template<class T1, class T2>
-    static inline Point ProjectionCoordDiff(const T1 &t1, const T2 &t2, Point ori = target(), float proj_z = 5725)
+    static inline Point ProjectionCoordDiff(const T1 &t1, const T2 &t2, Point ori = target(), float proj_z = hycal_z())
     {
         return ProjectionCoordDiff(Point(t1.x, t1.y, t1.z), Point(t2.x, t2.y, t2.z), ori, proj_z);
     }

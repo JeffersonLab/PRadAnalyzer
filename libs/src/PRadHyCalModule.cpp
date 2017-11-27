@@ -198,6 +198,36 @@ const
     zmax = geometry.z + geometry.size_z/2.;
 }
 
+void PRadHyCalModule::RemoveNeighbor(PRadHyCalModule *m)
+{
+    for(auto it = neighbors.begin(); it != neighbors.end(); ++it)
+    {
+        if(it->ptr->GetID() == m->GetID()) {
+            neighbors.erase(it);
+            return;
+        }
+    }
+}
+
+bool PRadHyCalModule::IsNeighbor(int id, bool square_or_circle)
+const
+{
+    for(auto &m : neighbors)
+    {
+        if(id == m.ptr->GetID()) {
+            // square range
+            if(square_or_circle) {
+                return (std::abs(m.dx) < 1.01 && std::abs(m.dy) < 1.01);
+            // circle range, use 1.2 for the transition region
+            } else {
+                return m.dist < 1.2;
+            }
+        }
+    }
+
+    return false;
+}
+
 //============================================================================//
 // Public Static Member Functions                                             //
 //============================================================================//

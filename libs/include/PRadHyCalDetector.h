@@ -12,11 +12,6 @@
 #include "PRadEventStruct.h"
 
 
-// value to judge if two modules are connected at corner, quantized to module size
-#define CORNER_ADJACENT 1.5
-// value to judge if two modules are sharing a side line
-#define SIDE_ADJACENT 1.3
-
 
 class PRadHyCalSystem;
 class PRadHyCalCluster;
@@ -66,6 +61,7 @@ public:
     void UnsetSystem(bool force_unset = false);
     virtual bool ReadModuleList(const std::string &path);
     bool ReadCalibrationFile(const std::string &path);
+    void InitLayout();
     void UpdateSectorInfo();
     void SaveModuleList(const std::string &path) const;
     void SaveCalibrationFile(const std::string &path) const;
@@ -101,22 +97,22 @@ public:
     const std::vector<HyCalHit> &GetHits() const {return hycal_hits;}
     const std::vector<SectorInfo> &GetSectorInfo() const {return sector_info;}
 
-    // module related
+    // quantized distance between modules
     double QuantizedDist(const PRadHyCalModule *m1, const PRadHyCalModule *m2) const;
     double QuantizedDist(double x1, double y1, double x2, double y2) const;
     double QuantizedDist(double x1, double y1, int s1, double x2, double y2, int s2) const;
+    void QuantizedDist(double x1, double y1, int s1, double x2, double y2, int s2,
+                       double &dx, double &dy) const;
 
 public:
     static int get_sector_id(const char *name);
     static const char *get_sector_name(int sec);
-    static float hit_distance(const ModuleHit &m1, const ModuleHit &m2);
     // resolution formula, E, a, b, c should have consistent unit
     static inline double resolution(double E, double a, double b, double c)
     {
         // a/E ++ b/sqrt(E) ++ c, ++ means quadratic sum
         return sqrt(a/E*a/E + b*b/E + c*c);
     }
-    static float hit_distance(float x1, float y1, float x2, float y2);
 
 protected:
     virtual void setLayout(PRadHyCalModule &module) const;

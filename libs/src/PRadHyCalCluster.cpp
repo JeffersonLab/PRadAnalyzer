@@ -16,7 +16,7 @@
 const PRadClusterProfile &__hc_prof = PRadClusterProfile::Instance();
 
 PRadHyCalCluster::PRadHyCalCluster()
-: depth_corr(true), leak_corr(true), linear_corr(true),
+: detector(nullptr), depth_corr(true), leak_corr(true), linear_corr(true),
   log_weight_thres(3.6), min_cluster_energy(30.), min_center_energy(10.),
   least_leak(0.05), linear_corr_limit(0.6), min_cluster_size(1), leak_iters(3)
 {
@@ -254,7 +254,7 @@ const
                 continue;
 
             const auto &hit = dead.at(i);
-            if(PRadHyCalDetector::hit_distance(center, hit) < CORNER_ADJACENT) {
+            if(hitDistance(center, hit) < CORNER_ADJACENT) {
                 cl[count].x = hit.geo.x;
                 cl[count].y = hit.geo.y;
                 cl[count].E = temp_energy[i];
@@ -297,59 +297,6 @@ const
     }
 }
 
-// only use the center 3x3 to fill the temp container
-inline int PRadHyCalCluster::fillHits(BaseHit *temp,
-                                      int max_hits,
-                                      const ModuleHit &center,
-                                      const std::vector<ModuleHit> &hits)
-const
-{
-    int count = 0;
-    for(auto &hit : hits)
-    {
-        if(count >= max_hits) {
-            std::cout << "PRad HyCal Cluster Warning: Exceeds the "
-                      << "hits limit (" << max_hits << ") "
-                      << "for  position reconstruction."
-                      << std::endl;
-            break;
-        }
-
-        if(PRadHyCalDetector::hit_distance(center, hit) < CORNER_ADJACENT) {
-            temp[count].x = hit.geo.x;
-            temp[count].y = hit.geo.y;
-            temp[count].E = hit.energy;
-            count++;
-        }
-    }
-    return count;
-}
-
-// reconstruct position from the temp container
-void PRadHyCalCluster::reconstructPos(BaseHit *temp, int count, BaseHit *recon)
-const
-{
-    // get total energy
-    float energy = 0;
-    for(int i= 0; i < count; ++i)
-    {
-        energy += temp[i].E;
-    }
-
-    // reconstruct position
-    float wx = 0, wy = 0, wtot = 0;
-    for(int i = 0; i < count; ++i)
-    {
-        float weight = GetWeight(temp[i].E, energy);
-        wx += temp[i].x*weight;
-        wy += temp[i].y*weight;
-        wtot += weight;
-    }
-
-    recon->x = wx/wtot;
-    recon->y = wy/wtot;
-}
-
 // correct virtual hits energy if we know the real positon (from other detector)
 void PRadHyCalCluster::CorrectVirtHits(ModuleCluster &cluster, float x, float y)
 const
@@ -386,21 +333,74 @@ const
     cluster.energy += cluster.leakage;
 }
 
+// only use the center 3x3 to fill the temp container
+inline int PRadHyCalCluster::fillHits(BaseHit *temp,
+                                      int max_hits,
+                                      const ModuleHit &center,
+                                      const std::vector<ModuleHit> &hits)
+const
+{
+    int count = 0;
+    for(auto &hit : hits)
+    {
+        if(count >= max_hits) {
+            std::cout << "PRad HyCal Cluster Warning: Exceeds the "
+                      << "hits limit (" << max_hits << ") "
+                      << "for  position reconstruction."
+                      << std::endl;
+            break;
+        }
+
+        if(hitDistance(center, hit) < CORNER_ADJACENT) {
+            temp[count].x = hit.geo.x;
+            temp[count].y = hit.geo.y;
+            temp[count].E = hit.energy;
+            count++;
+        }
+    }
+    return count;
+}
+
+// reconstruct position from the temp container
+void PRadHyCalCluster::reconstructPos(BaseHit *temp, int count, BaseHit *recon)
+const
+{
+    // get total energy
+    float energy = 0;
+    for(int i= 0; i < count; ++i)
+    {
+        energy += temp[i].E;
+    }
+
+    // reconstruct position
+    float wx = 0, wy = 0, wtot = 0;
+    for(int i = 0; i < count; ++i)
+    {
+        float weight = GetWeight(temp[i].E, energy);
+        wx += temp[i].x*weight;
+        wy += temp[i].y*weight;
+        wtot += weight;
+    }
+
+    recon->x = wx/wtot;
+    recon->y = wy/wtot;
+}
+
+// get profile values from PRadClusterProfile
 typedef PRadClusterProfile::Value ProfVal;
 
 ProfVal PRadHyCalCluster::getProf(const ModuleHit &c, const ModuleHit &hit)
 const
 {
-    double dist = detector->QuantizedDist(c.geo.x, c.geo.y, c.layout.sector,
-                                          hit.geo.x, hit.geo.y, hit.layout.sector);
     // magic number 0.78, the center module contains about 78% of the total energy
-    return __hc_prof.GetProfile(c.geo.type, dist, c.energy/0.78);
+    return __hc_prof.GetProfile(c.geo.type, hitDistance(c, hit), c.energy/0.78);
 }
 
 ProfVal PRadHyCalCluster::getProf(double cx, double cy, double cE, const ModuleHit &hit)
 const
 {
     int sid = detector->GetSectorID(cx, cy);
+    if(sid < 0) sid = static_cast<int>(PRadHyCalDetector::Top);
     int type = detector->GetSectorInfo().at(sid).mtype;
     double dist = detector->QuantizedDist(cx, cy, sid,
                                           hit.geo.x, hit.geo.y, hit.layout.sector);
@@ -410,14 +410,7 @@ const
 ProfVal PRadHyCalCluster::getProf(const BaseHit &c, const ModuleHit &hit)
 const
 {
-    int sid = detector->GetSectorID(c.x, c.y);
-    // out of hycal, use the lead glass sector
-    if(sid < 0) sid = static_cast<int>(PRadHyCalDetector::Top);
-
-    int type = detector->GetSectorInfo().at(sid).mtype;
-    double dist = detector->QuantizedDist(c.x, c.y, sid,
-                                          hit.geo.x, hit.geo.y, hit.layout.sector);
-    return __hc_prof.GetProfile(type, dist, c.E);
+    return getProf(c.x, c.y, c.E, hit);
 }
 
 // evaluate how well this cluster can be described by the profile
