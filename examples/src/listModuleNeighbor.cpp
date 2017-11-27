@@ -37,7 +37,7 @@ int main(int argc, char *argv [])
     cout << "list all the neighbors of module " << id << " and the quantized distance between them: \n";
     for(auto nbr : module->GetNeighbors())
     {
-        cout << nbr.ptr->GetID()
+        cout << nbr->GetID()
              << ", dist = " << nbr.dist
              << ", dx = " << nbr.dx
              << ", dy = " << nbr.dy

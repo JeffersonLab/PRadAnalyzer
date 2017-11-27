@@ -43,6 +43,9 @@ public:
         {
             dist = std::sqrt(dx*dx + dy*dy);
         }
+
+        PRadHyCalModule *operator->() {return ptr;}
+        const PRadHyCalModule *operator->() const {return ptr;}
     };
 
 public:

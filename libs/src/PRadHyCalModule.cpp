@@ -214,7 +214,7 @@ const
 {
     for(auto &m : neighbors)
     {
-        if(id == m.ptr->GetID()) {
+        if(id == m->GetID()) {
             // square range
             if(square_or_circle) {
                 return (std::abs(m.dx) < 1.01 && std::abs(m.dy) < 1.01);

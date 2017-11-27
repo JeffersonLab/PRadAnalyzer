@@ -376,9 +376,9 @@ void PRadHyCalDetector::RemoveModule(PRadHyCalModule *module)
     name_map.erase(module->GetName());
 
     module->UnsetDetector(true);
-    for(auto &neighbor : module->GetNeighbors())
+    for(auto &neighbor : module->neighbors)
     {
-        neighbor.ptr->RemoveNeighbor(module);
+        neighbor->RemoveNeighbor(module);
     }
 
     delete module;
@@ -481,9 +481,9 @@ void PRadHyCalDetector::CreateDeadHits()
     // the future correction
     for(auto module : module_list)
     {
-        for(auto &neighbor : module->GetNeighbors())
+        for(auto &neighbor : module->neighbors)
         {
-            if(TEST_BIT(neighbor.ptr->layout.flag, kDeadModule)) {
+            if(TEST_BIT(neighbor->layout.flag, kDeadModule)) {
                 SET_BIT(module->layout.flag, kDeadNeighbor);
                 break;
             }
