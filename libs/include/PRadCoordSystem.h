@@ -171,7 +171,7 @@ public:
 
 public:
     //static public members
-    static inline float hycal_z() {return 5725;}
+    static inline float hycal_z() {return 5731.22;}
     static inline Point origin() {return Point(0., 0., 0.);}
     // target cell center is at z = 88.9 mm from survey data
     static inline Point target() {return Point(0., 0., 88.9);}
