@@ -752,21 +752,24 @@ pair<size_t, size_t> ConfigParser::find_pair(const string &str,
 // get file name and directory from a path
 ConfigParser::PathInfo ConfigParser::decompose_path(const string &path)
 {
-    // find directory and ext
-    auto dir_pos = path.find_last_of("/");
-    auto suf_pos = path.find_first_of(".");
-
     PathInfo res;
-    if(dir_pos == string::npos) {
-        res.dir = ".";
-        res.name = path.substr(0, suf_pos);
-        if(suf_pos != string::npos)
-            res.ext = path.substr(suf_pos + 1);
-    } else {
+    if(path.empty()) return res;
+
+    // find directory
+    auto dir_pos = path.find_last_of("/");
+
+    if(dir_pos != string::npos) {
         res.dir = path.substr(0, dir_pos);
-        res.name = path.substr(dir_pos + 1, suf_pos - dir_pos - 1);
-        if(suf_pos != string::npos && suf_pos > dir_pos)
-            res.ext = path.substr(suf_pos + 1);
+        res.name = path.substr(dir_pos + 1);
+    } else {
+        res.name = path;
+    }
+
+    // find extension
+    auto ext_pos = res.name.find_last_of(".");
+    if(ext_pos != string::npos) {
+        res.ext = res.name.substr(ext_pos + 1);
+        res.name = res.name.substr(0, ext_pos);
     }
 
     return res;

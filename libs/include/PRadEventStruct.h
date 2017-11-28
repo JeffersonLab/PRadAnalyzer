@@ -400,23 +400,25 @@ struct EventData
 //============================================================================//
 // *BEGIN* HYCAL MODULE HIT AND CLUSTER STRUCTURE                             //
 //============================================================================//
+
 struct ModuleHit
 {
+    class PRadHyCalModule *ptr;     // pointer to the hycal module
     int32_t id;                     // module id
-    Geometry geo;                   // module geometry
-    Layout layout;                  // module layout
     float energy;                   // participated energy, may be splitted
     bool real;                      // false for virtual hit to correct leakage
 
     ModuleHit(bool r = true)
-    : id(0), energy(0), real(r)
+    : ptr(nullptr), id(0), energy(0), real(r)
     {}
 
-    ModuleHit(int i, const Geometry &g, const Layout &l, float e, bool r = true)
-    : id(i), geo(g), layout(l), energy(e), real(r)
+    ModuleHit(PRadHyCalModule *p, int i, float e, bool r = true)
+    : ptr(p), id(i), energy(e), real(r)
     {}
 
     bool operator ==(const ModuleHit &rhs) const {return id == rhs.id;}
+    PRadHyCalModule *operator->() {return ptr;}
+    const PRadHyCalModule *operator->() const {return ptr;}
 };
 
 struct ModuleCluster
@@ -425,15 +427,16 @@ struct ModuleCluster
     std::vector<ModuleHit> hits;    // hits group
     float energy;                   // cluster energy
     float leakage;                  // energy leakage
+    uint32_t flag;                  // cluster flag
 
     ModuleCluster()
-    : energy(0), leakage(0)
+    : energy(0), leakage(0), flag(0)
     {
         hits.reserve(100);
     }
 
-    ModuleCluster(const ModuleHit &hit)
-    : center(hit), energy(0), leakage(0)
+    ModuleCluster(const ModuleHit &hit, uint32_t f)
+    : center(hit), energy(0), leakage(0), flag(f)
     {
         hits.reserve(100);
     }
@@ -452,8 +455,10 @@ struct ModuleCluster
         energy += that.energy;
         leakage += that.leakage;
 
-        if(center.energy < that.center.energy)
+        if(center.energy < that.center.energy) {
             center = that.center;
+            flag = that.flag;
+        }
     }
 
     void FindCenter()
@@ -577,6 +582,7 @@ enum HyCalHitStatus
     kDeadNeighbor,      // cluster center is near a dead module
     kInnerBound,        // cluster near the inner hole of HyCal
     kOuterBound,        // cluster near the outer boundary of HyCal
+    kLeakCorr,          // cluster with leakage correction
 };
 
 // hycal reconstructed hit

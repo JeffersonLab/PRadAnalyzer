@@ -171,7 +171,7 @@ const
 double PRadHyCalModule::GetEnergy()
 const
 {
-    if(daq_ch)
+    if(daq_ch && !daq_ch->IsDead())
         return cal_const.Calibration(daq_ch->GetReducedValue());
 
     return 0.;

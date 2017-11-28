@@ -47,11 +47,7 @@ void PRadIslandCluster::Configure(const std::string &path)
 
     split_iter = getDefConfig<unsigned int>("Split Iteration", 6, verbose);
     least_share = getDefConfig<float>("Least Split Fraction", 0.01, verbose);
-    bool corner = getDefConfig<bool>("Corner Connection", false, verbose);
-    if(corner)
-        adj_dist = CORNER_ADJACENT;
-    else
-        adj_dist = SIDE_ADJACENT;
+    corner_conn = getDefConfig<bool>("Corner Connection", false, verbose);
 
     // set the min module energy for all the module type
     float univ_min_energy = getDefConfig<float>("Min Module Energy", 0., false);
@@ -106,7 +102,7 @@ const
     // roughly combine all adjacent hits
     for(auto &hit : hits)
     {
-        if(hit.energy < min_module_energy.at(hit.geo.type))
+        if(hit.energy < min_module_energy.at(hit->GetType()))
             continue;
 
         // not belong to any existing cluster
@@ -143,7 +139,7 @@ const
         for(auto &prev_hit : group)
         {
             // it belongs to a existing cluster
-            if(hitDistance(hit, *prev_hit) < adj_dist) {
+            if(hit->IsNeighbor(prev_hit->id, corner_conn)) {
                 group.push_back(&hit);
                 return true;
             }
@@ -161,9 +157,7 @@ const
     {
         for(auto &m2 : g2)
         {
-            if(hitDistance(*m1, *m2) < adj_dist) {
-                return true;
-            }
+            if((*m1)->IsNeighbor(m2->id, corner_conn)) return true;
         }
     }
 
@@ -186,7 +180,7 @@ const
        (group.size() >= SPLIT_MAX_HITS) ||          // too many hits
        (maximums.size() >= SPLIT_MAX_MAXIMA)) {     // too many local maxima
         // create cluster based on the center
-        clusters.emplace_back(*maximums.front());
+        clusters.emplace_back(*maximums.front(), (*maximums.front())->GetLayoutFlag());
         auto &cluster = clusters.back();
 
         for(auto &hit : group)
@@ -216,7 +210,7 @@ const
                 continue;
 
             // we count corner in
-            if((hitDistance(*hit1, *hit2) < CORNER_ADJACENT) &&
+            if((*hit1)->IsNeighbor(hit2->id, true) &&
                (hit2->energy > hit1->energy)) {
                 maximum = false;
                 break;
@@ -256,7 +250,7 @@ const
     // done iteration, add cluster according to the final share of energy
     for(size_t i = 0; i < maximums.size(); ++i)
     {
-        clusters.emplace_back(*maximums.at(i));
+        clusters.emplace_back(*maximums[i], (*maximums[i])->GetLayoutFlag());
         auto &cluster = clusters.back();
 
         for(size_t j = 0; j < hits.size(); ++j)
@@ -279,7 +273,7 @@ const
                 cluster.center.energy = new_hit.energy;
 
             // set flag to mark the splitted clusters
-            SET_BIT(cluster.center.layout.flag, kSplit);
+            SET_BIT(cluster.flag, kSplit);
         }
     }
 }
@@ -301,18 +295,21 @@ const
         {
             // cluster center reconstruction
             auto &center = *maximums.at(i);
-            float tot_E = 0.;
+            float tot_E = center.energy;
             int count = 0;
             for(size_t j = 0; j < hits.size(); ++j)
             {
                 auto &hit = *hits.at(j);
-                if(split.frac[j][i] == 0.)
+
+                if(hit.id == center.id || split.frac[j][i] == 0.)
                     continue;
 
                 // using 3x3 to reconstruct hit position
-                if(hitDistance(center, hit) < CORNER_ADJACENT) {
-                    temp[count].x = hit.geo.x;
-                    temp[count].y = hit.geo.y;
+                double dx, dy;
+                detector->QuantizedDist(center.ptr, hit.ptr, dx, dy);
+                if(std::abs(dx) < 1.01 && std::abs(dy) < 1.01) {
+                    temp[count].x = dx;
+                    temp[count].y = dy;
                     temp[count].E = hit.energy*split.norm_frac(i, j);
                     tot_E += temp[count].E;
                     count++;
@@ -320,7 +317,7 @@ const
             }
 
             BaseHit recon;
-            PRadHyCalCluster::reconstructPos(temp, count, &recon);
+            PRadHyCalCluster::reconstructPos(center, temp, count, &recon);
 
             // update profile with the reconstructed center
             for(size_t j = 0; j < hits.size(); ++j)
@@ -366,13 +363,13 @@ const
     for(auto &hit : hits)
     {
         // less than min module energy, ignore this hit
-        if(hit.energy < min_module_energy.at(hit.geo.type))
+        if(hit.energy < min_module_energy.at(hit->GetType()))
             continue;
 
         // not belongs to any cluster, and the energy is larger than center threshold
         if(!fillClusters(hit, clusters) && (hit.energy > min_center_energy))
         {
-            clusters.emplace_back(hit);
+            clusters.emplace_back(hit, hit->GetLayoutFlag());
             clusters.back().AddHit(hit);
         }
     }
@@ -388,7 +385,7 @@ const
     {
         for(auto &prev_hit : c.at(i).hits)
         {
-            if(hitDistance(hit, prev_hit) < CORNER_ADJACENT) {
+            if(hit->IsNeighbor(prev_hit.id, true)) {
                 indices.push_back(i);
                 break;
             }

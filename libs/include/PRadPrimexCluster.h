@@ -105,7 +105,7 @@ private:
     bool checkTransAdj(const ModuleCluster &c1, const ModuleCluster &c2) const;
 
 private:
-    float adj_dist;
+    bool corner_conn;
     std::vector<float> min_module_energy;
     int module_status[MSECT][MCOL][MROW];
 };

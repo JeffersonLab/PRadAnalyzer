@@ -99,13 +99,13 @@ void SavePixels(const char *path, const char *save_path)
 
             // update event information to all HyCal modules
             sys.ChooseEvent(event);
-            sys.GetDetector()->CollectHits();
+            sys.GetClusterMethod()->CollectHits(sys.GetDetector());
 
-            Nhits = sys.GetDetector()->GetModuleHits().size();
+            Nhits = sys.GetClusterMethod()->GetHits().size();
             for(unsigned int i = 0; i < Nhits; ++i)
             {
-                id[i] = sys.GetDetector()->GetModuleHits().at(i).id;
-                E[i] = sys.GetDetector()->GetModuleHits().at(i).energy;
+                id[i] = sys.GetClusterMethod()->GetHits().at(i).id;
+                E[i] = sys.GetClusterMethod()->GetHits().at(i).energy;
             }
 
             // reconstruct event and get the most energized cluster's theta angle

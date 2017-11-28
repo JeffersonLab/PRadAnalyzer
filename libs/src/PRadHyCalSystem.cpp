@@ -176,6 +176,7 @@ void PRadHyCalSystem::Configure(const std::string &path)
 
     if(hycal) {
         hycal->ReadModuleList(GetConfig<std::string>("Module List"));
+        hycal->ReadVModuleList(GetConfig<std::string>("Virtual Module List"));
     }
 
     // channel, pedestal and gain factors
@@ -419,9 +420,9 @@ bool PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
         }
     }
 
-    // finished reading, inform detector to update dead module listg
+    // finished reading, inform detector to update virtual and dead module neighbors
     if(hycal)
-        hycal->CreateDeadHits();
+        hycal->UpdateDeadModules();
 
 #ifdef USE_PRIMEX_METHOD
     // original primex method needs to load the profile into fortran coe
@@ -615,11 +616,8 @@ void PRadHyCalSystem::Reconstruct(const EventData &event)
     if(!event.is_physics_event())
         return;
 
-    // collect hits from eventdata
-    auto &hits = hycal->module_hits;
-
-    hits.clear();
-
+    // collect hits
+    recon->ClearHits();
     for(auto adc : event.get_adc_data())
     {
         if(adc.channel_id >= adc_list.size())
@@ -631,14 +629,30 @@ void PRadHyCalSystem::Reconstruct(const EventData &event)
 
         double val = (double)adc.value - adc_list.at(adc.channel_id)->GetPedestal().mean;
 
-        hits.emplace_back(module->GetID(),                  // module id
-                          module->GetGeometry(),            // module geometry
-                          module->GetLayout(),              // module layout
-                          module->GetEnergy(val));          // module energy
+        recon->AddHit(ModuleHit(module, module->GetID(), module->GetEnergy(val)));
     }
 
-    // reoncsturct
-    hycal->Reconstruct(recon);
+    recon->Reconstruct(hycal);
+
+    // add timing information
+    for(auto &hit : hycal->GetHits())
+    {
+        auto center = hycal->GetModule(hit.cid);
+        if(!center) continue;
+
+        auto tdc = center->GetTDC();
+        if(!tdc) continue;
+
+        auto id = tdc->GetID();
+        std::vector<uint16_t> time;
+        for(auto &tdc : event.tdc_data)
+        {
+            if(tdc.channel_id == id)
+                time.push_back(tdc.value);
+        }
+        hit.set_time(time);
+    }
+
 }
 
 void PRadHyCalSystem::Reconstruct()
@@ -647,11 +661,21 @@ void PRadHyCalSystem::Reconstruct()
     if(!hycal || !recon)
         return;
 
-    // collect current hits
-    hycal->CollectHits();
+    // collect hits
+    recon->CollectHits(hycal);
 
     // reconstruct
-    hycal->Reconstruct(recon);
+    recon->Reconstruct(hycal);
+
+    // add timing information
+    for(auto &hit : hycal->GetHits())
+    {
+        auto center = hycal->GetModule(hit.cid);
+        if(!center) continue;
+
+        auto tdc = center->GetTDC();
+        if(tdc) hit.set_time(tdc->GetTimeMeasure());
+    }
 }
 
 void PRadHyCalSystem::Reset()
@@ -675,9 +699,6 @@ void PRadHyCalSystem::SetDetector(PRadHyCalDetector *h)
 
     if(hycal)
         hycal->SetSystem(this);
-
-    for(auto &it : recon_map)
-        it.second->SetDetector(hycal);
 }
 
 // remove current detector
@@ -942,7 +963,6 @@ bool PRadHyCalSystem::AddClusterMethod(const std::string &name, PRadHyCalCluster
         return false;
     }
 
-    c->SetDetector(hycal);
     recon_map[key] = c;
     return true;
 }

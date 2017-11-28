@@ -43,11 +43,11 @@ inline bool PRadSquareCluster::checkBelongs(const ModuleHit &center,
                                             float factor)
 const
 {
-    float dist_x = factor*center.geo.size_x;
-    float dist_y = factor*center.geo.size_y;
+    float dist_x = factor*center->GetSizeX();
+    float dist_y = factor*center->GetSizeY();
 
-    if((fabs(center.geo.x - hit.geo.x) > dist_x) ||
-       (fabs(center.geo.y - hit.geo.y) > dist_y))
+    if((fabs(center->GetX() - hit->GetY()) > dist_x) ||
+       (fabs(center->GetX() - hit->GetY()) > dist_y))
         return false;
 
     return true;
@@ -81,7 +81,7 @@ const
         // not belongs to any cluster, and the energy is larger than center threshold
         if(!fillClusters(hit, clusters) && (hit.energy > min_center_energy))
         {
-            clusters.emplace_back(hit);
+            clusters.emplace_back(hit, hit->GetLayoutFlag());
             clusters.back().AddHit(hit);
         }
     }

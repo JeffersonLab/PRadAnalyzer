@@ -82,6 +82,8 @@ public:
     void AddNeighbor(PRadHyCalModule *m, double dx, double dy) {neighbors.emplace_back(m, dx, dy);}
     void ClearNeighbors() {neighbors.clear();}
     void RemoveNeighbor(PRadHyCalModule *m);
+    void AddVirtNeighbor(PRadHyCalModule *m, double dx, double dy) {vneighbors.emplace_back(m, dx, dy);}
+    void ClearVirtNeighbors() {vneighbors.clear();}
 
     // energy related
     double Calibration(const unsigned short &adcVal) const;
@@ -102,6 +104,8 @@ public:
     const Layout &GetLayout() const {return layout;}
     const PRadCalibConst &GetCalibConst() const {return cal_const;}
     PRadADCChannel *GetChannel() const {return daq_ch;}
+    const std::vector<Neighbor> &GetNeighbors() const {return neighbors;}
+    const std::vector<Neighbor> &GetVirtNeighbors() const {return vneighbors;}
 
     // get specific information
     std::string GetTypeName() const;
@@ -124,7 +128,6 @@ public:
     double GetReferenceGain(int ref) const {return cal_const.GetRefGain(ref);}
     double GetTriggerEfficiency(double energy) const {return trg_const.GetTriggerEfficiency(energy);}
     PRadTDCChannel *GetTDC() const;
-    const std::vector<Neighbor> &GetNeighbors() {return neighbors;}
 
     // compare operator
     bool operator < (const PRadHyCalModule &rhs) const
@@ -148,7 +151,7 @@ protected:
     Layout layout;
     PRadCalibConst cal_const;
     PRadTriggerConst trg_const;
-    std::vector<Neighbor> neighbors;
+    std::vector<Neighbor> neighbors, vneighbors;
 };
 
 std::ostream &operator <<(std::ostream &os, const PRadHyCalModule &m);

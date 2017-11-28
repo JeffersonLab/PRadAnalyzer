@@ -75,8 +75,8 @@ protected:
 
 protected:
     // parameters for reconstruction
+    bool corner_conn;
     unsigned int split_iter;
-    float adj_dist;
     float least_share;
     std::vector<float> min_module_energy;
 };

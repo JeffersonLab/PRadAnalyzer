@@ -44,12 +44,8 @@ void PRadPrimexCluster::Configure(const std::string &path)
 
     bool verbose = !path.empty();
 
-    // adj_dist is used for merging clusters separated by sectors
-    bool corner = getDefConfig<bool>("Corner Connection", false, verbose);
-    if(corner)
-        adj_dist = CORNER_ADJACENT;
-    else
-        adj_dist = SIDE_ADJACENT;
+    // used for merging clusters separated by sectors
+    corner_conn = getDefConfig<bool>("Corner Connection", false, verbose);
 
     // set the min module energy for all the module type
     float univ_min_energy = getDefConfig<float>("Min Module Energy", 0., false);
@@ -206,13 +202,13 @@ const
     for(auto &hit : hits)
     {
         // not belong to this sector or energy is too low
-        if((hit.layout.sector != isect) ||
-           (hit.energy < min_module_energy.at(hit.geo.type)))
+        if((hit->GetSectorID() != isect) ||
+           (hit.energy < min_module_energy.at(hit->GetType())))
             continue;
 
         const int &id  = hit.id;
-        int column = hit.layout.column + 1;
-        int row = hit.layout.row + 1;
+        int column = hit->GetColumn() + 1;
+        int row = hit->GetRow() + 1;
 
         // discretize to 0.1 MeV
         ECH(column,row) = int(hit.energy*10. + 0.5);
@@ -255,6 +251,7 @@ const
             }
         }
         cluster.FindCenter();
+        cluster.flag = cluster.center->GetLayoutFlag();
         res.push_back(cluster);
     }
 
@@ -284,16 +281,14 @@ inline bool PRadPrimexCluster::checkTransAdj(const ModuleCluster &c1,
 const
 {
     // don't merge the clusters in the same sector
-    if(c1.center.layout.sector == c2.center.layout.sector)
+    if(c1.center->GetSectorID() == c2.center->GetSectorID())
         return false;
 
     for(auto &m1 : c1.hits)
     {
         for(auto &m2 : c2.hits)
         {
-            if(hitDistance(m1, m2) < adj_dist) {
-                return true;
-            }
+            if(m1->IsNeighbor(m2.id, corner_conn)) return true;
         }
     }
 
@@ -303,7 +298,7 @@ const
 void PRadPrimexCluster::LeakCorr(ModuleCluster &, const std::vector<ModuleHit> &)
 const
 {
-    // place holder
+    // override PRadHyCalCluster::LeakCorr, since the fortran code has it
     // TODO island.F has corrected the leakage
     // here we probably can add some inforamtion about the leakage correction
 }

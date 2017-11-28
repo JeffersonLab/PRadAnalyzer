@@ -105,9 +105,8 @@ PRadHyCalDetector::PRadHyCalDetector(const std::string &det, PRadHyCalSystem *sy
 // HyCal system and the connections between modules and DAQ units won't be copied
 // copy constructor
 PRadHyCalDetector::PRadHyCalDetector(const PRadHyCalDetector &that)
-: PRadDetector(that), system(nullptr), module_hits(that.module_hits),
-  dead_hits(that.dead_hits), module_clusters(that.module_clusters),
-  hycal_hits(that.hycal_hits), sector_info(that.sector_info)
+: PRadDetector(that), system(nullptr), hycal_hits(that.hycal_hits),
+  sector_info(that.sector_info), vmodules(that.vmodules)
 {
     for(auto module : that.module_list)
     {
@@ -119,9 +118,8 @@ PRadHyCalDetector::PRadHyCalDetector(const PRadHyCalDetector &that)
 PRadHyCalDetector::PRadHyCalDetector(PRadHyCalDetector &&that)
 : PRadDetector(that), system(nullptr), module_list(std::move(that.module_list)),
   id_map(std::move(that.id_map)), name_map(std::move(that.name_map)),
-  module_hits(std::move(that.module_hits)), dead_hits(std::move(that.dead_hits)),
-  module_clusters(std::move(that.module_clusters)), hycal_hits(std::move(that.hycal_hits)),
-  sector_info(std::move(that.sector_info))
+  hycal_hits(std::move(that.hycal_hits)), sector_info(std::move(that.sector_info)),
+  vmodules(std::move(vmodules))
 {
     // reset the connections between module and HyCal
     for(auto module : module_list)
@@ -163,11 +161,9 @@ PRadHyCalDetector &PRadHyCalDetector::operator =(PRadHyCalDetector &&rhs)
     module_list = std::move(rhs.module_list);
     id_map = std::move(rhs.id_map);
     name_map = std::move(rhs.name_map);
-    module_hits = std::move(rhs.module_hits);
-    dead_hits = std::move(rhs.dead_hits);
-    module_clusters = std::move(rhs.module_clusters);
     hycal_hits = std::move(rhs.hycal_hits);
     sector_info = std::move(rhs.sector_info);
+    vmodules = std::move(rhs.vmodules);
 
     for(auto module : module_list)
         module->SetDetector(this);
@@ -249,6 +245,46 @@ bool PRadHyCalDetector::ReadModuleList(const std::string &path)
 
     // update sector information and build neighbors
     InitLayout();
+
+    return true;
+}
+
+// read virtual module list, this helps leakage correction
+bool PRadHyCalDetector::ReadVModuleList(const std::string &path)
+{
+    if(path.empty())
+        return false;
+
+    ConfigParser c_parser;
+    if(!c_parser.ReadFile(path)) {
+        std::cerr << "PRad HyCal Detector Error: Failed to read virtual module"
+                  << " list file \"" << path << "\"."
+                  << std::endl;
+        return false;
+    }
+
+    vmodules.clear();
+
+    std::string name, type;
+    Geometry geo;
+
+    // some info that is not read from list
+    while (c_parser.ParseLine())
+    {
+        if(!c_parser.CheckElements(8))
+            continue;
+
+        c_parser >> name >> type
+                 >> geo.size_x >> geo.size_y >> geo.size_z
+                 >> geo.x >> geo.y >> geo.z;
+
+        geo.type = PRadHyCalModule::get_module_type(type.c_str());
+
+        PRadHyCalModule vmodule(-1, geo, this);
+        vmodule.name = name;
+        vmodule.layout.sector = GetSectorID(geo.x, geo.y);
+        vmodules.push_back(vmodule);
+    }
 
     return true;
 }
@@ -454,26 +490,25 @@ void PRadHyCalDetector::Reset()
     hycal_hits.clear();
 }
 
-// prepare dead hits for the leakage correction in reconstruction
-void PRadHyCalDetector::CreateDeadHits()
+// prepare dead and virtual hits for the leakage correction in reconstruction
+void PRadHyCalDetector::UpdateDeadModules()
 {
-    // clear current dead hits
-    dead_hits.clear();
-
-    // create dead hits
+    // set flag for dead modules
     for(auto module : module_list)
     {
+        module->ClearVirtNeighbors();
         // clear the dead module flag
         CLEAR_BIT(module->layout.flag, kDeadModule);
 
         // module is not connected to a adc channel or the channel is dead
         if(!module->GetChannel() || module->GetChannel()->IsDead()) {
             SET_BIT(module->layout.flag, kDeadModule);
-            dead_hits.emplace_back(module->GetID(),         // id
-                                   module->GetGeometry(),   // geometry
-                                   module->GetLayout(),     // layout
-                                   0.,                      // energy
-                                   false);                  // virtual
+            // set bit for the dead module neighbors
+            for(auto &m : module->neighbors)
+            {
+                SET_BIT(m->layout.flag, kDeadNeighbor);
+                m->AddVirtNeighbor(module, -m.dx, -m.dy);
+            }
         }
     }
 
@@ -481,74 +516,26 @@ void PRadHyCalDetector::CreateDeadHits()
     // the future correction
     for(auto module : module_list)
     {
-        for(auto &neighbor : module->neighbors)
-        {
-            if(TEST_BIT(neighbor->layout.flag, kDeadModule)) {
-                SET_BIT(module->layout.flag, kDeadNeighbor);
-                break;
+        // not boundary modules
+        if(!TEST_BIT(module->layout.flag, kInnerBound) &&
+           !TEST_BIT(module->layout.flag, kOuterBound))
+            continue;
+
+        for(auto &vm : vmodules) {
+            double dx, dy;
+            qdist(module->GetX(), module->GetY(), module->GetSectorID(),
+                  vm.GetX(), vm.GetY(), vm.GetSectorID(),
+                  sector_info, dx, dy);
+            if(std::abs(dx) < 1.01 && std::abs(dy) < 1.01) {
+                module->AddVirtNeighbor(&vm, dx, dy);
             }
         }
     }
 }
 
-// hits/clusters reconstruction
 void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
 {
-    // clear containers
-    hycal_hits.clear();
-
-    // group module hits into clusters
-    method->FormCluster(module_hits, module_clusters);
-
-    for(auto &cluster : module_clusters)
-    {
-        // discard cluster that does not satisfy certain conditions
-        if(!method->CheckCluster(cluster))
-            continue;
-
-        // leakage correction for dead modules
-        method->LeakCorr(cluster, dead_hits);
-
-        // the center module does not exist should be a fatal problem, thus no
-        // safety check here
-        PRadHyCalModule *center = GetModule(cluster.center.id);
-
-        // get non-linear correction factor
-        float lin_corr = center->GetCalibConst().NonLinearCorr(cluster.energy);
-
-        // reconstruct hit the position based on the cluster
-        HyCalHit hit = method->Reconstruct(cluster, lin_corr);
-
-        // add timing information
-        PRadTDCChannel *tdc = center->GetTDC();
-        if(tdc)
-            hit.set_time(tdc->GetTimeMeasure());
-
-        // final hit reconstructed
-        hycal_hits.emplace_back(std::move(hit));
-    }
-}
-
-// collect hits from modules
-void PRadHyCalDetector::CollectHits()
-{
-    module_hits.clear();
-
-    for(auto &module : module_list)
-    {
-        float energy = module->GetEnergy();
-        if(energy > 0)
-            module_hits.emplace_back(module->GetID(),           // id
-                                     module->GetGeometry(),     // geometry
-                                     module->GetLayout(),       // layout
-                                     energy);                   // energy
-    }
-}
-
-// clear existing hits
-void PRadHyCalDetector::ClearHits()
-{
-    module_hits.clear();
+    method->Reconstruct(this);
 }
 
 PRadHyCalModule *PRadHyCalDetector::GetModule(int id)
@@ -599,16 +586,24 @@ const
     return energy;
 }
 
+// get the sector id for quantized distance, highly specific for HyCal layout
+// Notice that out of hycal will also be given a valid id, corresponding to the
+// closest lead glass sector
 int PRadHyCalDetector::GetSectorID(double x, double y)
 const
 {
-    for(auto &sec : sector_info)
-    {
-        if(cana::inside_polygon_2d(x, y, sec.boundpts.begin(), sec.boundpts.end()))
-            return sec.id;
-    }
+    // get the central area
+    auto &center = sector_info[static_cast<int>(Center)];
+    double x1, y1, x2, y2;
+    center.GetBoundary(x1, y1, x2, y2);
 
-    return static_cast<int>(Undefined_Sector);
+    if(x > x2) return (y < y1)? static_cast<int>(Bottom): static_cast<int>(Right);
+    if(x < x1) return (y > y2)? static_cast<int>(Top): static_cast<int>(Left);
+    if(y > y2) return (x > x2)? static_cast<int>(Right) : static_cast<int>(Top);
+    if(y < y1) return (x < x1)? static_cast<int>(Left) : static_cast<int>(Bottom);
+
+    // inside
+    return static_cast<int>(Center);
 }
 
 void PRadHyCalDetector::InitLayout()
@@ -660,10 +655,7 @@ void PRadHyCalDetector::UpdateSectorInfo()
             ymax[i] = std::max(ymax[i], y2);
         // initialize
         } else {
-            sector_info[i].id = i;
-            sector_info[i].mtype = module->GetType();
-            sector_info[i].msize_x = module->GetSizeX();
-            sector_info[i].msize_y = module->GetSizeY();
+            sector_info[i].Init(i, module);
             xmin[i] = x1;
             ymin[i] = y1;
             xmax[i] = x2;
@@ -674,14 +666,7 @@ void PRadHyCalDetector::UpdateSectorInfo()
 
     // form boundary points
     for(int i = 0; i < Ns; ++i)
-    {
-        sector_info[i].boundpts.clear();
-        // align in counter-clockwise
-        sector_info[i].boundpts.emplace_back(xmin[i], ymax[i]);
-        sector_info[i].boundpts.emplace_back(xmin[i], ymin[i]);
-        sector_info[i].boundpts.emplace_back(xmax[i], ymin[i]);
-        sector_info[i].boundpts.emplace_back(xmax[i], ymax[i]);
-    }
+        sector_info[i].SetBoundary(xmin[i], ymin[i], xmax[i], ymax[i]);
 }
 
 // the distance quantized by the module size
@@ -711,6 +696,30 @@ const
     double dx, dy;
     qdist(x1, y1, s1, x2, y2, s2, sector_info, dx, dy);
     return std::sqrt(dx*dx + dy*dy);
+}
+
+void PRadHyCalDetector::QuantizedDist(const PRadHyCalModule *m1, const PRadHyCalModule *m2,
+                                      double &dx, double &dy)
+const
+{
+    qdist(m1->GetX(), m1->GetY(), m1->GetSectorID(),
+          m2->GetX(), m2->GetY(), m2->GetSectorID(),
+          sector_info, dx, dy);
+}
+
+void PRadHyCalDetector::QuantizedDist(double x1, double x2, double y1, double y2,
+                                      double &dx, double &dy)
+const
+{
+    qdist(x1, y1, GetSectorID(x1, y1), x2, y2, GetSectorID(x2, y2), sector_info, dx, dy);
+}
+
+void PRadHyCalDetector::QuantizedDist(double x1, double y1, int s1,
+                                      double x2, double y2, int s2,
+                                      double &dx, double &dy)
+const
+{
+    qdist(x1, y1, s1, x2, y2, s2, sector_info, dx, dy);
 }
 
 // using primex id to get layout information

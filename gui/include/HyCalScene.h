@@ -91,7 +91,6 @@ public:
     void UpdateScalerBox(const QStringList &texts);
     void ShowScalers(const bool &s = true) {showScalers = s;}
     void ShowCluster(const ModuleCluster &cluster);
-    void ShowCluster(int index);
     template<typename... Args>
     void ModuleAction(void (HyCalModule::*act)(Args...), Args&&... args)
     {

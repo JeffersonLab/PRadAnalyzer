@@ -25,20 +25,28 @@ public:
     virtual ~PRadHyCalCluster();
     virtual PRadHyCalCluster *Clone() const;
     virtual void Configure(const std::string &path);
+    virtual void CollectHits(PRadHyCalDetector *det);
+    virtual void Reconstruct(PRadHyCalDetector *det);
     virtual void FormCluster(std::vector<ModuleHit> &hits,
                              std::vector<ModuleCluster> &clusters) const;
     virtual bool CheckCluster(const ModuleCluster &hit) const;
-    virtual void LeakCorr(ModuleCluster &cluster, const std::vector<ModuleHit> &dead) const;
+    virtual void LeakCorr(ModuleCluster &cluster) const;
+
+    inline void AddHit(const ModuleHit &hit) {module_hits.emplace_back(hit);}
+    inline void AddHit(ModuleHit &&hit) {module_hits.emplace_back(hit);}
+    inline void ClearHits() {module_hits.clear();}
+    const std::vector<ModuleHit> &GetHits() const {return module_hits;}
+    const std::vector<ModuleCluster> &GetClusters() const {return module_clusters;}
 
     void ReadVModuleList(const std::string &path);
     void SetDetector(PRadHyCalDetector *ptr) {detector = ptr;}
     PRadHyCalDetector *GetDetector() const {return detector;}
     float GetWeight(const float &E, const float &E0) const;
     float GetShowerDepth(int module_type, const float &E) const;
-    void AddVirtHits(ModuleCluster &cluster, const std::vector<ModuleHit> &dead) const;
-    void CorrectVirtHits(ModuleCluster &cluster, float x, float y) const;
+    void CorrectVirtHits(BaseHit &hit, std::vector<ModuleHit> &vhits,
+                         const ModuleCluster &cluster) const;
 
-    HyCalHit Reconstruct(const ModuleCluster &cluster, const float &alpE = 1.) const;
+    HyCalHit ReconstructHit(const ModuleCluster &cluster, const float &alpE = 1.) const;
 
 protected:
     PRadHyCalCluster();
@@ -46,7 +54,8 @@ protected:
                  int max_hits,
                  const ModuleHit &center,
                  const std::vector<ModuleHit> &hits) const;
-    void reconstructPos(BaseHit *temp, int count, BaseHit *recon) const;
+    int reconstructPos(const ModuleHit &center, BaseHit *temp, int count, BaseHit *hit) const;
+    int reconstructPos(const ModuleCluster &cluster, BaseHit *hit) const;
     PRadClusterProfile::Value getProf(double cx, double cy, double cE, const ModuleHit &hit) const;
     PRadClusterProfile::Value getProf(const BaseHit &center, const ModuleHit &hit) const;
     PRadClusterProfile::Value getProf(const ModuleHit &center, const ModuleHit &hit) const;
@@ -54,8 +63,7 @@ protected:
     inline double hitDistance(const ModuleHit &m1, const ModuleHit &m2)
     const
     {
-        return detector->QuantizedDist(m1.geo.x, m1.geo.y, m1.layout.sector,
-                                       m2.geo.x, m2.geo.y, m2.layout.sector);
+        return detector->QuantizedDist(m1.ptr, m2.ptr);
     }
 
 protected:
@@ -70,8 +78,8 @@ protected:
     float linear_corr_limit;
     unsigned int min_cluster_size;
     unsigned int leak_iters;
-    std::vector<ModuleHit> inner_virtual;
-    std::vector<ModuleHit> outer_virtual;
+    std::vector<ModuleHit> module_hits;
+    std::vector<ModuleCluster> module_clusters;
 };
 
 #endif

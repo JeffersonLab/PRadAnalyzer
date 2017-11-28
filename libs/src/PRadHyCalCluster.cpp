@@ -52,51 +52,50 @@ void PRadHyCalCluster::Configure(const std::string &path)
     least_leak = getDefConfig<float>("Least Leakage Fraction", 0.05, verbose);
     leak_iters = getDefConfig<unsigned int>("Leakage Iterations", 3, verbose);
     linear_corr_limit = getDefConfig<float>("Non Linearity Limit", 0.6, verbose);
-
-    ReadVModuleList(GetConfig<std::string>("Virtual Module List"));
 }
 
-void PRadHyCalCluster::ReadVModuleList(const std::string &path)
+void PRadHyCalCluster::CollectHits(PRadHyCalDetector *det)
 {
-    if(path.empty())
-        return;
+    // collect hits
+    module_hits.clear();
 
-    ConfigParser c_parser;
-    c_parser.ReadFile(path);
-
-    inner_virtual.clear();
-    outer_virtual.clear();
-
-    std::string name;
-    std::string type, sector;
-    Geometry geo;
-
-    // some info that is not read from list
-    while (c_parser.ParseLine())
+    for(auto &module : det->GetModuleList())
     {
-        if(!c_parser.CheckElements(8))
-            continue;
-
-        c_parser >> name >> type
-                 >> geo.size_x >> geo.size_y >> geo.size_z
-                 >> geo.x >> geo.y >> geo.z;
-
-        geo.type = PRadHyCalModule::get_module_type(type.c_str());
-
-        if(ConfigParser::str_upper(name) == "INNER") {
-            ModuleHit inner_hit(false);
-            inner_hit.id = -1;
-            inner_hit.geo = geo;
-            inner_hit.layout.sector = 0;
-            inner_virtual.push_back(inner_hit);
-        } else if(ConfigParser::str_upper(name) == "OUTER") {
-            ModuleHit outer_hit(false);
-            outer_hit.id = -1;
-            outer_hit.geo = geo;
-            outer_hit.layout.sector = 1;
-            outer_virtual.push_back(outer_hit);
+        float energy = module->GetEnergy();
+        if(energy > 0) {
+            module_hits.emplace_back(module, module->GetID(), energy);
         }
     }
+}
+
+void PRadHyCalCluster::Reconstruct(PRadHyCalDetector *det)
+{
+    detector = det;
+
+    // form clusters
+    FormCluster(module_hits, module_clusters);
+
+    // reconstruct hit from cluster
+    det->ClearHits();
+    for(auto &cluster : module_clusters)
+    {
+        // discard cluster that does not satisfy certain conditions
+        if(!CheckCluster(cluster))
+            continue;
+
+        // leakage correction for dead modules
+        LeakCorr(cluster);
+
+        // get non-linear correction factor
+        float lin_corr = cluster.center->GetCalibConst().NonLinearCorr(cluster.energy);
+
+        // reconstruct hit the position based on the cluster
+        HyCalHit hit = ReconstructHit(cluster, lin_corr);
+
+        // final hit reconstructed
+        det->AddHit(std::move(hit));
+    }
+
 }
 
 void PRadHyCalCluster::FormCluster(std::vector<ModuleHit> &,
@@ -150,12 +149,12 @@ const
 }
 
 // reconstruct cluster
-HyCalHit PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster, const float &alpE)
+HyCalHit PRadHyCalCluster::ReconstructHit(const ModuleCluster &cluster, const float &alpE)
 const
 {
     // initialize the hit
     HyCalHit hycal_hit(cluster.center.id,               // center id
-                       cluster.center.layout.flag,      // module flag
+                       cluster.flag,                    // cluster flag
                        cluster.energy,                  // total energy
                        cluster.leakage);                // energy from leakage corr
 
@@ -170,172 +169,117 @@ const
     // count modules
     hycal_hit.nblocks = cluster.hits.size();
 
-    // fill 3x3 hits around center into temp container for position reconstruction
-    BaseHit cl[POS_RECON_HITS];
-    int count = fillHits(cl, POS_RECON_HITS, cluster.center, cluster.hits);
-
-    // record how many hits participated in position reconstruction
-    hycal_hit.npos = count;
-
-    // reconstruct position
-    reconstructPos(cl, count, (BaseHit*)&hycal_hit);
-    hycal_hit.z = cluster.center.geo.z;
+    hycal_hit.npos = reconstructPos(cluster, (BaseHit*)&hycal_hit);
 
     // z position will need a depth correction
-    hycal_hit.z += GetShowerDepth(cluster.center.geo.type, cluster.energy);
+    hycal_hit.z += GetShowerDepth(cluster.center->GetType(), cluster.energy);
 
     return hycal_hit;
 }
 
 // leakage correction, dead module hits will be provided by hycal detector
-void PRadHyCalCluster::LeakCorr(ModuleCluster &cluster, const std::vector<ModuleHit> &dead)
+void PRadHyCalCluster::LeakCorr(ModuleCluster &cluster)
 const
 {
-    if(!leak_corr)
+    if(!leak_corr ||                            // correction disabled
+       TEST_BIT(cluster.flag, kLeakCorr) ||     // already corrected
+       cluster.hits.size() < 4)                 // insufficient hits to constrain
         return;
 
-    if(TEST_BIT(cluster.center.layout.flag, kDeadNeighbor))
-        AddVirtHits(cluster, dead);
+    const auto &vnbrs = cluster.center->GetVirtNeighbors();
 
-    if(TEST_BIT(cluster.center.layout.flag, kInnerBound))
-        AddVirtHits(cluster, inner_virtual);
-
-    if(TEST_BIT(cluster.center.layout.flag, kOuterBound))
-        AddVirtHits(cluster, outer_virtual);
-}
-
-// add virtual hits to correct energy leakage
-void PRadHyCalCluster::AddVirtHits(ModuleCluster &cluster, const std::vector<ModuleHit> &dead)
-const
-{
-    if(dead.empty())
-        return;
-
-    const auto &center = cluster.center;
-
-    // temp container to reconstruct position
-    BaseHit cl[POS_RECON_HITS], temp_hit(center.geo.x, center.geo.y, 0., cluster.energy);
-
-    // estimator to check if virtual hits will improve the profile
-    float estimator = evalCluster(temp_hit, cluster);
-
-    // this cluster is too bad
-    if(estimator > 5.)
-        return;
-
-    // temporty container for dead hits energies
-    float dead_energy[dead.size()], temp_energy[dead.size()];
-    // initialize
-    for(unsigned int i = 0; i < dead.size(); ++i)
-    {
-        dead_energy[i] = 0.;
-    }
-
-    // iteration to correct leakage
-    for(unsigned int iter = 0; iter < leak_iters; ++iter)
-    {
-        // check profile to update dead hits' energies
-        for(unsigned int i = 0; i < dead.size(); ++i)
-        {
-            float frac = getProf(temp_hit, dead.at(i)).frac;
-            // full correction would be frac/(1 - frac), but it may result in divergence
-            temp_energy[i] = cluster.energy*frac;
-        }
-
-        // reconstruct position using cluster hits and dead modules
-        // fill existing cluster hits
-        int count = fillHits(cl, POS_RECON_HITS, center, cluster.hits);
-
-        // fill virtual hits for dead modules
-        temp_hit.E = cluster.energy;
-        for(unsigned int i = 0; i < dead.size(); ++i)
-        {
-            if(temp_energy[i] == 0.)
-                continue;
-
-            const auto &hit = dead.at(i);
-            if(hitDistance(center, hit) < CORNER_ADJACENT) {
-                cl[count].x = hit.geo.x;
-                cl[count].y = hit.geo.y;
-                cl[count].E = temp_energy[i];
-                temp_hit.E += temp_energy[i];
-                count++;
-            }
-        }
-
-        // reconstruct position
-        reconstructPos(cl, count, &temp_hit);
-
-        // check if the correction helps improve the cluster profile
-        float new_est = evalCluster(temp_hit, cluster);
-        // not improving, stop!
-        if(new_est > estimator)
-            break;
-
-        // improved! apply changes
-        estimator = new_est;
-        for(unsigned int i = 0; i < dead.size(); ++i)
-        {
-            dead_energy[i] = temp_energy[i];
-        }
-    }
-
-    // leakage correction to cluster
-    for(unsigned int i = 0; i < dead.size(); ++i)
-    {
-        // leakage is large enough
-        if(dead_energy[i] >= least_leak*cluster.energy) {
-
-            // add virtual hit
-            ModuleHit vhit(dead.at(i));
-            vhit.energy = dead_energy[i];
-            cluster.AddHit(vhit);
-
-            // record leakage correction
-            cluster.leakage += vhit.energy;
-        }
-    }
-}
-
-// correct virtual hits energy if we know the real positon (from other detector)
-void PRadHyCalCluster::CorrectVirtHits(ModuleCluster &cluster, float x, float y)
-const
-{
     // no need to correct
-    if(cluster.leakage == 0.)
+    if(vnbrs.empty())
         return;
 
-    // re-calculate cluster energy, zero leakage energy
-    cluster.energy -= cluster.leakage;
-    cluster.leakage = 0.;
-
-    // change virtual hits
-    for(auto it = cluster.hits.begin(); it != cluster.hits.end(); ++it)
+    // add virtual hits for each virtual neighbor module
+    std::vector<ModuleHit> vhits;
+    vhits.reserve(vnbrs.size());
+    for(auto &vnbr : vnbrs)
     {
-        // real hit, no need to correct
-        if(it->real)
-            continue;
+        vhits.emplace_back(vnbr.ptr, vnbr->GetID(), 0., false);
+    }
 
-        // check profile
-        float frac = getProf(x, y, cluster.energy, *it).frac;
+    // reconstruct hit position
+    BaseHit pos(0., 0., 0., cluster.energy);
+    reconstructPos(cluster, &pos);
+    // get estimator for the current cluster
+    double est = evalCluster(pos, cluster);
 
-        // full energy correction because we trust the position
-        if(frac > 0. && frac < 1.) {
-            it->energy = cluster.energy*frac/(1 - frac);
-            cluster.leakage += it->energy;
-        // remove virtual hit if its energy should be zero
+    // iteration to correct virtual hits
+    int iter = leak_iters;
+    std::vector<double> vhits_e(vhits.size());
+    while(iter-- > 0) {
+        // save current status of vhits
+        for(size_t i = 0; i < vhits.size(); ++i)
+        {
+            vhits_e[i] = vhits[i].energy;
+        }
+
+        // correct virtual hits, reconstruct hit position
+        CorrectVirtHits(pos, vhits, cluster);
+        // re-evalate the cluster profile
+        double new_est = evalCluster(pos, cluster);
+
+        // worse
+        if(new_est >= est) {
+            // restore energies
+            for(size_t i = 0; i < vhits.size(); ++i)
+            {
+                vhits[i].energy = vhits_e[i];
+            }
+            // done
+            break;
         } else {
-            cluster.hits.erase(it--);
+            est = new_est;
         }
     }
 
-    // update energy
-    cluster.energy += cluster.leakage;
+    // apply the virtual hits
+    for(auto &vhit : vhits)
+    {
+        if(vhit.energy <= 0.) continue;
+        cluster.hits.push_back(vhit);
+        cluster.energy += vhit.energy;
+        cluster.leakage += vhit.energy;
+    }
+
+    // including leakage correction
+    SET_BIT(cluster.flag, kLeakCorr);
+}
+
+// correct virtual hits energy with given hit, and update the hit after correction
+void PRadHyCalCluster::CorrectVirtHits(BaseHit &hit, std::vector<ModuleHit> &vhits,
+                                       const ModuleCluster &cluster)
+const
+{
+    // update virtual hit energy
+    double tote = cluster.energy;
+    for(auto &vhit : vhits)
+    {
+        // check profile
+        float frac = getProf(hit.x, hit.y, cluster.energy, vhit).frac;
+
+        double ene;
+        if(frac > 0. && frac < 1.) {
+            ene = hit.E*frac;
+        } else {
+            ene = 0.;
+        }
+        vhit.energy = ene;
+        tote += ene;
+    }
+
+    // reconstruct the position
+    BaseHit temp[POS_RECON_HITS];
+    int count = fillHits(temp, POS_RECON_HITS, cluster.center, cluster.hits);
+    count += fillHits(&temp[count], POS_RECON_HITS - count, cluster.center, vhits);
+    reconstructPos(cluster.center, temp, count, &hit);
+    hit.E = tote;
 }
 
 // only use the center 3x3 to fill the temp container
-inline int PRadHyCalCluster::fillHits(BaseHit *temp,
-                                      int max_hits,
+inline int PRadHyCalCluster::fillHits(BaseHit *temp, int max_hits,
                                       const ModuleHit &center,
                                       const std::vector<ModuleHit> &hits)
 const
@@ -343,6 +287,7 @@ const
     int count = 0;
     for(auto &hit : hits)
     {
+        if(center.id == hit.id) continue;
         if(count >= max_hits) {
             std::cout << "PRad HyCal Cluster Warning: Exceeds the "
                       << "hits limit (" << max_hits << ") "
@@ -351,9 +296,11 @@ const
             break;
         }
 
-        if(hitDistance(center, hit) < CORNER_ADJACENT) {
-            temp[count].x = hit.geo.x;
-            temp[count].y = hit.geo.y;
+        double dx, dy;
+        detector->QuantizedDist(center.ptr, hit.ptr, dx, dy);
+        if(std::abs(dx) < 1.01 && std::abs(dy) < 1.01) {
+            temp[count].x = dx;
+            temp[count].y = dy;
             temp[count].E = hit.energy;
             count++;
         }
@@ -362,28 +309,54 @@ const
 }
 
 // reconstruct position from the temp container
-void PRadHyCalCluster::reconstructPos(BaseHit *temp, int count, BaseHit *recon)
+int PRadHyCalCluster::reconstructPos(const ModuleHit &center,
+                                     BaseHit *temp, int count, BaseHit *hit)
 const
 {
     // get total energy
-    float energy = 0;
+    float energy = center.energy;
     for(int i= 0; i < count; ++i)
     {
         energy += temp[i].E;
     }
 
     // reconstruct position
-    float wx = 0, wy = 0, wtot = 0;
+    float wx = 0, wy = 0, wtot = GetWeight(center.energy, energy);
+    // center only contains a little portion of the total energy
+    // possibly cosmic
+    if(wtot == 0.) {
+        hit->x = center->GetX();
+        hit->y = center->GetY();
+        hit->z = center->GetZ();
+        return 1;
+    }
+
+    int phits = 0;
     for(int i = 0; i < count; ++i)
     {
         float weight = GetWeight(temp[i].E, energy);
-        wx += temp[i].x*weight;
-        wy += temp[i].y*weight;
-        wtot += weight;
+        if(weight > 0.) {
+            wx += temp[i].x*weight;
+            wy += temp[i].y*weight;
+            wtot += weight;
+            phits++;
+        }
     }
 
-    recon->x = wx/wtot;
-    recon->y = wy/wtot;
+    hit->x = center->GetX() + wx/wtot*center->GetSizeX();
+    hit->y = center->GetY() + wy/wtot*center->GetSizeY();
+    hit->z = center->GetZ();
+
+    return phits;
+}
+
+// reconstruct position from cluster
+int PRadHyCalCluster::reconstructPos(const ModuleCluster &cl, BaseHit *hit)
+const
+{
+    BaseHit temp[POS_RECON_HITS];
+    int count = fillHits(temp, POS_RECON_HITS, cl.center, cl.hits);
+    return reconstructPos(cl.center, temp, count, hit);
 }
 
 // get profile values from PRadClusterProfile
@@ -393,24 +366,27 @@ ProfVal PRadHyCalCluster::getProf(const ModuleHit &c, const ModuleHit &hit)
 const
 {
     // magic number 0.78, the center module contains about 78% of the total energy
-    return __hc_prof.GetProfile(c.geo.type, hitDistance(c, hit), c.energy/0.78);
+    return __hc_prof.GetProfile(c->GetType(), hitDistance(c, hit), c.energy/0.78);
 }
 
 ProfVal PRadHyCalCluster::getProf(double cx, double cy, double cE, const ModuleHit &hit)
 const
 {
     int sid = detector->GetSectorID(cx, cy);
-    if(sid < 0) sid = static_cast<int>(PRadHyCalDetector::Top);
     int type = detector->GetSectorInfo().at(sid).mtype;
     double dist = detector->QuantizedDist(cx, cy, sid,
-                                          hit.geo.x, hit.geo.y, hit.layout.sector);
+                                          hit->GetX(), hit->GetY(), hit->GetSectorID());
     return __hc_prof.GetProfile(type, dist, cE);
 }
 
 ProfVal PRadHyCalCluster::getProf(const BaseHit &c, const ModuleHit &hit)
 const
 {
-    return getProf(c.x, c.y, c.E, hit);
+    int sid = detector->GetSectorID(c.x, c.y);
+    int type = detector->GetSectorInfo().at(sid).mtype;
+    double dist = detector->QuantizedDist(c.x, c.y, sid,
+                                          hit->GetX(), hit->GetY(), hit->GetSectorID());
+    return __hc_prof.GetProfile(type, dist, c.E);
 }
 
 // evaluate how well this cluster can be described by the profile
@@ -421,9 +397,9 @@ const
 
     // determine energy resolution
     double res = 0.026;  // 2.6% for PbWO4
-    if(TEST_BIT(cl.center.layout.flag, kPbGlass))
+    if(TEST_BIT(cl.flag, kPbGlass))
         res = 0.065;    // 6.5% for PbGlass
-    if(TEST_BIT(cl.center.layout.flag, kTransition))
+    if(TEST_BIT(cl.flag, kTransition))
         res = 0.050;    // 5.0% for transition
     res /= sqrt(c.E/1000.);
 
@@ -432,7 +408,7 @@ const
     {
         auto prof = getProf(c, hit);
         if(prof.frac < 0.01)
-            continue;
+          continue;
 
         ++count;
 
