@@ -13,12 +13,6 @@
 // here gives a larger volume to save the information
 #define POS_RECON_HITS 15
 
-// value to judge if two modules are connected at corner, quantized to module size
-#define CORNER_ADJACENT 1.5
-// value to judge if two modules are sharing a side line
-#define SIDE_ADJACENT 1.3
-
-
 class PRadHyCalCluster : public ConfigObject
 {
 public:

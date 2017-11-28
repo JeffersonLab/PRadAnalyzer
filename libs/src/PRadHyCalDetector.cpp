@@ -588,7 +588,7 @@ const
 
 // get the sector id for quantized distance, highly specific for HyCal layout
 // Notice that out of hycal will also be given a valid id, corresponding to the
-// closest lead glass sector
+// closest lead glass sector, this is intended
 int PRadHyCalDetector::GetSectorID(double x, double y)
 const
 {

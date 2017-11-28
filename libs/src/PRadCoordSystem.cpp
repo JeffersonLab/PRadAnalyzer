@@ -215,7 +215,7 @@ const
     //         ( 0           1         0  )
     //         (-sin(a)      0     cos(a) )
     x = x*cos(coord.rot.y*0.001) - z*sin(coord.rot.y*0.001);
-    z = x*sin(coord.rot.y*0.001) + z*cos(coord.rot.x*0.001);
+    z = x*sin(coord.rot.y*0.001) + z*cos(coord.rot.y*0.001);
 
     // Rz(a) = ( cos(a) -sin(a)        0  )
     //         ( sin(a)  cos(a)        0  )
