@@ -3,7 +3,7 @@
 ################################################################################
 
 # directories
-LIB_DIR = libs
+LIB_DIR = lib
 GUI_DIR = gui
 EXE_DIR = examples
 

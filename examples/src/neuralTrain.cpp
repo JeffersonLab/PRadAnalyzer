@@ -5,7 +5,7 @@
 // 01/27/2017                                                                 //
 //============================================================================//
 
-#include "cneural/CNeuralNetwork.h"
+#include "CNeuralNetwork.h"
 #include "cosmicEval.h"
 #include "PRadHyCalSystem.h"
 #include "PRadDataHandler.h"

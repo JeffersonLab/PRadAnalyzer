@@ -3,6 +3,8 @@
 ################################################################################
 
 MAKEFILE      = Makefile
+TARGET_DIR    = $(PRAD_LIB)
+TARGET_INC    = $(PRAD_INC)
 
 ####### Compiler, tools and options
 CC            = gcc
@@ -33,45 +35,4 @@ AR            = ar cqs
 RANLIB        = 
 SED           = sed
 STRIP         = 
-
-####### Targets, add new objects here
-LIB_DIR       = ..
-TARGET_LIB    = libcneural.so
-LIB_OBJ_DIR   = obj
-LIB_CLASSES   = CNeuron \
-				CNeuronLayer \
-				CNeuralNetwork
-
-LIB_OBJECTS   = $(addprefix $(LIB_OBJ_DIR)/, $(LIB_CLASSES:=.o))
-
-
-####### Build rules
-first: all
-
-all: lib
-
-lib: Makefile $(TARGET_LIB)
-
-$(LIB_OBJ_DIR)/%.o: src/%.cpp
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
-
-$(TARGET_LIB):  $(LIB_OBJECTS)
-	$(LINK) $(LFLAGS) -o $(LIB_DIR)/$(TARGET_LIB) $(LIB_OBJECTS) $(LIBS)
-
-####### Clean
-clean: cleanobj cleanlib
-
-cleanobj:
-	$(DEL_FILE) $(LIB_OBJ_DIR)/*.o
-
-cleanlib:
-	$(DEL_FILE) $(LIB_DIR)/$(TARGET_LIB)
-
-####### Install
-
-install:   FORCE
-
-uninstall:   FORCE
-
-FORCE:
 

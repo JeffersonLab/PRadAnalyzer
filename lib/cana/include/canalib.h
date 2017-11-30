@@ -30,8 +30,8 @@ namespace cana
     const static double tau_mass = 1776.82;         // MeV
     const static double proton_mass = 938.272046;   // MeV
     const static double neutron_mass = 939.5654133; // MeV
-    const static double hbarc = 197.326968;         // hbar*c (MeV*fm)
-    const static double hbarc2 = 38937.9323;        // (hbar*c)^2 (MeV*fm)^2
+    const static double hbarc = 197.32696979;       // hbar*c (MeV*fm)
+    const static double hbarc2 = 38937.93664;       // (hbar*c)^2 (MeV*fm)^2
     const static double amu = 931.494043;           // MeV per amu
 
     inline double sigmoid(double a, double p);
@@ -43,6 +43,11 @@ namespace cana
     inline double spence_tr(double z, double res, int nmax);
 
     inline bool is_odd(int i) {return i&1;}
+    template<typename T>
+    inline void update_max(T &max, T val)
+    {
+        if(val > max) max = val;
+    }
 
     // clamp values to be restricted inside [min, max]
     template<typename T>

@@ -1,6 +1,6 @@
 #include "ConfigParser.h"
 #include "PRadClusterProfile.h"
-#include "cneural/CNeuralNetwork.h"
+#include "CNeuralNetwork.h"
 #include "canalib.h"
 
 using namespace std;

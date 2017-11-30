@@ -1,48 +1,22 @@
 ################################################################################
-# Makefile for building PRad analysis libraries                                #
+# Makefile for building the core library for PRad analysis                     #
 ################################################################################
 
-MAKEFILE      = Makefile
+
 # passed by command line
 #LIB_OPTION    = PRIMEX_METHOD, MULTI_THREAD
 
-# neural network directory
-NEURAL 	      = cneural
-
-####### Compiler, tools and options
-CC            = gcc
-CXX           = g++
-FORTRAN       = gfortran
+include ../general.mk
 FFLAGS        = -fPIC -cpp -ffixed-line-length-none
 CXXFLAGS      = -shared -std=c++11 -m64 -O2 -g -pipe -Wall $(DEFINES) \
 				-fstack-protector-strong --param=ssp-buffer-size=4 \
 				-grecord-gcc-switches -mtune=generic -fPIC
-INCPATH       = -I$(ROOTSYS)/include
-DEL_FILE      = rm -f
-CHK_DIR_EXISTS= test -d
-MKDIR         = mkdir -p
-COPY          = cp -f
-COPY_FILE     = cp -f
-COPY_DIR      = cp -f -R
-INSTALL_FILE  = install -m 644 -p
-INSTALL_PROGRAM = install -m 755 -p
-INSTALL_DIR   = cp -f -R
-DEL_FILE      = rm -f
-SYMLINK       = ln -f -s
-DEL_DIR       = rmdir
-MOVE          = mv -f
-TAR           = tar -cf
-COMPRESS      = gzip -9f
-LINK          = g++
-LFLAGS        = -shared
+INCPATH       = -I$(ROOTSYS)/include -I../conf/include -I../cana/include
 LIBS          = -lpthread -lexpat -lgfortran \
+				-L.. -lprconf -lcana \
                 -L$(ROOTSYS)/lib -lCore -lRint -lRIO -lNet -lHist \
 				-lGraf -lGraf3d -lGpad -lTree -lPostscript -lMatrix \
 				-lPhysics -lMathCore -lThread -lGui -lSpectrum
-AR            = ar cqs
-RANLIB        = 
-SED           = sed
-STRIP         = 
 
 ####### Targets, add new objects here
 
@@ -54,12 +28,7 @@ OBJECTS_DIR   = obj
 CXX_SRC_DIR   = src
 CXX_INC_DIR   = include
 CXX_SUFFIX    = cpp
-CXX_SOURCES   = canalib \
-                ConfigParser \
-                ConfigValue \
-                ConfigObject \
-                ConfigOption \
-                PRadDAQChannel \
+CXX_SOURCES   = PRadDAQChannel \
                 PRadADCChannel \
                 PRadTDCChannel \
                 PRadCalibConst \
@@ -124,15 +93,18 @@ FOR_OBJECTS   = $(addprefix $(OBJECTS_DIR)/, $(FOR_SOURCES:=.$(FOR_SUFFIX).o))
 OBJECTS       = $(CXX_OBJECTS) $(FOR_OBJECTS)
 
 ####### Build rules
-first: all neural
+first: all
 
-.PHONY: neural cleanobj cleanlib
+.PHONY: cleanobj cleanlib
 
-all:
-	$(MAKE) $(TARGET_LIB)
+all: dir lib
 
-neural:
-	$(MAKE) -C $(NEURAL)
+dir:
+	$(MKDIR) $(OBJECTS_DIR)
+
+lib: $(MAKEFILE) $(TARGET_LIB)
+	$(MOVE) $(TARGET_LIB) $(TARGET_DIR)
+	$(COPY) include/* $(TARGET_INC)
 
 $(TARGET_LIB):  $(OBJECTS)
 	$(LINK) $(LFLAGS) -o $(TARGET_LIB) $(OBJECTS) $(LIBS)
@@ -150,9 +122,7 @@ clean: cleanobj cleanlib
 
 cleanobj:
 	$(DEL_FILE) $(OBJECTS_DIR)/*.o
-	$(MAKE) -C $(NEURAL) cleanobj
 
 cleanlib:
-	$(DEL_FILE) $(TARGET_LIB)
-	$(MAKE) -C $(NEURAL) cleanlib
+	$(DEL_FILE) $(TARGET_DIR)/$(TARGET_LIB)
 

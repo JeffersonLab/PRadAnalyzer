@@ -3,7 +3,6 @@
 ################################################################################
 
 MAKEFILE      = Makefile
-PRAD_LIBS     = ../libs
 
 ####### Compiler, tools and options
 CC            = gcc
@@ -11,7 +10,7 @@ CXX           = g++
 CXXFLAGS      = -std=c++11 -O1 -g -pipe -Wall -m64 -mtune=generic -fPIC \
 				-fstack-protector-strong --param=ssp-buffer-size=4 \
 				-grecord-gcc-switches
-INCPATH       = -Iinclude -I$(PRAD_LIBS)/include -I$(ROOTSYS)/include
+INCPATH       = -Iinclude -I$(PRAD_INC) -I$(ROOTSYS)/include
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
 MKDIR         = mkdir -p
@@ -30,7 +29,7 @@ COMPRESS      = gzip -9f
 LINK          = g++
 LFLAGS        = -Wl,-O1 -Wl,-z,relro
 LIBS          = -lpthread -lexpat \
-                -L$(PRAD_LIBS) -lprana -lcneural \
+                -L$(PRAD_LIB) -lprana -lprconf -lcana -lcneural \
 				-L$(ROOTSYS)/lib -lCore -lRint -lRIO -lNet -lHist \
 				-lGraf -lGraf3d -lGpad -lTree -lPostscript -lMatrix \
 				-lPhysics -lMathCore -lThread -lGui -lSpectrum

@@ -50,7 +50,7 @@ TEMPLATE = app
 TARGET = EventViewer
 DEPENDPATH += 
 INCLUDEPATH += include \
-               ../libs/include \
+               $$(PRAD_INC) \
                $$(ROOTSYS)/include
 
 # Input
@@ -77,7 +77,7 @@ SOURCES += src/main.cpp \
            src/HistCanvas.cpp \
            src/LogsBox.cpp
 
-LIBS += -L../libs -lprana \
+LIBS += -L$$(PRAD_LIB) -lprana -lprconf -lcana\
         -lexpat -lgfortran \
         -L$$(ROOTSYS)/lib -lCore -lRint -lRIO -lNet -lHist \
                           -lGraf -lGraf3d -lGpad -lTree \

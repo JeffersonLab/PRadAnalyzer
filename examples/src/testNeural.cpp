@@ -5,7 +5,7 @@
 // 01/24/2017                                                                 //
 //============================================================================//
 
-#include "cneural/CNeuralNetwork.h"
+#include "CNeuralNetwork.h"
 #include <iostream>
 
 #define NEW_NET
