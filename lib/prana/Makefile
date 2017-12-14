@@ -25,9 +25,6 @@ TARGET_LIB    = libprana.so
 OBJECTS_DIR   = obj
 
 # c++ part
-CXX_SRC_DIR   = src
-CXX_INC_DIR   = include
-CXX_SUFFIX    = cpp
 CXX_SOURCES   = PRadDAQChannel \
                 PRadADCChannel \
                 PRadTDCChannel \
@@ -63,14 +60,12 @@ CXX_SOURCES   = PRadDAQChannel \
 
 
 # fortran part
-FOR_SRC_DIR   = fortran
-FOR_INC_DIR   = fortran/include
 FOR_SOURCES   = merad_util \
                 merad_fsir \
                 merad_sig \
                 merad_sig2
-FOR_SUFFIX    = f
 
+HEADER_FILES  = include/*
 
 ###### Components related
 
@@ -86,43 +81,4 @@ ifneq (, $(findstring MULTI_THREAD,$(LIB_OPTION)))
 	DEFINES     += -DMULTI_THREAD
 endif
 
-
-# find all objects to be made
-CXX_OBJECTS   = $(addprefix $(OBJECTS_DIR)/, $(CXX_SOURCES:=.$(CXX_SUFFIX).o))
-FOR_OBJECTS   = $(addprefix $(OBJECTS_DIR)/, $(FOR_SOURCES:=.$(FOR_SUFFIX).o))
-OBJECTS       = $(CXX_OBJECTS) $(FOR_OBJECTS)
-
-####### Build rules
-first: all
-
-.PHONY: cleanobj cleanlib
-
-all: dir lib
-
-dir:
-	$(MKDIR) $(OBJECTS_DIR)
-
-lib: $(MAKEFILE) $(TARGET_LIB)
-	$(MOVE) $(TARGET_LIB) $(TARGET_DIR)
-	$(COPY) include/* $(TARGET_INC)
-
-$(TARGET_LIB):  $(OBJECTS)
-	$(LINK) $(LFLAGS) -o $(TARGET_LIB) $(OBJECTS) $(LIBS)
-
-# cpp objects
-$(OBJECTS_DIR)/%.$(CXX_SUFFIX).o: $(CXX_SRC_DIR)/%.$(CXX_SUFFIX)
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -I$(CXX_INC_DIR) -o $@ $<
-
-# fortran objects
-$(OBJECTS_DIR)/%.$(FOR_SUFFIX).o: $(FOR_SRC_DIR)/%.$(FOR_SUFFIX)
-	$(FORTRAN) -c $(FFLAGS) $(INCPATH) -I$(FOR_INC_DIR) -o $@ $<
-
-####### Clean
-clean: cleanobj cleanlib
-
-cleanobj:
-	$(DEL_FILE) $(OBJECTS_DIR)/*.o
-
-cleanlib:
-	$(DEL_FILE) $(TARGET_DIR)/$(TARGET_LIB)
-
+include ../rules.mk

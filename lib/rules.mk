@@ -1,35 +1,42 @@
+
+# firstly find all objects to be made
+CXX_OBJECTS   = $(addprefix $(OBJECTS_DIR)/, $(CXX_SOURCES:=.$(CXX_SUFFIX).o))
+FOR_OBJECTS   = $(addprefix $(OBJECTS_DIR)/, $(FOR_SOURCES:=.$(FOR_SUFFIX).o))
+OBJECTS       = $(CXX_OBJECTS) $(FOR_OBJECTS)
+
 ####### Build rules
 first: all
 
 all: dir lib
 
 dir:
-	$(MKDIR) $(LIB_OBJ_DIR)
-	$(MKDIR) $(TARGET_INC)
+	$(MKDIR) $(OBJECTS_DIR)
 
 lib: $(MAKEFILE) $(TARGET_LIB)
-	$(MOVE) $(TARGET_LIB) $(TARGET_DIR)
 
-$(LIB_OBJ_DIR)/%.o: src/%.cpp
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
+$(TARGET_LIB):  $(OBJECTS)
+	$(LINK) $(LFLAGS) -o $(TARGET_LIB) $(OBJECTS) $(LIBS)
 
-$(TARGET_LIB):  $(LIB_OBJECTS)
-	$(LINK) $(LFLAGS) -o $(TARGET_LIB) $(LIB_OBJECTS) $(LIBS)
-	$(COPY) include/* $(TARGET_INC)
+# cpp objects
+$(OBJECTS_DIR)/%.$(CXX_SUFFIX).o: $(CXX_SRC_DIR)/%.$(CXX_SUFFIX)
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -I$(CXX_INC_DIR) -o $@ $<
+
+# fortran objects
+$(OBJECTS_DIR)/%.$(FOR_SUFFIX).o: $(FOR_SRC_DIR)/%.$(FOR_SUFFIX)
+	$(FORTRAN) -c $(FFLAGS) $(INCPATH) -I$(FOR_INC_DIR) -o $@ $<
+
 
 ####### Clean
-clean: cleanobj cleanlib
-
-cleanobj:
-	$(DEL_FILE) $(LIB_OBJ_DIR)/*.o
-
-cleanlib:
-	$(DEL_FILE) $(TARGET_DIR)/$(TARGET_LIB)
+clean:
+	$(DEL_FILE) $(OBJECTS_DIR)/*.o
 
 ####### Install
 
-install:   FORCE
+install:
+	$(MOVE) $(TARGET_LIB) $(INSTALL_DIR)/lib
+	$(SYMLINK) -r -t $(INSTALL_DIR)/include $(HEADER_FILES)
 
-uninstall:   FORCE
+uninstall:
+	$(DEL_FILE) $(INSTALL_DIR)/lib/$(TARGET_LIB)
 
 FORCE:

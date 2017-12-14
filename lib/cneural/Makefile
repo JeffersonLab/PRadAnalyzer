@@ -6,11 +6,11 @@ include ../general.mk
 
 ####### Targets, add new objects here
 TARGET_LIB    = libcneural.so
-LIB_OBJ_DIR   = obj
-LIB_CLASSES   = CNeuralNetwork \
+OBJECTS_DIR   = obj
+CXX_SOURCES   = CNeuralNetwork \
                 CNeuronLayer \
                 CNeuron
 
-LIB_OBJECTS   = $(addprefix $(LIB_OBJ_DIR)/, $(LIB_CLASSES:=.o))
+HEADER_FILES  = include/*
 
 include ../rules.mk

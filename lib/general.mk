@@ -3,8 +3,6 @@
 ################################################################################
 
 MAKEFILE      = Makefile
-TARGET_DIR    = $(PRAD_LIB)
-TARGET_INC    = $(PRAD_INC)
 
 ####### Compiler, tools and options
 CC            = gcc
@@ -12,7 +10,7 @@ CXX           = g++
 FORTRAN       = gfortran
 FFLAGS        = -fPIC
 CXXFLAGS      = -shared -std=c++11 -O2 -g -pipe -Wall -m64 -fPIC
-INCPATH       = -Iinclude
+INCPATH       = -I. -Iinclude
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
 MKDIR         = mkdir -p
@@ -35,4 +33,13 @@ AR            = ar cqs
 RANLIB        = 
 SED           = sed
 STRIP         = 
+
+# Cpp source files and fortran source files
+CXX_SRC_DIR   = src
+CXX_INC_DIR   = include
+CXX_SUFFIX    = cpp
+
+FOR_SRC_DIR   = fortran
+FOR_INC_DIR   = fortran/include
+FOR_SUFFIX    = f
 

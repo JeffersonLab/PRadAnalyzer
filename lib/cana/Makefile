@@ -6,9 +6,11 @@ include ../general.mk
 
 ####### Targets, add new objects here
 TARGET_LIB    = libcana.so
-LIB_OBJ_DIR   = obj
-LIB_CLASSES   = canalib
+OBJECTS_DIR   = obj
+CXX_SOURCES   = cana_utils \
+				cana_interp \
+                cana_integrate
 
-LIB_OBJECTS   = $(addprefix $(LIB_OBJ_DIR)/, $(LIB_CLASSES:=.o))
+HEADER_FILES  = include/*
 
 include ../rules.mk

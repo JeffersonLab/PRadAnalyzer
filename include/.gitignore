@@ -1,5 +1,2 @@
-# header files will be copied to this folder after compilation
-# so ignore the copied files
-*.h
-*.hpp
-*.inc
+# header files will be linked to this folder after compilation, so ignore all files
+*
