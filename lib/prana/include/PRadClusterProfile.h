@@ -5,11 +5,6 @@
 #include <string>
 #include "PRadEventStruct.h"
 
-#define CLPROF_MIN_ENE 200      // max energy in the profile, MeV
-#define CLPROF_MAX_ENE 2100     // min energy in the profile, MeV
-#define CLPROF_MAX_DIST 5       // max distance in the profile, module size
-#define CLPROF_STEP_ENE 100     // each step in energy
-#define CLPROF_STEP_DIST 0.001  // each step in distance
 
 class PRadHyCalDetector;
 
@@ -21,6 +16,26 @@ public:
         double frac, err;
 
         Value(double f = 0., double e = 0.) : frac(f), err(e) {}
+    };
+
+    struct Profile
+    {
+        double min_ene, max_ene, step_ene;
+        double max_dist, step_dist;
+        std::vector<std::vector<Value>> values;
+
+        void Resize(int Ne, int Nd)
+        {
+            // energy grids
+            values.resize(Ne);
+            // distance grids
+            for(auto &e_prof : values)
+                e_prof.resize(Nd);
+        }
+
+        typedef std::vector<std::vector<Value>>::size_type size_type;
+        inline std::vector<Value> &operator [] (size_type i) {return values[i];}
+        inline const std::vector<Value> &operator [] (size_type i) const {return values[i];}
     };
 
 public:
@@ -48,7 +63,7 @@ private:
     PRadClusterProfile();
 
 private:
-    std::vector<std::vector<std::vector<Value>>> profiles;
+    std::vector<Profile> profiles;
 };
 
 #endif

@@ -30,7 +30,7 @@ PRadClusterProfile::~PRadClusterProfile()
 
 void PRadClusterProfile::LoadProfile(int type, const std::string &path)
 {
-    if(type < 0 || type >= (int) profiles.size()) {
+    if((size_t)type >=  profiles.size()) {
         std::cerr << "PRad Cluster Profile Error: Exceed current capacity, "
                   << "only has " << profiles.size() << " types."
                   << std::endl;
@@ -40,19 +40,29 @@ void PRadClusterProfile::LoadProfile(int type, const std::string &path)
     ConfigParser parser;
     if(!parser.OpenFile(path)) {
         std::cerr << "PRad Cluster Profile Error: File"
-                  << " \"" << path << "\"  "
+                  << " \"" << path << "\" "
                   << "cannot be opened."
                   << std::endl;
         return;
     }
 
     auto &profile = profiles[type];
-    int Ne = (CLPROF_MAX_ENE - CLPROF_MIN_ENE)/CLPROF_STEP_ENE + 1;
-    int Nd = CLPROF_MAX_DIST/CLPROF_STEP_DIST + 1;
-    profile.resize(Ne);
-    for(auto &e_prof : profile)
-        e_prof.resize(Nd);
+    // read configurations
+    if(parser.ParseLine() && parser.NbofElements() == 5) {
+        parser >> profile.min_ene >> profile.max_ene >> profile.step_ene
+               >> profile.max_dist >> profile.step_dist;
+    } else {
+        std::cerr << "PRad Cluster Profile Error: Cannot find correct configuration "
+                  << "from profile " << " \"" << path << "\", "
+                  << std::endl;
+    }
 
+    // prepare enough space
+    int Ne = (profile.max_ene - profile.min_ene)/profile.step_ene + 1;
+    int Nd = profile.max_dist/profile.step_dist + 1;
+    profile.Resize(Ne, Nd);
+
+    // read profiles
     int ie, id;
     double val, err;
     while(parser.ParseLine())
@@ -76,24 +86,27 @@ void PRadClusterProfile::LoadProfile(int type, const std::string &path)
 PRadClusterProfile::Value PRadClusterProfile::GetProfile(int type, double dist, double energy)
 const
 {
-    // out of range, should be 0
-    if(dist >= CLPROF_MAX_DIST)
+    if((size_t)type >=  profiles.size())
         return Value();
-
-    // just round the step value for distance since the step size is small enough
-    int id = int(dist/CLPROF_STEP_DIST + 0.5);
-
-    double norm_e = (energy - CLPROF_MIN_ENE)/double(CLPROF_STEP_ENE);
-    int ie = int(norm_e);
 
     auto &profile = profiles[type];
 
+    // out of range, should be 0
+    if(dist >= profile.max_dist)
+        return Value();
+
+    // just round the step value for distance since the step size is small enough
+    int id = int(dist/profile.step_dist + 0.5);
+
+    double norm_e = (energy - profile.min_ene)/profile.step_ene;
+    int ie = int(norm_e);
+
     // lower than the limit
     if(ie < 0) {
-        return profile.front().at(id);
+        return profile.values.front().at(id);
     // higher than the limit
-    } else if(ie + 1 >= (int)profile.size()) {
-        return profile.back().at(id);
+    } else if(ie + 1 >= (int)profile.values.size()) {
+        return profile.values.back().at(id);
     }
 
     // no need to interpolate
@@ -107,6 +120,5 @@ const
     auto &val1 = profile[ie][id];
     auto &val2 = profile[ie + 1][id];
 
-    return Value(res*val2.frac + res2*val1.frac,
-                 res*val2.err + res2*val1.err);
+    return Value(res*val2.frac + res2*val1.frac, res*val2.err + res2*val1.err);
 }

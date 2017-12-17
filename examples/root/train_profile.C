@@ -1,10 +1,16 @@
 #include "ConfigParser.h"
-#include "PRadClusterProfile.h"
 #include "CNeuralNetwork.h"
 #include "canalib.h"
 
 using namespace std;
 const string prad_root = getenv("PRAD_PATH");
+
+// profile energy and distance ranges and the step sizes
+#define CLPROF_MIN_ENE 200      // max energy in the profile, MeV
+#define CLPROF_MAX_ENE 2100     // min energy in the profile, MeV
+#define CLPROF_MAX_DIST 5       // max distance in the profile, module size
+#define CLPROF_STEP_ENE 100     // each step in energy
+#define CLPROF_STEP_DIST 0.001  // each step in distance
 
 // for training normailzation
 #define ENERGY_NORM CLPROF_MAX_ENE + 500
@@ -119,6 +125,10 @@ void gen_profile(string net, string output)
 
     int Ne = (CLPROF_MAX_ENE - CLPROF_MIN_ENE)/CLPROF_STEP_ENE + 1;
     int Nd = CLPROF_MAX_DIST/CLPROF_STEP_DIST + 1;
+    outf << "# min energy, max energy, energy step, max distance, distance step\n"
+         << CLPROF_MIN_ENE << ", " << CLPROF_MAX_ENE << ", " << CLPROF_STEP_ENE
+         << ", " << CLPROF_MAX_DIST << ", " << CLPROF_STEP_DIST
+         << endl;
     for(int ie = 0; ie < Ne; ++ie)
     {
         double e = double(CLPROF_MIN_ENE + CLPROF_STEP_ENE*ie)/double(ENERGY_NORM);
