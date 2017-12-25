@@ -87,6 +87,49 @@ namespace cana
         }
     }
 
+    // iteratively solving function f(x) = 0
+    // it is based on Newton's method, convergence rate is quadratic, but
+    // convergence is not guaranteed, good initial value helps convergence
+    template<typename T, class func>
+    T solve_func(func &&f, T initial, T res, unsigned int max_iter = 500)
+    {
+        while(max_iter--)
+        {
+            T fval = f(initial);
+
+            if(std::abs(fval) < res) break;
+            // Newton's method, x1 = x0 - f(x0)/f'(x0)
+            // Approximately f'(x0) = (f(x0 + delta) - f(x0))/delta
+            initial += -fval/((f(initial + res) - fval)/res);
+        }
+
+        return initial;
+    }
+
+    // Bisection method, it is for monotonic function
+    // linear rate to converge, convergence is guaranteed if the correct range is provided
+    // the helper function
+    template<typename T, class func>
+    T solve_func2_helper(func &&f, T fa, T a, T fb, T b, T res, unsigned int iter)
+    {
+        T c = (a + b)/2., fc = f(c);
+        if(std::abs(fc) < res || iter == 0) return c;
+        if(fc*fa < 0.)
+            return solve_func2_helper(f, fa, a, fc, c, res, iter - 1);
+        else
+            return solve_func2_helper(f, fc, c, fb, b, res, iter - 1);
+    }
+
+    // main function for the Bisection method
+    template<typename T, class func>
+    T solve_func2(func &&f, T a, T b, T res, unsigned int max_iter = 500)
+    {
+        T fa = f(a), fb = f(b);
+        if(std::abs(fa) < res) return a;
+        if(std::abs(fb) < res) return b;
+        return solve_func2_helper(f, fa, a, fb, b, res, max_iter);
+    }
+
     // the function is based on c++ source code
     // it adds permutation parity track
     template<class BidirIt>
