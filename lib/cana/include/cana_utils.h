@@ -97,7 +97,7 @@ namespace cana
         {
             T fval = f(initial);
 
-            if(std::abs(fval) < res) break;
+            if(std::abs(fval) <= res) break;
             // Newton's method, x1 = x0 - f(x0)/f'(x0)
             // Approximately f'(x0) = (f(x0 + delta) - f(x0))/delta
             initial += -fval/((f(initial + res) - fval)/res);
@@ -113,7 +113,7 @@ namespace cana
     T solve_func2_helper(func &&f, T fa, T a, T fb, T b, T res, unsigned int iter)
     {
         T c = (a + b)/2., fc = f(c);
-        if(std::abs(fc) < res || iter == 0) return c;
+        if(std::abs(fc) <= res || iter == 0) return c;
         if(fc*fa < 0.)
             return solve_func2_helper(f, fa, a, fc, c, res, iter - 1);
         else
@@ -125,8 +125,8 @@ namespace cana
     T solve_func2(func &&f, T a, T b, T res, unsigned int max_iter = 500)
     {
         T fa = f(a), fb = f(b);
-        if(std::abs(fa) < res) return a;
-        if(std::abs(fb) < res) return b;
+        if(std::abs(fa) <= res) return a;
+        if(std::abs(fb) <= res) return b;
         return solve_func2_helper(f, fa, a, fb, b, res, max_iter);
     }
 
