@@ -862,13 +862,11 @@ void PRadEventViewer::handleEventChange(int evt)
 
         // clear cluster selection range
         clusterSpin->setRange(0, 0);
+        // clear previous reconstructed events
+        HyCal->ClearHitsMarks();
 
-        if(reconSetting->IsEnabled()) {
-            // clear previous reconstructed events
-            HyCal->ClearHitsMarks();
-
-            if(event.is_physics_event())
-                showReconEvent();
+        if(reconSetting->IsEnabled() && event.is_physics_event()) {
+            showReconEvent();
         }
 #endif
 
