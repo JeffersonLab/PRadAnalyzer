@@ -34,7 +34,7 @@ clean:
 
 install:
 	$(MOVE) $(TARGET_LIB) $(INSTALL_DIR)/lib
-	$(SYMLINK) -r -t $(INSTALL_DIR)/include $(HEADER_FILES)
+	$(COPY) $(HEADER_FILES) $(INSTALL_DIR)/include
 
 uninstall:
 	$(DEL_FILE) $(INSTALL_DIR)/lib/$(TARGET_LIB)
