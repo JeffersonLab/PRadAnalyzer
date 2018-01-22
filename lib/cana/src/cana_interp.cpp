@@ -1,6 +1,6 @@
 #include "cana_interp.h"
 #include <iostream>
-
+#include <vector>
 
 
 bool cana::interp_1d(const std::vector<PointErr> &data, PointErr &p, double res)
