@@ -2,6 +2,7 @@
 #define CANA_RANDOM_H
 
 #include <random>
+#include <functional>
 #include <iostream>
 #include "cana_interp.h"
 
