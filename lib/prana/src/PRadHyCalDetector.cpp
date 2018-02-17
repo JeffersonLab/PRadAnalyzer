@@ -66,7 +66,7 @@ inline void qdist(double x1, double y1, int s1, double x2, double y2, int s2,
                 if(inter == 0 && ic++ > 0) break;
             }
 
-            // pass over the centeral part
+            // across over the centeral part
             if(ic > 1) {
                 double dxt = x2 - x1, dyt = y2 - y1;
                 double dxc = xc[0] - xc[1], dyc = yc[0] - yc[1];

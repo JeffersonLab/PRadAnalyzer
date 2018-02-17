@@ -99,8 +99,8 @@ namespace cana
 
             if(std::abs(fval) <= res) break;
             // Newton's method, x1 = x0 - f(x0)/f'(x0)
-            // Approximately f'(x0) = (f(x0 + delta) - f(x0))/delta
-            initial += -fval/((f(initial + res) - fval)/res);
+            // Approximately f'(x0) = (f(x0 + delta) - f(x0 - delta))/2delta
+            initial += -fval/((f(initial + res) - f(initial - res))/2./res);
         }
 
         return initial;
