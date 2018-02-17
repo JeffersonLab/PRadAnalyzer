@@ -15,9 +15,6 @@
 
 
 
-// enum name lists
-static const char *__hycal_sector_list[] = {"Center", "Top", "Right", "Bottom", "Left"};
-
 // a helper function to determine the quantized distance between modules
 inline void qdist(double x1, double y1, int s1, double x2, double y2, int s2,
                   const std::vector<PRadHyCalDetector::SectorInfo> &secs,
@@ -234,7 +231,7 @@ bool PRadHyCalDetector::ReadModuleList(const std::string &path)
                  >> geo.size_x >> geo.size_y >> geo.size_z
                  >> geo.x >> geo.y >> geo.z;
 
-        geo.type = PRadHyCalModule::get_module_type(type.c_str());
+        geo.type = PRadHyCalModule::str2Type(type.c_str());
 
         PRadHyCalModule *module = new PRadHyCalModule(name, geo);
 
@@ -278,7 +275,7 @@ bool PRadHyCalDetector::ReadVModuleList(const std::string &path)
                  >> geo.size_x >> geo.size_y >> geo.size_z
                  >> geo.x >> geo.y >> geo.z;
 
-        geo.type = PRadHyCalModule::get_module_type(type.c_str());
+        geo.type = PRadHyCalModule::str2Type(type.c_str());
 
         PRadHyCalModule vmodule(-1, geo, this);
         vmodule.name = name;
@@ -793,27 +790,4 @@ const
     }
 
     module.SetLayout(Layout(flag, sector, row-1, col-1));
-}
-
-// get enum HyCalSector by its name
-int PRadHyCalDetector::get_sector_id(const char *name)
-{
-    for(int i = 0; i < (int)Max_Sector; ++i)
-        if(strcmp(name, __hycal_sector_list[i]) == 0)
-            return i;
-
-    std::cerr << "PRad HyCal Detector Error: Cannot find sector " << name
-              << ", please check the definition in PRadHyCalModule."
-              << std::endl;
-    // not found
-    return -1;
-}
-
-// get name of HyCalSector
-const char *PRadHyCalDetector::get_sector_name(int sec)
-{
-    if(sec < 0 || sec >= (int)Max_Sector)
-        return "Undefined";
-    else
-        return __hycal_sector_list[sec];
 }

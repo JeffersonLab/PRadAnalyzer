@@ -37,7 +37,7 @@ PRadGEMPlane::PRadGEMPlane(const std::string &n, const int &t, const float &s,
                            const int &c, const int &o, const int &d, PRadGEMDetector *det)
 : detector(det), name(n), size(s), orient(o), direction(d)
 {
-    type = (PlaneType)t;
+    type = (Type)t;
 
     apv_list.resize(c, nullptr);
 }
@@ -270,31 +270,5 @@ void PRadGEMPlane::CollectAPVHits()
 void PRadGEMPlane::FormClusters(PRadGEMCluster *method)
 {
     method->FormClusters(strip_hits, strip_clusters);
-}
-
-//============================================================================//
-// Plane Type Enum Related                                                    //
-//============================================================================//
-static const char *__plane_type_list[] = {"X", "Y", "Undefined"};
-
-const char *PRadGEMPlane::GetPlaneTypeName(int enumVal)
-{
-    if(enumVal < 0 || enumVal > (int)Plane_Max)
-        return "";
-
-    return __plane_type_list[enumVal];
-}
-
-int PRadGEMPlane::GetPlaneTypeID(const char *name)
-{
-    for(int i = 0; i < (int)Plane_Max; ++i)
-        if(strcmp(name, __plane_type_list[i]) == 0)
-            return i;
-
-    std::cerr << "PRad GEM Plane Error: Undefined plane type "
-              << name << ", please check GetPlaneTypeID() in PRadGEMPlane class."
-              << std::endl;
-    // not found
-    return -1;
 }
 

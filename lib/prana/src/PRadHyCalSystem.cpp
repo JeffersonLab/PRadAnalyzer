@@ -1108,7 +1108,7 @@ const
     TDirectory *mod_dir[PRadHyCalModule::Max_Type];
     for(int i = 0; i < (int) PRadHyCalModule::Max_Type; ++i)
     {
-        mod_dir[i] = cur_dir->mkdir(PRadHyCalModule::get_module_type_name(i));
+        mod_dir[i] = cur_dir->mkdir(PRadHyCalModule::Type2str(i).c_str());
     }
     TDirectory *other_dir = cur_dir->mkdir("Others");
 

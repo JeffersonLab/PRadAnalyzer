@@ -863,7 +863,7 @@ void PRadGEMSystem::buildPlane(std::list<ConfigValue> &pln_args)
     int type, connector, orient, direct;
 
     pln_args >> det_name >> plane_name >> size >> connector >> orient >> direct;
-    type = PRadGEMPlane::GetPlaneTypeID(plane_name.c_str());
+    type = PRadGEMPlane::str2Type(plane_name.c_str());
 
     if(type < 0) // did not find proper type
         return;

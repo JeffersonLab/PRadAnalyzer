@@ -6,6 +6,7 @@
 #include <string>
 #include <iostream>
 #include <unordered_map>
+#include "ConfigParser.h"
 #include "PRadException.h"
 #include "PRadHyCalModule.h"
 #include "PRadDetector.h"
@@ -21,7 +22,7 @@ class PRadHyCalDetector : public PRadDetector
 public:
     friend class PRadHyCalSystem;
 
-    enum Sector
+    enum SectorType
     {
         // undefined
         Undefined_Sector = -1,
@@ -34,6 +35,8 @@ public:
         // max number of sectors
         Max_Sector,
     };
+    // macro in ConfigParser.h
+    ENUM_MAP(SectorType, "Center|Top|Right|Bottom|Left");
 
     struct SectorInfo
     {
@@ -137,8 +140,6 @@ public:
                        double &dx, double &dy) const;
 
 public:
-    static int get_sector_id(const char *name);
-    static const char *get_sector_name(int sec);
     // resolution formula, E, a, b, c should have consistent unit
     static inline double resolution(double E, double a, double b, double c)
     {

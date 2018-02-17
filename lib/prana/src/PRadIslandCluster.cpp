@@ -58,7 +58,7 @@ void PRadIslandCluster::Configure(const std::string &path)
     for(unsigned int i = 0; i < min_module_energy.size(); ++i)
     {
         // determine key name
-        std::string type = PRadHyCalModule::get_module_type_name(i);
+        std::string type = PRadHyCalModule::Type2str(i);
         std::string key = "Min Module Energy [" + type + "]";
         auto value = GetConfigValue(key);
         if(!value.IsEmpty())

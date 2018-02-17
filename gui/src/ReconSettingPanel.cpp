@@ -69,7 +69,7 @@ QGroupBox *ReconSettingPanel::createMarkGroup()
         markSettings[i]->SetWidth(mark_width[i]);
         markSettings[i]->SetSize(mark_size[i]);
         markSettings[i]->SetColor(mark_color[i]);
-        layout->addRow(tr(PRadDetector::getName(i)), markSettings[i]);
+        layout->addRow(tr(PRadDetector::DetEnum2str(i).c_str()), markSettings[i]);
     }
 
     markGroup->setLayout(layout);
@@ -298,7 +298,7 @@ void ReconSettingPanel::ConnectCoordSystem(PRadCoordSystem *c)
 
     for(size_t i = 0; i < coords.dets.size(); ++i)
     {
-        coordType->addItem(PRadDetector::getName(i));
+        coordType->addItem(PRadDetector::DetEnum2str(i).c_str());
     }
 
     coordType->setCurrentIndex(0);

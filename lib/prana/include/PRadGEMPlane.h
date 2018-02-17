@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include "ConfigParser.h"
 #include "PRadGEMAPV.h"
 
 // unit is mm
@@ -12,21 +13,22 @@
 #define X_SHIFT 253.2
 
 
+
 class PRadGEMDetector;
 class PRadGEMCluster;
 
 class PRadGEMPlane
 {
 public:
-    enum PlaneType
+    enum Type
     {
-        Plane_X,
+        Undefined = -1,
+        Plane_X = 0,
         Plane_Y,
         Plane_Max
     };
-
-    static const char *GetPlaneTypeName(int enumVal);
-    static int GetPlaneTypeID(const char *name);
+    // macro in ConfigParser.h
+    ENUM_MAP(Type, "X|Y");
 
 public:
     // constructors
@@ -59,7 +61,7 @@ public:
     void SetDetector(PRadGEMDetector *det, bool force_set = false);
     void UnsetDetector(bool force_unset = false);
     void SetName(const std::string &n) {name = n;}
-    void SetType(const PlaneType &t) {type = t;}
+    void SetType(const Type &t) {type = t;}
     void SetSize(const float &s) {size = s;}
     void SetOrientation(const int &o) {orient = o;}
     void SetCapacity(int c);
@@ -67,7 +69,7 @@ public:
     // get parameter
     PRadGEMDetector *GetDetector() const {return detector;}
     const std::string &GetName() const {return name;}
-    PlaneType GetType() const {return type;}
+    Type GetType() const {return type;}
     float GetSize() const {return size;}
     int GetCapacity() const {return apv_list.size();}
     int GetOrientation() const {return orient;}
@@ -80,7 +82,7 @@ public:
 private:
     PRadGEMDetector *detector;
     std::string name;
-    PlaneType type;
+    Type type;
     float size;
     int connector;
     int orient;

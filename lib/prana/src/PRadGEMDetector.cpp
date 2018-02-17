@@ -276,7 +276,7 @@ void PRadGEMDetector::Reset()
 PRadGEMPlane *PRadGEMDetector::GetPlane(const std::string &type)
 const
 {
-    uint32_t idx = (uint32_t) PRadGEMPlane::GetPlaneTypeID(type.c_str());
+    uint32_t idx = (uint32_t) PRadGEMPlane::str2Type(type.c_str());
 
     if(idx >= planes.size())
         return nullptr;

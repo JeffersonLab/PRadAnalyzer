@@ -13,8 +13,6 @@
 #include <iomanip>
 #include <cstring>
 
-// enum name lists
-static const char *__module_type_list[] = {"PbGlass", "PbWO4"};
 
 
 
@@ -150,14 +148,14 @@ void PRadHyCalModule::UnsetChannel(bool force_unset)
 std::string PRadHyCalModule::GetTypeName()
 const
 {
-    return std::string(get_module_type_name(geometry.type));
+    return Type2str(geometry.type);
 }
 
 // get sector name
 std::string PRadHyCalModule::GetSectorName()
 const
 {
-    return std::string(PRadHyCalDetector::get_sector_name(layout.sector));
+    return std::string(PRadHyCalDetector::SectorType2str(layout.sector));
 }
 
 PRadTDCChannel *PRadHyCalModule::GetTDC()
@@ -251,29 +249,6 @@ int PRadHyCalModule::name_to_primex_id(const std::string &name)
     // unknown module
     std::cerr << "Cannot auto determine id from mdoule" << name << std::endl;
     return -1;
-}
-
-// get enum ModuleType by its name
-int PRadHyCalModule::get_module_type(const char *name)
-{
-    for(int i = 0; i < (int)Max_Type; ++i)
-        if(strcmp(name, __module_type_list[i]) == 0)
-            return i;
-
-    std::cerr << "PRad HyCal Module Error: Cannot find type " << name
-              << ", please check the definition in PRadHyCalModule."
-              << std::endl;
-    // not found
-    return -1;
-}
-
-// get name of ModuleType
-const char *PRadHyCalModule::get_module_type_name(int type)
-{
-    if(type < 0 || type >= (int)Max_Type)
-        return "Undefined";
-    else
-        return __module_type_list[type];
 }
 
 double PRadHyCalModule::distance(const PRadHyCalModule &m1, const PRadHyCalModule &m2)

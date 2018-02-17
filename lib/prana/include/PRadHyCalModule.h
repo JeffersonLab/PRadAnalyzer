@@ -6,6 +6,7 @@
 #include <iostream>
 #include "PRadCalibConst.h"
 #include "PRadTriggerConst.h"
+#include "ConfigParser.h"
 // Geometry and Layout definition
 #include "generalstruct.h"
 
@@ -22,7 +23,7 @@ class PRadHyCalModule
 public:
     friend class PRadHyCalDetector;
 
-    enum ModuleType
+    enum Type
     {
         // undefined
         Undefined_Type = -1,
@@ -32,6 +33,8 @@ public:
         // max number of types
         Max_Type,
     };
+    // macro in ConfigParser.h
+    ENUM_MAP(Type, "PbGlass|PbWO4")
 
     struct Neighbor
     {
@@ -138,8 +141,6 @@ public:
 public:
     // static functions
     static int name_to_primex_id(const std::string &name);
-    static int get_module_type(const char *name);
-    static const char *get_module_type_name(int type);
     static double distance(const PRadHyCalModule &m1, const PRadHyCalModule &m2);
 
 protected:

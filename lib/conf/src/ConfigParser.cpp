@@ -522,6 +522,72 @@ deque<string> ConfigParser::split(const string &str, const string &s)
     return eles;
 }
 
+// get the split part at num
+string ConfigParser::get_split_part(int num, const char *str, const char &s)
+{
+    // unavailable
+    if(num < 0) return "";
+
+    int beg = 0, cur = 0;
+    while(str[cur] != '\0')
+    {
+        if(str[cur] == s) {
+            // number macthed
+            if(num-- == 0) {
+                return string(&str[beg], cur - beg);
+            // update segment
+            } else {
+                beg = cur + 1;
+            }
+        }
+        ++cur;
+    }
+
+    // last element
+    if(num == 0)
+        return string(&str[beg], cur - beg);
+
+    return "";
+}
+
+// check if the short string is the same with the first part of a long string
+bool cstr_cmp_helper(const char *cmp, const char *str, int size)
+{
+    for(int i = 0; i < size; ++i)
+    {
+        if(cmp[i] != str[i] || cmp[i] == '\0' || str[i] == '\0')
+            return false;
+    }
+
+    if(cmp[size] != '\0')
+        return false;
+
+    return true;
+}
+
+// split a long string and find if a short string is belong to its elements
+int ConfigParser::get_part_count(const char *cmp, const char *str, const char &s)
+{
+    int cnt = 0, beg = 0, cur = 0;
+    while(str[cur] != '\0')
+    {
+        if(str[cur] == s) {
+            if(cstr_cmp_helper(cmp, &str[beg], cur - beg)) {
+                return cnt;
+            }
+
+            ++cnt;
+            beg = cur + 1;
+        }
+        ++cur;
+    }
+
+    if(cstr_cmp_helper(cmp, &str[beg], cur-beg))
+        return cnt;
+
+    return -1;
+}
+
 // split a char array into several pieces
 deque<string> ConfigParser::split(const char* str, const size_t &size, const string &s)
 {

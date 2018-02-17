@@ -2,20 +2,20 @@
 #define PRAD_DETECTOR_H
 
 #include <string>
+#include "ConfigParser.h"
 
 class PRadDetector
 {
 public:
-    enum DetectorEnum
+    enum DetEnum
     {
         HyCal = 0,
         PRadGEM1,
         PRadGEM2,
         Max_Dets
     };
-
-    static const char *getName(int enumVal);
-    static int getID(const char *);
+    // macro in ConfigParser.h
+    ENUM_MAP(DetEnum, "HyCal|PRadGEM1|PRadGEM2|Undefined")
 
 public:
     PRadDetector(int id);

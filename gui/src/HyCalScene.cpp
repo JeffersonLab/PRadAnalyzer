@@ -210,7 +210,7 @@ bool HyCalScene::ReadModuleList(const std::string &path)
                  >> geo.size_x >> geo.size_y >> geo.size_z
                  >> geo.x >> geo.y >> geo.z;
 
-        geo.type = PRadHyCalModule::get_module_type(type.c_str());
+        geo.type = PRadHyCalModule::str2Type(type.c_str());
 
         HyCalModule *module = new HyCalModule(console, name, geo);
 

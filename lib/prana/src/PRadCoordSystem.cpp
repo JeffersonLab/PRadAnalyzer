@@ -72,7 +72,7 @@ void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_r
         size_t index = 0;
         for(; index < (size_t) PRadDetector::Max_Dets; ++index)
         {
-            if(det_name.find(PRadDetector::getName(index)) != std::string::npos)
+            if(det_name.find(PRadDetector::DetEnum2str(index)) != std::string::npos)
                 break;
         }
 
@@ -283,7 +283,7 @@ std::ostream &operator <<(std::ostream &os, const RunCoord &coord)
     {
         const auto &det = coord.dets.at(i);
         os << std::setw(8)  << coord.run_number
-           << std::setw(12) << PRadDetector::getName(i)
+           << std::setw(12) << PRadDetector::DetEnum2str(i)
            << std::setw(12) << det.trans.x
            << std::setw(12) << det.trans.y
            << std::setw(12) << det.trans.z
