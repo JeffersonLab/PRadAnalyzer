@@ -46,8 +46,8 @@ const
     float dist_x = factor*center->GetSizeX();
     float dist_y = factor*center->GetSizeY();
 
-    if((fabs(center->GetX() - hit->GetY()) > dist_x) ||
-       (fabs(center->GetX() - hit->GetY()) > dist_y))
+    if((fabs(center->GetX() - hit->GetX()) > dist_x) ||
+       (fabs(center->GetY() - hit->GetY()) > dist_y))
         return false;
 
     return true;
