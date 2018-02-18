@@ -1,3 +1,11 @@
+//============================================================================//
+// Class to manage HyCal clustering method and reconstruct hits for HyCal     //
+// Different clustering methods can be switched                               //
+//                                                                            //
+// Chao Peng                                                                  //
+// 02/18/2018                                                                 //
+//============================================================================//
+
 #include "PRadHyCalReconstructor.h"
 #include "PRadHyCalDetector.h"
 #include "PRadHyCalSystem.h"

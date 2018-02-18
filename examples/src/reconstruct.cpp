@@ -65,18 +65,22 @@ void reconstruct(const char *path)
     string rootfile = ConfigParser::decompose_path(path).name + "_recon.root";
     TFile f(rootfile.c_str(), "RECREATE");
     TTree t("T", "T");
+    TH1F hist1("ProfileEstimator", "ProfileEstimator", 500, 0., 50.);
 
     const size_t max_hits = 100;
-    int N, Nm;
-    double E[max_hits], x[max_hits], y[max_hits], z[max_hits];
-    bool match[max_hits];
+    int N, Nm, Nc;
+    double E[max_hits], x[max_hits], y[max_hits], z[max_hits], prof[max_hits];
+    bool match[max_hits], good[max_hits];
     t.Branch("Nhits", &N, "Nhits/I");
-    t.Branch("Nmatch", &N, "Nmatch/I");
+    t.Branch("Nclusters", &Nc, "Nclusters/I");
+    t.Branch("Nmatch", &Nm, "Nmatch/I");
     t.Branch("E", &E, "E/D");
     t.Branch("X", &x[0], "X[Nhits]/D");
     t.Branch("Y", &y[0], "Y[Nhits]/D");
     t.Branch("Z", &z[0], "Z[Nhits]/D");
     t.Branch("Match", &match[0], "Match[Nhits]/O");
+    t.Branch("GoodCluster", &good[0], "GoodCluster[Nclusters]/O");
+    t.Branch("ProfileEst", &prof[0], "ProfileEst[Nclusters]/D");
 
     PRadBenchMark timer;
     int count = 0;
@@ -144,6 +148,24 @@ void reconstruct(const char *path)
                 Nm ++;
             }
 
+            // extract cluster information
+            auto method = hycal.GetClusterMethod();
+            method->GetClusters();
+
+            Nc = 0;
+            for(auto &cluster : method->GetClusters())
+            {
+                good[Nc] = method->CheckCluster(cluster);
+                if(good[Nc]) {
+                    auto hit = method->ReconstructHit(cluster, hycal.GetDetector());
+                    prof[Nc] = method->EvalCluster(hit, cluster, hycal.GetReconstructor()->GetProfile());
+                    hist1.Fill(prof[Nc]);
+                } else {
+                    prof[Nc] = -1.;
+                }
+                Nc++;
+            }
+
             t.Fill();
 
         } else if(dst_parser.EventType() == PRadDSTParser::Type::epics) {
@@ -163,5 +185,6 @@ void reconstruct(const char *path)
     cout << PRadInfoCenter::GetLiveTime() << endl;
 
     t.Write();
+    hist1.Write();
     f.Close();
 }

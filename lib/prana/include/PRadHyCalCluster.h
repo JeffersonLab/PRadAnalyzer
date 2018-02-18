@@ -27,6 +27,10 @@ public:
                              std::vector<ModuleCluster> &clusters) const;
     virtual bool CheckCluster(const ModuleCluster &hit) const;
     virtual void LeakCorr(ModuleCluster &cluster) const;
+    virtual HyCalHit ReconstructHit(const ModuleCluster &cluster,
+                                    PRadHyCalDetector *det);
+    virtual double EvalCluster(const BaseHit &center, const ModuleCluster &cluster,
+                               PRadClusterProfile *prof);
 
     inline void AddHit(const ModuleHit &hit) {module_hits.emplace_back(hit);}
     inline void AddHit(ModuleHit &&hit) {module_hits.emplace_back(hit);}
@@ -40,8 +44,6 @@ public:
     void CorrectVirtHits(BaseHit &hit, std::vector<ModuleHit> &vhits,
                          const ModuleCluster &cluster) const;
 
-    HyCalHit ReconstructHit(const ModuleCluster &cluster, const float &alpE = 1.) const;
-
 protected:
     PRadHyCalCluster();
     int fillHits(BaseHit *temp,
@@ -53,7 +55,9 @@ protected:
     PRadClusterProfile::Value getProf(double cx, double cy, double cE, const ModuleHit &hit) const;
     PRadClusterProfile::Value getProf(const BaseHit &center, const ModuleHit &hit) const;
     PRadClusterProfile::Value getProf(const ModuleHit &center, const ModuleHit &hit) const;
+    HyCalHit reconstructHit(const ModuleCluster &cluster) const;
     double evalCluster(const BaseHit &center, const ModuleCluster &cluster) const;
+
     inline double hitDistance(const ModuleHit &m1, const ModuleHit &m2)
     const
     {

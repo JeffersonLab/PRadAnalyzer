@@ -86,16 +86,12 @@ void PRadHyCalCluster::Reconstruct(PRadHyCalDetector *det, PRadClusterProfile *p
         // leakage correction for dead modules
         LeakCorr(cluster);
 
-        // get non-linear correction factor
-        float lin_corr = cluster.center->GetCalibConst().NonLinearCorr(cluster.energy);
-
         // reconstruct hit the position based on the cluster
-        HyCalHit hit = ReconstructHit(cluster, lin_corr);
+        HyCalHit hit = reconstructHit(cluster);
 
         // final hit reconstructed
         det->AddHit(std::move(hit));
     }
-
 }
 
 void PRadHyCalCluster::FormCluster(std::vector<ModuleHit> &,
@@ -146,35 +142,6 @@ const
             return false;
 
     return true;
-}
-
-// reconstruct cluster
-HyCalHit PRadHyCalCluster::ReconstructHit(const ModuleCluster &cluster, const float &alpE)
-const
-{
-    // initialize the hit
-    HyCalHit hycal_hit(cluster.center.id,               // center id
-                       cluster.flag,                    // cluster flag
-                       cluster.energy,                  // total energy
-                       cluster.leakage);                // energy from leakage corr
-
-    // do non-linearity energy correction
-    if(linear_corr && fabs(alpE) < linear_corr_limit) {
-        float corr = 1./(1 + alpE);
-        // save the correction factor, not alpha(E)
-        hycal_hit.lin_corr = corr;
-        hycal_hit.E *= corr;
-    }
-
-    // count modules
-    hycal_hit.nblocks = cluster.hits.size();
-
-    hycal_hit.npos = reconstructPos(cluster, (BaseHit*)&hycal_hit);
-
-    // z position will need a depth correction
-    hycal_hit.z += GetShowerDepth(cluster.center->GetType(), cluster.energy);
-
-    return hycal_hit;
 }
 
 // leakage correction, dead module hits will be provided by hycal detector
@@ -261,7 +228,7 @@ const
         float frac = getProf(hit.x, hit.y, cluster.energy, vhit).frac;
 
         double ene;
-        if(frac > 0. && frac < 1.) {
+        if(frac > least_leak && frac < 1.) {
             ene = hit.E*frac;
         } else {
             ene = 0.;
@@ -276,6 +243,52 @@ const
     count += fillHits(&temp[count], POS_RECON_HITS - count, cluster.center, vhits);
     reconstructPos(cluster.center, temp, count, &hit);
     hit.E = tote;
+}
+
+HyCalHit PRadHyCalCluster::ReconstructHit(const ModuleCluster &cluster, PRadHyCalDetector *det)
+{
+    detector = det;
+    return reconstructHit(cluster);
+}
+
+double PRadHyCalCluster::EvalCluster(const BaseHit &hit, const ModuleCluster &cluster, PRadClusterProfile *prof)
+{
+    profile = prof;
+    return evalCluster(hit, cluster);
+}
+
+// reconstruct hit from cluster
+HyCalHit PRadHyCalCluster::reconstructHit(const ModuleCluster &cluster)
+const
+{
+
+    // initialize the hit
+    HyCalHit hycal_hit(cluster.center.id,               // center id
+                       cluster.flag,                    // cluster flag
+                       cluster.energy,                  // total energy
+                       cluster.leakage);                // energy from leakage corr
+
+    // count modules
+    hycal_hit.nblocks = cluster.hits.size();
+
+    // reconstruct position
+    hycal_hit.npos = reconstructPos(cluster, (BaseHit*)&hycal_hit);
+
+    // get non-linear correction factor
+    float alpE = cluster.center->GetCalibConst().NonLinearCorr(cluster.energy);
+
+    // do non-linearity energy correction
+    if(linear_corr && fabs(alpE) < linear_corr_limit) {
+        float corr = 1./(1. + alpE);
+        // save the correction factor, not alpha(E)
+        hycal_hit.lin_corr = corr;
+        hycal_hit.E *= corr;
+    }
+
+    // z position will need a depth correction
+    hycal_hit.z += GetShowerDepth(cluster.center->GetType(), cluster.energy);
+
+    return hycal_hit;
 }
 
 // only use the center 3x3 to fill the temp container

@@ -675,7 +675,7 @@ public:
     std::vector<GEMHit> gem1;
     std::vector<GEMHit> gem2;
     uint32_t mflag;
-    // this index is kept because of decoder/physCalib is using it
+    // this index is kept because of example/physCalib is using it
     // TODO revamp physCalib and remove this member
     uint32_t hycal_idx;
 
