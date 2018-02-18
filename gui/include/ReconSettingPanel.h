@@ -61,7 +61,6 @@ private:
     QDialogButtonBox *createStandardButtons();
 
 private slots:
-    void updateHyCalPath();
     void loadHyCalConfig();
     void openHyCalConfig();
     void selectCoordData(int r);

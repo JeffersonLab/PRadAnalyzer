@@ -109,8 +109,7 @@ public:
     void OutputModuleList(std::ostream &os) const;
     void Reset();
 
-    // hits/clusters reconstruction
-    void Reconstruct(PRadHyCalCluster *method);
+    // hits related
     void UpdateDeadModules();
     void AddHit(const HyCalHit &hit) {hycal_hits.emplace_back(hit);}
     void AddHit(HyCalHit &&hit) {hycal_hits.emplace_back(hit);}

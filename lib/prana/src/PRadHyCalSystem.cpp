@@ -25,7 +25,7 @@
 
 // constructor
 PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
-: hycal(new PRadHyCalDetector("HyCal", this)), recon(nullptr)
+: hycal(new PRadHyCalDetector("HyCal", this))
 {
     // reserve enough buckets for the adc maps
     adc_addr_map.reserve(ADC_BUCKETS);
@@ -34,12 +34,6 @@ PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
     // initialize energy histogram
     energy_hist = new TH1D("HyCal Energy", "Total Energy (MeV)", 2000, 0, 2500);
 
-    // hycal clustering methods
-    AddClusterMethod("Square", new PRadSquareCluster());
-    AddClusterMethod("Island", new PRadIslandCluster());
-#ifdef USE_PRIMEX_METHOD
-    AddClusterMethod("Primex", new PRadPrimexCluster());
-#endif
     if(!path.empty())
         Configure(path);
 }
@@ -48,7 +42,7 @@ PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
 // it does not only copy the members, but also copy the connections between the
 // members
 PRadHyCalSystem::PRadHyCalSystem(const PRadHyCalSystem &that)
-: ConfigObject(that), hycal(nullptr), cal_period(that.cal_period)
+: ConfigObject(that), hycal(nullptr), recon(that.recon), cal_period(that.cal_period)
 {
     // copy detector
     if(that.hycal) {
@@ -58,13 +52,6 @@ PRadHyCalSystem::PRadHyCalSystem(const PRadHyCalSystem &that)
 
     // copy histogram
     energy_hist = new TH1D(*that.energy_hist);
-
-    // copy reconstruction method
-    for(auto &it : that.recon_map)
-    {
-        recon_map[it.first] = it.second->Clone();
-    }
-    SetClusterMethod(that.GetClusterMethodName());
 
     // copy tdc
     for(auto tdc : that.tdc_list)
@@ -90,18 +77,14 @@ PRadHyCalSystem::PRadHyCalSystem(const PRadHyCalSystem &that)
 
 // move constructor
 PRadHyCalSystem::PRadHyCalSystem(PRadHyCalSystem &&that)
-: ConfigObject(that), cal_period(std::move(that.cal_period)),
+: ConfigObject(that), recon(std::move(that.recon)), cal_period(std::move(that.cal_period)),
   adc_list(std::move(that.adc_list)), tdc_list(std::move(that.tdc_list)),
   adc_addr_map(std::move(that.adc_addr_map)), adc_name_map(std::move(that.adc_name_map)),
-  tdc_addr_map(std::move(that.tdc_addr_map)), tdc_name_map(std::move(that.tdc_name_map)),
-  recon_map(std::move(that.recon_map))
+  tdc_addr_map(std::move(that.tdc_addr_map)), tdc_name_map(std::move(that.tdc_name_map))
 {
     hycal = that.hycal;
     that.hycal = nullptr;
     hycal->SetSystem(this, true);
-
-    recon = that.recon;
-    that.recon = nullptr;
 
     energy_hist = that.energy_hist;
     that.energy_hist = nullptr;
@@ -114,7 +97,6 @@ PRadHyCalSystem::~PRadHyCalSystem()
     delete energy_hist;
     ClearADCChannel();
     ClearTDCChannel();
-    ClearClusterMethods();
 }
 
 // copy assignment operator
@@ -141,13 +123,11 @@ PRadHyCalSystem &PRadHyCalSystem::operator =(PRadHyCalSystem &&rhs)
     delete energy_hist;
     ClearADCChannel();
     ClearTDCChannel();
-    ClearClusterMethods();
 
     hycal = rhs.hycal;
     rhs.hycal = nullptr;
     hycal->SetSystem(this, true);
-    recon = rhs.recon;
-    rhs.recon = nullptr;
+    recon = std::move(rhs.recon);
     energy_hist = rhs.energy_hist;
     rhs.energy_hist = nullptr;
     cal_period = std::move(rhs.cal_period);
@@ -158,7 +138,6 @@ PRadHyCalSystem &PRadHyCalSystem::operator =(PRadHyCalSystem &&rhs)
     adc_name_map = std::move(rhs.adc_name_map);
     tdc_addr_map = std::move(rhs.tdc_addr_map);
     tdc_name_map = std::move(rhs.tdc_name_map);
-    recon_map = std::move(rhs.recon_map);
 
     return *this;
 }
@@ -185,30 +164,19 @@ void PRadHyCalSystem::Configure(const std::string &path)
     // trigger efficiency
     ReadTriggerEffFile(GetConfig<std::string>("Trigger Efficiency Map"));
 
-    // reconstruction configuration
-    SetClusterMethod(GetConfig<std::string>("Cluster Method"));
-    if(recon)
-        recon->Configure(GetConfig<std::string>("Cluster Configuration"));
-
-    // load profile
-    std::string pwo_prof, lg_prof;
-    pwo_prof = GetConfig<std::string>("Lead Tungstate Profile");
-    PRadClusterProfile::Instance().LoadProfile((int)PRadHyCalModule::PbWO4, pwo_prof);
-    lg_prof = GetConfig<std::string>("Lead Glass Profile");
-    PRadClusterProfile::Instance().LoadProfile((int)PRadHyCalModule::PbGlass, lg_prof);
-
-#ifdef USE_PRIMEX_METHOD
-    // original primex method needs to load the profile into fortran code
-    PRadPrimexCluster *method = static_cast<PRadPrimexCluster*>(GetClusterMethod("Primex"));
-    if(method) {
-        auto pr = ConfigParser::decompose_path(pwo_prof);
-        pr.dir += "/old";
-        method->LoadCrystalProfile(ConfigParser::compose_path(pr));
-        pr = ConfigParser::decompose_path(lg_prof);
-        pr.dir += "/old";
-        method->LoadLeadGlassProfile(ConfigParser::compose_path(pr));
+    // load cluster profile
+    for(int i = 0; i < static_cast<int>(PRadHyCalModule::Max_Types); ++i)
+    {
+        std::string type = PRadHyCalModule::Type2str(i);
+        std::string key = "Cluster Profile [" + type + "]";
+        auto value = GetConfigValue(key);
+        if(!value.IsEmpty())
+            recon.GetProfile()->LoadProfile(i, value.String());
     }
-#endif
+
+    // reconstruction configuration
+    recon.SetMethod(GetConfig<std::string>("Cluster Method"),
+                    GetConfig<std::string>("Cluster Configuration"));
 
     // read calibration period
     std::string file_path = ConfigParser::form_path(
@@ -424,14 +392,6 @@ bool PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
     if(hycal)
         hycal->UpdateDeadModules();
 
-#ifdef USE_PRIMEX_METHOD
-    // original primex method needs to load the profile into fortran coe
-    PRadPrimexCluster *method = static_cast<PRadPrimexCluster*>(GetClusterMethod("Primex"));
-    if(method && hycal) {
-        method->UpdateModuleStatus(hycal->GetModuleList());
-    }
-#endif
-
     return true;
 }
 
@@ -602,79 +562,6 @@ void PRadHyCalSystem::ChooseEvent(const EventData &event)
             continue;
 
         tdc_list[tdc.channel_id]->AddTimeMeasure(tdc.value);
-    }
-}
-
-// reconstruct the event to clusters
-void PRadHyCalSystem::Reconstruct(const EventData &event)
-{
-    // cannot reconstruct without necessary objects
-    if(!hycal || !recon)
-        return;
-
-    // no need to reconstruct non-physics event
-    if(!event.is_physics_event())
-        return;
-
-    // collect hits
-    recon->ClearHits();
-    for(auto adc : event.get_adc_data())
-    {
-        if(adc.channel_id >= adc_list.size())
-            continue;
-
-        PRadHyCalModule *module = adc_list.at(adc.channel_id)->GetModule();
-        if(!module)
-            continue;
-
-        double val = (double)adc.value - adc_list.at(adc.channel_id)->GetPedestal().mean;
-
-        recon->AddHit(ModuleHit(module, module->GetID(), module->GetEnergy(val)));
-    }
-
-    recon->Reconstruct(hycal);
-
-    // add timing information
-    for(auto &hit : hycal->GetHits())
-    {
-        auto center = hycal->GetModule(hit.cid);
-        if(!center) continue;
-
-        auto tdc = center->GetTDC();
-        if(!tdc) continue;
-
-        auto id = tdc->GetID();
-        std::vector<uint16_t> time;
-        for(auto &tdc : event.tdc_data)
-        {
-            if(tdc.channel_id == id)
-                time.push_back(tdc.value);
-        }
-        hit.set_time(time);
-    }
-
-}
-
-void PRadHyCalSystem::Reconstruct()
-{
-    // cannot reconstruct without necessary objects
-    if(!hycal || !recon)
-        return;
-
-    // collect hits
-    recon->CollectHits(hycal);
-
-    // reconstruct
-    recon->Reconstruct(hycal);
-
-    // add timing information
-    for(auto &hit : hycal->GetHits())
-    {
-        auto center = hycal->GetModule(hit.cid);
-        if(!center) continue;
-
-        auto tdc = center->GetTDC();
-        if(tdc) hit.set_time(tdc->GetTimeMeasure());
     }
 }
 
@@ -947,117 +834,6 @@ void PRadHyCalSystem::ResetEnergyHist()
     energy_hist->Reset();
 }
 
-bool PRadHyCalSystem::AddClusterMethod(const std::string &name, PRadHyCalCluster *c)
-{
-    // automatically set the first method as the default one
-    if(recon_map.empty())
-        recon = c;
-
-    std::string key = ConfigParser::str_upper(name);
-    auto it = recon_map.find(key);
-    // exists, skip
-    if(it != recon_map.end()) {
-        std::cerr << "PRad HyCal System Error: Clustering method " << name
-                  << " exits in the system, abort adding duplicated method."
-                  << std::endl;
-        return false;
-    }
-
-    recon_map[key] = c;
-    return true;
-}
-
-void PRadHyCalSystem::RemoveClusterMethod(const std::string &name)
-{
-    std::string key = ConfigParser::str_upper(name);
-    auto it = recon_map.find(key);
-
-    if(it != recon_map.end()) {
-        if(it->second == recon)
-            recon = nullptr;
-        delete it->second;
-        recon_map.erase(it);
-    } else {
-        std::cout << "PRad HyCal System Warning: Cannot find clustering method "
-                  << name << ", skip removing method."
-                  << std::endl;
-    }
-
-}
-
-void PRadHyCalSystem::ClearClusterMethods()
-{
-    for(auto &it : recon_map)
-    {
-        delete it.second;
-    }
-
-    recon_map.clear();
-    recon = nullptr;
-}
-
-void PRadHyCalSystem::SetClusterMethod(const std::string &name)
-{
-    if(name.empty())
-        return;
-
-    std::string key = ConfigParser::str_upper(name);
-    auto it = recon_map.find(key);
-
-    if(it != recon_map.end()) {
-        recon = it->second;
-    } else {
-        std::cout << "PRad HyCal System Warning: Cannot find clustering method "
-                  << name << ", skip setting method."
-                  << std::endl;
-    }
-}
-
-
-PRadHyCalCluster *PRadHyCalSystem::GetClusterMethod(const std::string &name)
-const
-{
-    if(name.empty())
-        return recon;
-
-    std::string key = ConfigParser::str_upper(name);
-    auto it = recon_map.find(key);
-
-    if(it != recon_map.end())
-        return it->second;
-
-    return nullptr;
-}
-
-std::string PRadHyCalSystem::GetClusterMethodName()
-const
-{
-    if(recon == nullptr)
-        return "";
-
-    for(auto &it : recon_map)
-    {
-        if(it.second == recon)
-            return it.first;
-    }
-
-    return "";
-}
-
-std::vector<std::string> PRadHyCalSystem::GetClusterMethodNames()
-const
-{
-    std::vector<std::string> result;
-
-    for(auto &it : recon_map)
-    {
-        if(it.second != nullptr)
-            result.push_back(it.first);
-    }
-
-    return result;
-}
-
 void PRadHyCalSystem::SaveHists(const std::string &path)
 const
 {
@@ -1105,8 +881,8 @@ const
     auto ch_list = adc_list;
     std::sort(ch_list.begin(), ch_list.end(), ch_order);
 
-    TDirectory *mod_dir[PRadHyCalModule::Max_Type];
-    for(int i = 0; i < (int) PRadHyCalModule::Max_Type; ++i)
+    TDirectory *mod_dir[PRadHyCalModule::Max_Types];
+    for(int i = 0; i < (int) PRadHyCalModule::Max_Types; ++i)
     {
         mod_dir[i] = cur_dir->mkdir(PRadHyCalModule::Type2str(i).c_str());
     }

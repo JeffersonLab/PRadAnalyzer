@@ -9,6 +9,8 @@
 #include "PRadHyCalDetector.h"
 #include "PRadClusterProfile.h"
 
+
+
 // we use 3x3 adjacent hits to reconstruct position
 // here gives a larger volume to save the information
 #define POS_RECON_HITS 15
@@ -20,7 +22,7 @@ public:
     virtual PRadHyCalCluster *Clone() const;
     virtual void Configure(const std::string &path);
     virtual void CollectHits(PRadHyCalDetector *det);
-    virtual void Reconstruct(PRadHyCalDetector *det);
+    virtual void Reconstruct(PRadHyCalDetector *det, PRadClusterProfile *prof);
     virtual void FormCluster(std::vector<ModuleHit> &hits,
                              std::vector<ModuleCluster> &clusters) const;
     virtual bool CheckCluster(const ModuleCluster &hit) const;
@@ -33,8 +35,6 @@ public:
     const std::vector<ModuleCluster> &GetClusters() const {return module_clusters;}
 
     void ReadVModuleList(const std::string &path);
-    void SetDetector(PRadHyCalDetector *ptr) {detector = ptr;}
-    PRadHyCalDetector *GetDetector() const {return detector;}
     float GetWeight(const float &E, const float &E0) const;
     float GetShowerDepth(int module_type, const float &E) const;
     void CorrectVirtHits(BaseHit &hit, std::vector<ModuleHit> &vhits,
@@ -62,6 +62,7 @@ protected:
 
 protected:
     PRadHyCalDetector *detector;
+    PRadClusterProfile *profile;
     bool depth_corr;
     bool leak_corr;
     bool linear_corr;

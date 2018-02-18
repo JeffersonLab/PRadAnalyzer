@@ -39,6 +39,7 @@ CXX_SOURCES   = PRadDAQChannel \
                 PRadHyCalDetector \
                 PRadHyCalModule \
                 PRadHyCalCluster \
+                PRadHyCalReconstructor \
                 PRadClusterProfile \
                 PRadSquareCluster \
                 PRadIslandCluster \
@@ -68,13 +69,6 @@ FOR_SOURCES   = merad_util \
 HEADER_FILES  = include/*
 
 ###### Components related
-
-# use primex clustering method
-ifneq (,$(findstring PRIMEX_METHOD,$(LIB_OPTION)))
-	FOR_SOURCES += island
-	CXX_SOURCES += PRadPrimexCluster
-	DEFINES     += -DUSE_PRIMEX_METHOD
-endif
 
 # enable multi-threading in the code
 ifneq (, $(findstring MULTI_THREAD,$(LIB_OPTION)))

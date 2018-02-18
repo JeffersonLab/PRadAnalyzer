@@ -7,6 +7,7 @@
 
 #include "ReconSettingPanel.h"
 #include "PRadHyCalSystem.h"
+#include "PRadHyCalReconstructor.h"
 #include "PRadGEMSystem.h"
 #include "PRadCoordSystem.h"
 #include "PRadDetMatch.h"
@@ -85,11 +86,10 @@ QGroupBox *ReconSettingPanel::createHyCalGroup()
     hyCalMethods = new QComboBox;
 
     // configuration file
-    QPushButton *hyCalLoadConfig = new QPushButton(tr("Reload"));
-    QPushButton *hyCalFindPath = new QPushButton(tr("Open Configuration File"));
+    QPushButton *hyCalLoadConfig = new QPushButton(tr("Apply"));
+    QPushButton *hyCalFindPath = new QPushButton(tr("Set Configuration File"));
     hyCalConfigPath = new QLineEdit;
 
-    connect(hyCalMethods, SIGNAL(currentIndexChanged(int)), this, SLOT(updateHyCalPath()));
     connect(hyCalLoadConfig, SIGNAL(clicked()), this, SLOT(loadHyCalConfig()));
     connect(hyCalFindPath, SIGNAL(clicked()), this, SLOT(openHyCalConfig()));
 
@@ -247,21 +247,18 @@ void ReconSettingPanel::ConnectHyCalSystem(PRadHyCalSystem *h)
     if(h == nullptr)
         return;
 
-    int index = -1; // means no value selected in combo box
     // name list
-    auto methods = hycal->GetClusterMethodNames();
+    auto methods = hycal->GetReconstructor()->GetMethodNames();
     // current method name
-    auto current = hycal->GetClusterMethodName();
+    auto current = hycal->GetReconstructor()->GetMethodType();
 
     for(size_t i = 0; i < methods.size(); ++i)
     {
-        if(methods.at(i) == current)
-            index = i;
-
         hyCalMethods->addItem(QString::fromStdString(methods.at(i)));
     }
 
-    hyCalMethods->setCurrentIndex(index);
+    hyCalMethods->setCurrentIndex(static_cast<int>(current));
+    hyCalConfigPath->setText(QString::fromStdString(hycal->GetClusterMethod()->GetConfigPath()));
 }
 
 void ReconSettingPanel::ConnectGEMSystem(PRadGEMSystem *g)
@@ -318,17 +315,6 @@ void ReconSettingPanel::ConnectMatchSystem(PRadDetMatch *m)
     }
 }
 
-void ReconSettingPanel::updateHyCalPath()
-{
-    std::string name = hyCalMethods->currentText().toStdString();
-    PRadHyCalCluster *method = hycal->GetClusterMethod(name);
-
-    if(method)
-        hyCalConfigPath->setText(QString::fromStdString(method->GetConfigPath()));
-    else
-        hyCalConfigPath->setText("");
-}
-
 // open the configuration file for selected method
 void ReconSettingPanel::openHyCalConfig()
 {
@@ -345,7 +331,6 @@ void ReconSettingPanel::openHyCalConfig()
         return;
 
     hyCalConfigPath->setText(path);
-    loadHyCalConfig();
 }
 
 // load the configuration file for selected method
@@ -354,9 +339,7 @@ void ReconSettingPanel::loadHyCalConfig()
     std::string method_name = hyCalMethods->currentText().toStdString();
     std::string config_path = hyCalConfigPath->text().toStdString();
 
-    PRadHyCalCluster *method = hycal->GetClusterMethod(method_name);
-    if(method)
-        method->Configure(config_path);
+    hycal->GetReconstructor()->SetMethod(method_name, config_path);
 }
 
 void ReconSettingPanel::changeCoordType(int t)
@@ -476,13 +459,6 @@ void ReconSettingPanel::RestoreSettings()
 // apply all the changes
 void ReconSettingPanel::ApplyChanges()
 {
-    // set hycal
-    if(hycal) {
-        // change HyCal clustering method
-        std::string method = hyCalMethods->currentText().toStdString();
-        hycal->SetClusterMethod(method);
-    }
-
     // set gem
     if(gem) {
         // set corresponding gem cluster configuration values
@@ -490,7 +466,7 @@ void ReconSettingPanel::ApplyChanges()
         gem_method->SetConfigValue(gemMinLabel->text().toStdString(), gemMinHits->value());
         gem_method->SetConfigValue(gemMaxLabel->text().toStdString(), gemMaxHits->value());
         gem_method->SetConfigValue(gemSplitLabel->text().toStdString(), gemSplitThres->value());
-        // reaload the configuration
+        // reload the configuration
         gem_method->Configure();
     }
 

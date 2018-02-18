@@ -15,8 +15,7 @@ QT_MAKE = qmake
 
 # LIB setting, set options for the library
 # MULTI_THREAD    multi threading support on decoding raw data file
-# PRIMEX_METHOD   add original PrimEx island reconstruction method
-LIB_OPTION = MULTI_THREAD PRIMEX_METHOD
+LIB_OPTION = MULTI_THREAD
 
 # GUI Setting, enable optional components for GUI here
 # HV_CONTROL      high voltage monitor and control

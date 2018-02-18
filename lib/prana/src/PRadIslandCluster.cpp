@@ -51,7 +51,7 @@ void PRadIslandCluster::Configure(const std::string &path)
 
     // set the min module energy for all the module type
     float univ_min_energy = getDefConfig<float>("Min Module Energy", 0., false);
-    min_module_energy.resize(PRadHyCalModule::Max_Type, univ_min_energy);
+    min_module_energy.resize(PRadHyCalModule::Max_Types, univ_min_energy);
 
     // update the min module energy if some type is specified
     // the key is "Min Module Energy [typename]"

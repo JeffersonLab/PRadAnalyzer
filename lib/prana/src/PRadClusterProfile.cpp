@@ -20,7 +20,7 @@
 
 PRadClusterProfile::PRadClusterProfile()
 {
-    profiles.resize(static_cast<size_t>(PRadHyCalModule::Max_Type));
+    profiles.resize(static_cast<size_t>(PRadHyCalModule::Max_Types));
 }
 
 PRadClusterProfile::~PRadClusterProfile()

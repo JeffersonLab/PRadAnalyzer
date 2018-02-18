@@ -530,11 +530,6 @@ void PRadHyCalDetector::UpdateDeadModules()
     }
 }
 
-void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
-{
-    method->Reconstruct(this);
-}
-
 PRadHyCalModule *PRadHyCalDetector::GetModule(int id)
 const
 {

@@ -10,10 +10,8 @@
 #include <iostream>
 #include <iomanip>
 #include "PRadHyCalCluster.h"
-#include "PRadClusterProfile.h"
 
 
-const PRadClusterProfile &__hc_prof = PRadClusterProfile::Instance();
 
 PRadHyCalCluster::PRadHyCalCluster()
 : detector(nullptr), depth_corr(true), leak_corr(true), linear_corr(true),
@@ -52,6 +50,7 @@ void PRadHyCalCluster::Configure(const std::string &path)
     least_leak = getDefConfig<float>("Least Leakage Fraction", 0.05, verbose);
     leak_iters = getDefConfig<unsigned int>("Leakage Iterations", 3, verbose);
     linear_corr_limit = getDefConfig<float>("Non Linearity Limit", 0.6, verbose);
+
 }
 
 void PRadHyCalCluster::CollectHits(PRadHyCalDetector *det)
@@ -68,9 +67,10 @@ void PRadHyCalCluster::CollectHits(PRadHyCalDetector *det)
     }
 }
 
-void PRadHyCalCluster::Reconstruct(PRadHyCalDetector *det)
+void PRadHyCalCluster::Reconstruct(PRadHyCalDetector *det, PRadClusterProfile *p)
 {
     detector = det;
+    profile = p;
 
     // form clusters
     FormCluster(module_hits, module_clusters);
@@ -366,7 +366,7 @@ ProfVal PRadHyCalCluster::getProf(const ModuleHit &c, const ModuleHit &hit)
 const
 {
     // magic number 0.78, the center module contains about 78% of the total energy
-    return __hc_prof.GetProfile(c->GetType(), hitDistance(c, hit), c.energy/0.78);
+    return profile->GetProfile(c->GetType(), hitDistance(c, hit), c.energy/0.78);
 }
 
 ProfVal PRadHyCalCluster::getProf(double cx, double cy, double cE, const ModuleHit &hit)
@@ -376,7 +376,7 @@ const
     int type = detector->GetSectorInfo().at(sid).mtype;
     double dist = detector->QuantizedDist(cx, cy, sid,
                                           hit->GetX(), hit->GetY(), hit->GetSectorID());
-    return __hc_prof.GetProfile(type, dist, cE);
+    return profile->GetProfile(type, dist, cE);
 }
 
 ProfVal PRadHyCalCluster::getProf(const BaseHit &c, const ModuleHit &hit)
@@ -386,7 +386,7 @@ const
     int type = detector->GetSectorInfo().at(sid).mtype;
     double dist = detector->QuantizedDist(c.x, c.y, sid,
                                           hit->GetX(), hit->GetY(), hit->GetSectorID());
-    return __hc_prof.GetProfile(type, dist, c.E);
+    return profile->GetProfile(type, dist, c.E);
 }
 
 // evaluate how well this cluster can be described by the profile

@@ -15,7 +15,7 @@ public:
         Max_Dets
     };
     // macro in ConfigParser.h
-    ENUM_MAP(DetEnum, "HyCal|PRadGEM1|PRadGEM2|Undefined")
+    ENUM_MAP(DetEnum, "HyCal|PRadGEM1|PRadGEM2|Undefined");
 
 public:
     PRadDetector(int id);

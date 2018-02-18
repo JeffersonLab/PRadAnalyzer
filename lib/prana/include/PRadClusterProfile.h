@@ -39,28 +39,11 @@ public:
     };
 
 public:
-    static PRadClusterProfile &Instance()
-    {
-        static PRadClusterProfile instance;
-
-        return instance;
-    }
-
-    // copy/move constructors
-    PRadClusterProfile(const PRadClusterProfile &that) = delete;
-    PRadClusterProfile(PRadClusterProfile &&that) = delete;
-
+    PRadClusterProfile();
     virtual ~PRadClusterProfile();
-
-    // copy/move assignment operators
-    PRadClusterProfile &operator =(const PRadClusterProfile &rhs) = delete;
-    PRadClusterProfile &operator =(PRadClusterProfile &&rhs) = delete;
 
     void LoadProfile(int type, const std::string &path);
     Value GetProfile(int type, double dist, double energy) const;
-
-private:
-    PRadClusterProfile();
 
 private:
     std::vector<Profile> profiles;
