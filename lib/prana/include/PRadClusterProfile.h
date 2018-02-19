@@ -42,8 +42,8 @@ public:
     PRadClusterProfile();
     virtual ~PRadClusterProfile();
 
-    void LoadProfile(int type, const std::string &path);
-    Value GetProfile(int type, double dist, double energy) const;
+    void Load(int type, const std::string &path);
+    Value Get(int type, double dist, double energy) const;
 
 private:
     std::vector<Profile> profiles;

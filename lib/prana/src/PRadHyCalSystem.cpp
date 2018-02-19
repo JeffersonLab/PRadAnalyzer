@@ -164,6 +164,12 @@ void PRadHyCalSystem::Configure(const std::string &path)
     // trigger efficiency
     ReadTriggerEffFile(GetConfig<std::string>("Trigger Efficiency Map"));
 
+    // choose clustering method
+    recon.SetMethod(GetConfig<std::string>("Cluster Method"));
+
+    // configurate reconstructor
+    recon.Configure(GetConfig<std::string>("Cluster Configuration"));
+
     // load cluster profile
     for(int i = 0; i < static_cast<int>(PRadHyCalModule::Max_Types); ++i)
     {
@@ -171,12 +177,8 @@ void PRadHyCalSystem::Configure(const std::string &path)
         std::string key = "Cluster Profile [" + type + "]";
         auto value = GetConfigValue(key);
         if(!value.IsEmpty())
-            recon.GetProfile()->LoadProfile(i, value.String());
+            recon.LoadProfile(i, value.String());
     }
-
-    // reconstruction configuration
-    recon.SetMethod(GetConfig<std::string>("Cluster Method"),
-                    GetConfig<std::string>("Cluster Configuration"));
 
     // read calibration period
     std::string file_path = ConfigParser::form_path(
@@ -565,6 +567,13 @@ void PRadHyCalSystem::ChooseEvent(const EventData &event)
     }
 }
 
+// set the clustering method for the system
+void PRadHyCalSystem::SetClusterMethod(const std::string &name)
+{
+    recon.SetMethod(name);
+}
+
+// reset current histograms and detector status
 void PRadHyCalSystem::Reset()
 {
     if(hycal)

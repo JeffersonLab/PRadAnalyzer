@@ -103,24 +103,36 @@ PRadHyCalDetector::PRadHyCalDetector(const std::string &det, PRadHyCalSystem *sy
 // copy constructor
 PRadHyCalDetector::PRadHyCalDetector(const PRadHyCalDetector &that)
 : PRadDetector(that), system(nullptr), hycal_hits(that.hycal_hits),
-  sector_info(that.sector_info), vmodules(that.vmodules)
+  sector_info(that.sector_info)
 {
     for(auto module : that.module_list)
     {
         AddModule(new PRadHyCalModule(*module));
+    }
+
+    for(auto vmodule : that.vmodule_list)
+    {
+        PRadHyCalModule *vm = new PRadHyCalModule(*vmodule);
+        vm->SetDetector(this);
+        vmodule_list.push_back(vm);
     }
 }
 
 // move constructor
 PRadHyCalDetector::PRadHyCalDetector(PRadHyCalDetector &&that)
 : PRadDetector(that), system(nullptr), module_list(std::move(that.module_list)),
-  id_map(std::move(that.id_map)), name_map(std::move(that.name_map)),
-  hycal_hits(std::move(that.hycal_hits)), sector_info(std::move(that.sector_info)),
-  vmodules(std::move(vmodules))
+  vmodule_list(std::move(vmodule_list)), id_map(std::move(that.id_map)),
+  name_map(std::move(that.name_map)), hycal_hits(std::move(that.hycal_hits)),
+  sector_info(std::move(that.sector_info))
 {
     // reset the connections between module and HyCal
     for(auto module : module_list)
-        module->SetDetector(this);
+        module->SetDetector(this, true);
+    that.module_list.clear();
+
+    for(auto vmodule : vmodule_list)
+        vmodule->SetDetector(this, true);
+    that.vmodule_list.clear();
 }
 
 // destructor
@@ -128,13 +140,8 @@ PRadHyCalDetector::~PRadHyCalDetector()
 {
     UnsetSystem();
 
-    // release modules
-    for(auto module : module_list)
-    {
-        // prevent module calling RemoveModule upon destruction
-        module->UnsetDetector(true);
-        delete module;
-    }
+    ClearModuleList();
+    ClearVModuleList();
 }
 
 // copy assignment operator
@@ -156,14 +163,19 @@ PRadHyCalDetector &PRadHyCalDetector::operator =(PRadHyCalDetector &&rhs)
 
     PRadDetector::operator =(rhs);
     module_list = std::move(rhs.module_list);
+    vmodule_list = std::move(rhs.vmodule_list);
     id_map = std::move(rhs.id_map);
     name_map = std::move(rhs.name_map);
     hycal_hits = std::move(rhs.hycal_hits);
     sector_info = std::move(rhs.sector_info);
-    vmodules = std::move(rhs.vmodules);
 
     for(auto module : module_list)
-        module->SetDetector(this);
+        module->SetDetector(this, true);
+    rhs.module_list.clear();
+
+    for(auto vmodule : vmodule_list)
+        vmodule->SetDetector(this, true);
+    rhs.vmodule_list.clear();
 
     return *this;
 }
@@ -260,7 +272,7 @@ bool PRadHyCalDetector::ReadVModuleList(const std::string &path)
         return false;
     }
 
-    vmodules.clear();
+    ClearVModuleList();
 
     std::string name, type;
     Geometry geo;
@@ -277,10 +289,10 @@ bool PRadHyCalDetector::ReadVModuleList(const std::string &path)
 
         geo.type = PRadHyCalModule::str2Type(type.c_str());
 
-        PRadHyCalModule vmodule(-1, geo, this);
-        vmodule.name = name;
-        vmodule.layout.sector = GetSectorID(geo.x, geo.y);
-        vmodules.push_back(vmodule);
+        PRadHyCalModule *vmodule = new PRadHyCalModule(-1, geo, this);
+        vmodule->name = name;
+        vmodule->layout.sector = GetSectorID(vmodule->GetX(), vmodule->GetY());
+        vmodule_list.push_back(vmodule);
     }
 
     return true;
@@ -473,6 +485,17 @@ void PRadHyCalDetector::ClearModuleList()
     name_map.clear();
 }
 
+void PRadHyCalDetector::ClearVModuleList()
+{
+    for(auto vmodule : vmodule_list)
+    {
+        vmodule->UnsetDetector(true);
+        delete vmodule;
+    }
+
+    vmodule_list.clear();
+}
+
 void PRadHyCalDetector::OutputModuleList(std::ostream &os)
 const
 {
@@ -518,13 +541,13 @@ void PRadHyCalDetector::UpdateDeadModules()
            !TEST_BIT(module->layout.flag, kOuterBound))
             continue;
 
-        for(auto &vm : vmodules) {
+        for(auto &vm : vmodule_list) {
             double dx, dy;
             qdist(module->GetX(), module->GetY(), module->GetSectorID(),
-                  vm.GetX(), vm.GetY(), vm.GetSectorID(),
+                  vm->GetX(), vm->GetY(), vm->GetSectorID(),
                   sector_info, dx, dy);
             if(std::abs(dx) < 1.01 && std::abs(dy) < 1.01) {
-                module->AddVirtNeighbor(&vm, dx, dy);
+                module->AddVirtNeighbor(vm, dx, dy);
             }
         }
     }

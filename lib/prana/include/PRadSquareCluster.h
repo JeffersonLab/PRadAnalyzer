@@ -1,18 +1,17 @@
 #ifndef PRAD_SQUARE_CLUSTER_H
 #define PRAD_SQUARE_CLUSTER_H
 
+#include <vector>
 #include "PRadHyCalCluster.h"
 
 class PRadSquareCluster : public PRadHyCalCluster
 {
 public:
-    PRadSquareCluster(const std::string &path = "");
+    PRadSquareCluster();
     virtual ~PRadSquareCluster();
     PRadHyCalCluster *Clone() const;
 
-    void Configure(const std::string &path);
-    void FormCluster(std::vector<ModuleHit> &hits,
-                     std::vector<ModuleCluster> &clusters) const;
+    void FormCluster(PRadHyCalReconstructor *r);
 
 protected:
     void groupHits(std::vector<ModuleHit> &hits,
@@ -24,8 +23,7 @@ protected:
     bool checkBelongs(const ModuleHit &center, const ModuleHit &hit, float factor) const;
 
 protected:
-    // parameters for reconstruction
-    unsigned int square_size;
+    PRadHyCalReconstructor *rec;
 };
 
 #endif

@@ -7,14 +7,15 @@
 //============================================================================//
 
 #include "PRadSquareCluster.h"
+#include "PRadHyCalModule.h"
 #include <algorithm>
 #include <cmath>
 
 
 
-PRadSquareCluster::PRadSquareCluster(const std::string &path)
+PRadSquareCluster::PRadSquareCluster()
 {
-    Configure(path);
+    // place holder
 }
 
 PRadSquareCluster::~PRadSquareCluster()
@@ -26,16 +27,6 @@ PRadHyCalCluster *PRadSquareCluster::Clone()
 const
 {
     return new PRadSquareCluster(*this);
-}
-
-void PRadSquareCluster::Configure(const std::string &path)
-{
-    PRadHyCalCluster::Configure(path);
-
-    // if no configuration file specified, load the default value quietly
-    bool verbose = (!path.empty());
-
-    square_size = getDefConfig<unsigned int>("Square Size", 5, verbose);
 }
 
 inline bool PRadSquareCluster::checkBelongs(const ModuleHit &center,
@@ -53,10 +44,12 @@ const
     return true;
 }
 
-void PRadSquareCluster::FormCluster(std::vector<ModuleHit> &hits,
-                                    std::vector<ModuleCluster> &clusters)
-const
+void PRadSquareCluster::FormCluster(PRadHyCalReconstructor *r)
 {
+    rec = r;
+    auto &clusters = rec->module_clusters;
+    auto &hits = rec->module_hits;
+
     // clear container first
     clusters.clear();
 
@@ -79,7 +72,7 @@ const
     for(auto &hit : hits)
     {
         // not belongs to any cluster, and the energy is larger than center threshold
-        if(!fillClusters(hit, clusters) && (hit.energy > min_center_energy))
+        if(!fillClusters(hit, clusters) && (hit.energy > rec->min_center_energy))
         {
             clusters.emplace_back(hit, hit->GetLayoutFlag());
             clusters.back().AddHit(hit);
@@ -98,7 +91,7 @@ const
     {
         const auto &center = c.at(i).center;
         // within the square range
-        if(checkBelongs(center, hit, float(square_size)/2.)) {
+        if(checkBelongs(center, hit, float(rec->square_size)/2.)) {
             indices.push_back(i);
         }
     }
@@ -134,7 +127,7 @@ const
         auto &center = clusters.at(indices.at(i)).center;
         // we are comparing the relative amount of energy to be shared, so use of
         // center energy should be equivalent to total cluster energy
-        frac[i] = getProf(center, hit).frac * center.energy;
+        frac[i] = rec->getProf(center, hit).frac * center.energy;
         total_frac += frac[i];
     }
 

@@ -567,7 +567,7 @@ void PRadEventViewer::Refresh()
     case EnergyView:
 #ifdef RECON_DISPLAY
         if(clusterSpin->value() > 0) {
-            HyCal->ShowCluster(hycal_sys->GetClusterMethod()->GetClusters().at(clusterSpin->value() - 1));
+            HyCal->ShowCluster(hycal_sys->GetReconstructor()->GetClusters().at(clusterSpin->value() - 1));
         }
         else
 #endif
@@ -1434,9 +1434,7 @@ void PRadEventViewer::showReconEvent()
     }
 
     // update the cluster size
-    int mcl = 0;
-    auto cl_method = hycal_sys->GetClusterMethod();
-    if(cl_method) mcl = cl_method->GetClusters().size();
+    int mcl = hycal_sys->GetReconstructor()->GetClusters().size();
     clusterSpin->setRange(0, mcl);
 }
 

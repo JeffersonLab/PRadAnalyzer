@@ -39,13 +39,11 @@ struct SplitContainer
 class PRadIslandCluster : public PRadHyCalCluster
 {
 public:
-    PRadIslandCluster(const std::string &path = "");
+    PRadIslandCluster();
     virtual ~PRadIslandCluster();
     PRadHyCalCluster *Clone() const;
 
-    void Configure(const std::string &path);
-    void FormCluster(std::vector<ModuleHit> &hits,
-                     std::vector<ModuleCluster> &clusters) const;
+    void FormCluster(PRadHyCalReconstructor *r);
 
 protected:
 // primex method, do iterations for splitting
@@ -74,11 +72,7 @@ protected:
 #endif
 
 protected:
-    // parameters for reconstruction
-    bool corner_conn;
-    unsigned int split_iter;
-    float least_share;
-    std::vector<float> min_module_energy;
+    PRadHyCalReconstructor *rec;
 };
 
 #endif

@@ -28,7 +28,7 @@ PRadClusterProfile::~PRadClusterProfile()
     // place holder
 }
 
-void PRadClusterProfile::LoadProfile(int type, const std::string &path)
+void PRadClusterProfile::Load(int type, const std::string &path)
 {
     if((size_t)type >=  profiles.size()) {
         std::cerr << "PRad Cluster Profile Error: Exceed current capacity, "
@@ -83,7 +83,7 @@ void PRadClusterProfile::LoadProfile(int type, const std::string &path)
 }
 
 // get the profile value by distance and energy
-PRadClusterProfile::Value PRadClusterProfile::GetProfile(int type, double dist, double energy)
+PRadClusterProfile::Value PRadClusterProfile::Get(int type, double dist, double energy)
 const
 {
     if((size_t)type >=  profiles.size())

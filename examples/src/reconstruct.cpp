@@ -149,16 +149,15 @@ void reconstruct(const char *path)
             }
 
             // extract cluster information
-            auto method = hycal.GetClusterMethod();
-            method->GetClusters();
+            auto recon = hycal.GetReconstructor();
 
             Nc = 0;
-            for(auto &cluster : method->GetClusters())
+            for(auto &cluster : recon->GetClusters())
             {
-                good[Nc] = method->CheckCluster(cluster);
+                good[Nc] = recon->CheckCluster(cluster);
                 if(good[Nc]) {
-                    auto hit = method->ReconstructHit(cluster, hycal.GetDetector());
-                    prof[Nc] = method->EvalCluster(hit, cluster, hycal.GetReconstructor()->GetProfile());
+                    auto hit = recon->Cluster2Hit(cluster);
+                    prof[Nc] = recon->EvalCluster(hit, cluster);
                     hist1.Fill(prof[Nc]);
                 } else {
                     prof[Nc] = -1.;

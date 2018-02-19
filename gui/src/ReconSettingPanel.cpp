@@ -258,7 +258,7 @@ void ReconSettingPanel::ConnectHyCalSystem(PRadHyCalSystem *h)
     }
 
     hyCalMethods->setCurrentIndex(static_cast<int>(current));
-    hyCalConfigPath->setText(QString::fromStdString(hycal->GetClusterMethod()->GetConfigPath()));
+    hyCalConfigPath->setText(QString::fromStdString(hycal->GetReconstructor()->GetConfigPath()));
 }
 
 void ReconSettingPanel::ConnectGEMSystem(PRadGEMSystem *g)
@@ -336,10 +336,11 @@ void ReconSettingPanel::openHyCalConfig()
 // load the configuration file for selected method
 void ReconSettingPanel::loadHyCalConfig()
 {
-    std::string method_name = hyCalMethods->currentText().toStdString();
     std::string config_path = hyCalConfigPath->text().toStdString();
+    std::string name = hyCalMethods->currentText().toStdString();
 
-    hycal->GetReconstructor()->SetMethod(method_name, config_path);
+    hycal->GetReconstructor()->SetMethod(name);
+    hycal->GetReconstructor()->Configure(config_path);
 }
 
 void ReconSettingPanel::changeCoordType(int t)

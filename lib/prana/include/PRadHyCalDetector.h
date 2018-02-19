@@ -106,6 +106,7 @@ public:
     void DisconnectModule(PRadHyCalModule *module, bool force_disconn = false);
     void SortModuleList();
     void ClearModuleList();
+    void ClearVModuleList();
     void OutputModuleList(std::ostream &os) const;
     void Reset();
 
@@ -151,12 +152,11 @@ protected:
 
 protected:
     PRadHyCalSystem *system;
-    std::vector<PRadHyCalModule*> module_list;
+    std::vector<PRadHyCalModule*> module_list, vmodule_list;
     std::unordered_map<int, PRadHyCalModule*> id_map;
     std::unordered_map<std::string, PRadHyCalModule*> name_map;
     std::vector<HyCalHit> hycal_hits;
     std::vector<SectorInfo> sector_info;
-    std::vector<PRadHyCalModule> vmodules;
 };
 
 #endif

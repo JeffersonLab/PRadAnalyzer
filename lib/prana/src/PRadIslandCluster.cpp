@@ -22,10 +22,9 @@
 
 
 
-PRadIslandCluster::PRadIslandCluster(const std::string &path)
+PRadIslandCluster::PRadIslandCluster()
 {
-    // configuration
-    Configure(path);
+    // place holder
 }
 
 PRadIslandCluster::~PRadIslandCluster()
@@ -39,33 +38,6 @@ const
     return new PRadIslandCluster(*this);
 }
 
-void PRadIslandCluster::Configure(const std::string &path)
-{
-    PRadHyCalCluster::Configure(path);
-
-    bool verbose = !path.empty();
-
-    split_iter = getDefConfig<unsigned int>("Split Iteration", 6, verbose);
-    least_share = getDefConfig<float>("Least Split Fraction", 0.01, verbose);
-    corner_conn = getDefConfig<bool>("Corner Connection", false, verbose);
-
-    // set the min module energy for all the module type
-    float univ_min_energy = getDefConfig<float>("Min Module Energy", 0., false);
-    min_module_energy.resize(PRadHyCalModule::Max_Types, univ_min_energy);
-
-    // update the min module energy if some type is specified
-    // the key is "Min Module Energy [typename]"
-    for(unsigned int i = 0; i < min_module_energy.size(); ++i)
-    {
-        // determine key name
-        std::string type = PRadHyCalModule::Type2str(i);
-        std::string key = "Min Module Energy [" + type + "]";
-        auto value = GetConfigValue(key);
-        if(!value.IsEmpty())
-            min_module_energy[i] = value.Float();
-    }
-}
-
 
 
 //============================================================================//
@@ -73,10 +45,13 @@ void PRadIslandCluster::Configure(const std::string &path)
 //============================================================================//
 #ifdef ISLAND_FINE_SPLIT
 
-void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hits,
-                                    std::vector<ModuleCluster> &clusters)
-const
+void PRadIslandCluster::FormCluster(PRadHyCalReconstructor *r)
 {
+    rec = r;
+
+    auto &clusters = rec->module_clusters;
+    auto &hits = rec->module_hits;
+
     // clear container first
     clusters.clear();
 
@@ -90,6 +65,7 @@ const
     {
         splitCluster(group, clusters);
     }
+
 }
 
 // group adjacent hits into raw clusters
@@ -102,9 +78,6 @@ const
     // roughly combine all adjacent hits
     for(auto &hit : hits)
     {
-        if(hit.energy < min_module_energy.at(hit->GetType()))
-            continue;
-
         // not belong to any existing cluster
         if(!fillClusters(hit, groups)) {
             std::vector<ModuleHit*> new_group;
@@ -139,7 +112,7 @@ const
         for(auto &prev_hit : group)
         {
             // it belongs to a existing cluster
-            if(hit->IsNeighbor(prev_hit->id, corner_conn)) {
+            if(hit->IsNeighbor(prev_hit->id, rec->corner_conn)) {
                 group.push_back(&hit);
                 return true;
             }
@@ -157,7 +130,7 @@ const
     {
         for(auto &m2 : g2)
         {
-            if((*m1)->IsNeighbor(m2->id, corner_conn)) return true;
+            if((*m1)->IsNeighbor(m2->id, rec->corner_conn)) return true;
         }
     }
 
@@ -200,7 +173,7 @@ const
     for(auto it = hits.begin(); it != hits.end(); ++it)
     {
         auto &hit1 = *it;
-        if(hit1->energy < min_center_energy)
+        if(hit1->energy < rec->min_center_energy)
             continue;
 
         bool maximum = true;
@@ -240,7 +213,7 @@ const
         for(size_t j = 0; j < hits.size(); ++j)
         {
             auto &hit = *hits.at(j);
-            split.frac[j][i] = getProf(center, hit).frac*center.energy;
+            split.frac[j][i] = rec->getProf(center, hit).frac*center.energy;
         }
     }
 
@@ -259,7 +232,7 @@ const
                 continue;
 
             // too small share, treat as zero
-            if(split.norm_frac(i, j) < least_share) {
+            if(split.norm_frac(i, j) < rec->least_share) {
                 split.total[j] -= split.frac[j][i];
                 continue;
             }
@@ -287,7 +260,7 @@ const
     BaseHit temp[POS_RECON_HITS];
 
     // iterations to refine the split energies
-    size_t iters = split_iter;
+    size_t iters = rec->split_iter;
     while(iters-- > 0)
     {
         split.sum_frac(hits.size(), maximums.size());
@@ -306,7 +279,7 @@ const
 
                 // using 3x3 to reconstruct hit position
                 double dx, dy;
-                detector->QuantizedDist(center.ptr, hit.ptr, dx, dy);
+                center->GetDetector()->QuantizedDist(center.ptr, hit.ptr, dx, dy);
                 if(std::abs(dx) < 1.01 && std::abs(dy) < 1.01) {
                     temp[count].x = dx;
                     temp[count].y = dy;
@@ -317,13 +290,13 @@ const
             }
 
             BaseHit recon;
-            PRadHyCalCluster::reconstructPos(center, temp, count, &recon);
+            rec->reconstructPos(center, temp, count, &recon);
 
             // update profile with the reconstructed center
             for(size_t j = 0; j < hits.size(); ++j)
             {
                 auto &hit = *hits.at(j);
-                split.frac[j][i] = getProf(recon, hit).frac*tot_E;
+                split.frac[j][i] = rec->getProf(recon, hit).frac*tot_E;
             }
         }
     }
@@ -362,12 +335,8 @@ const
     // loop over all hits
     for(auto &hit : hits)
     {
-        // less than min module energy, ignore this hit
-        if(hit.energy < min_module_energy.at(hit->GetType()))
-            continue;
-
         // not belongs to any cluster, and the energy is larger than center threshold
-        if(!fillClusters(hit, clusters) && (hit.energy > min_center_energy))
+        if(!fillClusters(hit, clusters) && (hit.energy > rec->min_center_energy))
         {
             clusters.emplace_back(hit, hit->GetLayoutFlag());
             clusters.back().AddHit(hit);
@@ -423,7 +392,7 @@ const
         auto &center = clusters.at(indices.at(i)).center;
         // we are comparing the relative amount of energy to be shared, so use of
         // center energy should be equivalent to total cluster energy
-        frac[i] = getProf(center, hit).frac * center.energy;
+        frac[i] = rec->getProf(center, hit).frac * center.energy;
         total_frac += frac[i];
     }
 
