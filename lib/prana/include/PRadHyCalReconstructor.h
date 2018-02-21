@@ -22,7 +22,7 @@ public:
     friend class PRadIslandCluster;
     friend class PRadSquareCluster;
     // clustering method enum
-    enum MethodEnum
+    enum ClMethod
     {
         Undefined = -1,
         Island = 0,
@@ -30,7 +30,25 @@ public:
         Max_Methods,
     };
     // macro in ConfigParser.h
-    ENUM_MAP(MethodEnum, "Island|Square");
+    ENUM_MAP(ClMethod, "Island|Square");
+
+    // configuraiton data package
+    struct Config
+    {
+        // general
+        bool depth_corr, leak_corr, linear_corr;
+        float log_weight_thres, min_cluster_energy, min_center_energy;
+        float least_leak, linear_corr_limit;
+        unsigned int min_cluster_size, leak_iters;
+        std::vector<float> min_module_energy;
+
+        // for island
+        bool corner_conn;
+        unsigned int split_iter;
+        float least_split;
+        // for square
+        unsigned int square_size;
+    };
 
 public:
     PRadHyCalReconstructor(const std::string &conf_path = "");
@@ -72,10 +90,10 @@ public:
 
     // methods information
     bool SetMethod(const std::string &name);
-    bool SetMethod(MethodEnum newtype);
-    class PRadHyCalCluster *GetMethod() const {return method;}
-    MethodEnum GetMethodType() const {return type;}
-    std::string GetMethodName() const {return MethodEnum2str(type);}
+    bool SetMethod(ClMethod newtype);
+    class PRadHyCalCluster *GetMethod() const {return cluster;}
+    ClMethod GetMethodType() const {return cltype;}
+    std::string GetMethodName() const {return ClMethod2str(cltype);}
     std::vector<std::string> GetMethodNames() const;
 
     // containers
@@ -95,28 +113,13 @@ protected:
 
 
 private:
-    MethodEnum type;
-    class PRadHyCalCluster *method;
+    ClMethod cltype;
+    class PRadHyCalCluster *cluster;
     PRadClusterProfile profile;
+    Config config;
 
     std::vector<ModuleHit> module_hits;
     std::vector<ModuleCluster> module_clusters;
-
-    bool depth_corr;
-    bool leak_corr;
-    bool linear_corr;
-    bool corner_conn;
-    float log_weight_thres;
-    float min_cluster_energy;
-    float min_center_energy;
-    float least_leak;
-    float least_share;
-    float linear_corr_limit;
-    unsigned int min_cluster_size;
-    unsigned int leak_iters;
-    unsigned int split_iter;
-    unsigned int square_size;
-    std::vector<float> min_module_energy;
 };
 
 #endif // PRAD_HYCAL_RECONSTRUCTOR

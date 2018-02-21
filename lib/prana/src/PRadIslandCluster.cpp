@@ -16,13 +16,15 @@
 #include <algorithm>
 #include <iostream>
 #include "PRadIslandCluster.h"
+#include "PRadHyCalReconstructor.h"
 #include "PRadHyCalDetector.h"
 #include "PRadADCChannel.h"
 #include "PRadTDCChannel.h"
 
 
 
-PRadIslandCluster::PRadIslandCluster()
+PRadIslandCluster::PRadIslandCluster(PRadHyCalReconstructor *r)
+: rec(r)
 {
     // place holder
 }
@@ -45,27 +47,22 @@ const
 //============================================================================//
 #ifdef ISLAND_FINE_SPLIT
 
-void PRadIslandCluster::FormCluster(PRadHyCalReconstructor *r)
+void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hs, std::vector<ModuleCluster> &cls)
+const
 {
-    rec = r;
-
-    auto &clusters = rec->module_clusters;
-    auto &hits = rec->module_hits;
-
     // clear container first
-    clusters.clear();
+    cls.clear();
 
     std::vector<std::vector<ModuleHit*>> groups;
 
     // group adjacent hits
-    groupHits(hits, groups);
+    groupHits(hs, groups);
 
     // try to split the group
     for(auto &group : groups)
     {
-        splitCluster(group, clusters);
+        splitCluster(group, cls);
     }
-
 }
 
 // group adjacent hits into raw clusters
@@ -112,7 +109,7 @@ const
         for(auto &prev_hit : group)
         {
             // it belongs to a existing cluster
-            if(hit->IsNeighbor(prev_hit->id, rec->corner_conn)) {
+            if(hit->IsNeighbor(prev_hit->id, rec->config.corner_conn)) {
                 group.push_back(&hit);
                 return true;
             }
@@ -130,7 +127,7 @@ const
     {
         for(auto &m2 : g2)
         {
-            if((*m1)->IsNeighbor(m2->id, rec->corner_conn)) return true;
+            if((*m1)->IsNeighbor(m2->id, rec->config.corner_conn)) return true;
         }
     }
 
@@ -173,7 +170,7 @@ const
     for(auto it = hits.begin(); it != hits.end(); ++it)
     {
         auto &hit1 = *it;
-        if(hit1->energy < rec->min_center_energy)
+        if(hit1->energy < rec->config.min_center_energy)
             continue;
 
         bool maximum = true;
@@ -232,7 +229,7 @@ const
                 continue;
 
             // too small share, treat as zero
-            if(split.norm_frac(i, j) < rec->least_share) {
+            if(split.norm_frac(i, j) < rec->config.least_split) {
                 split.total[j] -= split.frac[j][i];
                 continue;
             }
@@ -260,7 +257,7 @@ const
     BaseHit temp[POS_RECON_HITS];
 
     // iterations to refine the split energies
-    size_t iters = rec->split_iter;
+    size_t iters = rec->config.split_iter;
     while(iters-- > 0)
     {
         split.sum_frac(hits.size(), maximums.size());
@@ -310,15 +307,14 @@ const
 //============================================================================//
 #else
 
-void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hits,
-                                    std::vector<ModuleCluster> &clusters)
+void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hs, std::vector<ModuleCluster> &cls)
 const
 {
     // clear container first
-    clusters.clear();
+    cls.clear();
 
     // form clusters with high energy hit seed
-    groupHits(hits, clusters);
+    groupHits(hs, cls);
 }
 
 void PRadIslandCluster::groupHits(std::vector<ModuleHit> &hits,
@@ -336,7 +332,7 @@ const
     for(auto &hit : hits)
     {
         // not belongs to any cluster, and the energy is larger than center threshold
-        if(!fillClusters(hit, clusters) && (hit.energy > rec->min_center_energy))
+        if(!fillClusters(hit, clusters) && (hit.energy > rec->config.min_center_energy))
         {
             clusters.emplace_back(hit, hit->GetLayoutFlag());
             clusters.back().AddHit(hit);

@@ -26,7 +26,8 @@ const
     return new PRadHyCalCluster(*this);
 }
 
-void PRadHyCalCluster::FormCluster(PRadHyCalReconstructor *r)
+void PRadHyCalCluster::FormCluster(std::vector<ModuleHit> &hs, std::vector<ModuleCluster> &cls)
+const
 {
     // to be implemented by methods
 }

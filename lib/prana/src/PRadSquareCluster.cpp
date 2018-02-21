@@ -7,13 +7,15 @@
 //============================================================================//
 
 #include "PRadSquareCluster.h"
+#include "PRadHyCalReconstructor.h"
 #include "PRadHyCalModule.h"
 #include <algorithm>
 #include <cmath>
 
 
 
-PRadSquareCluster::PRadSquareCluster()
+PRadSquareCluster::PRadSquareCluster(PRadHyCalReconstructor *r)
+: rec(r)
 {
     // place holder
 }
@@ -44,17 +46,14 @@ const
     return true;
 }
 
-void PRadSquareCluster::FormCluster(PRadHyCalReconstructor *r)
+void PRadSquareCluster::FormCluster(std::vector<ModuleHit> &hs, std::vector<ModuleCluster> &cls)
+const
 {
-    rec = r;
-    auto &clusters = rec->module_clusters;
-    auto &hits = rec->module_hits;
-
     // clear container first
-    clusters.clear();
+    cls.clear();
 
     // form clusters with high energy hit seed
-    groupHits(hits, clusters);
+    groupHits(hs, cls);
 }
 
 void PRadSquareCluster::groupHits(std::vector<ModuleHit> &hits,
@@ -72,7 +71,7 @@ const
     for(auto &hit : hits)
     {
         // not belongs to any cluster, and the energy is larger than center threshold
-        if(!fillClusters(hit, clusters) && (hit.energy > rec->min_center_energy))
+        if(!fillClusters(hit, clusters) && (hit.energy > rec->config.min_center_energy))
         {
             clusters.emplace_back(hit, hit->GetLayoutFlag());
             clusters.back().AddHit(hit);
@@ -91,7 +90,7 @@ const
     {
         const auto &center = c.at(i).center;
         // within the square range
-        if(checkBelongs(center, hit, float(rec->square_size)/2.)) {
+        if(checkBelongs(center, hit, float(rec->config.square_size)/2.)) {
             indices.push_back(i);
         }
     }

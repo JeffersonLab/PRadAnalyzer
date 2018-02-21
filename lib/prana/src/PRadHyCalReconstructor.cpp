@@ -19,7 +19,7 @@
 
 // constructor
 PRadHyCalReconstructor::PRadHyCalReconstructor(const std::string &conf_path)
-: type(Undefined), method(nullptr)
+: cltype(Undefined), cluster(nullptr)
 {
     // default island method
     SetMethod(Island);
@@ -28,39 +28,46 @@ PRadHyCalReconstructor::PRadHyCalReconstructor(const std::string &conf_path)
 
 // copy/move constructor
 PRadHyCalReconstructor::PRadHyCalReconstructor(const PRadHyCalReconstructor &that)
-: type(that.type), profile(that.profile)
+: ConfigObject(that), cltype(that.cltype), profile(that.profile), config(that.config)
 {
-    method = that.method->Clone();
+    cluster = that.cluster->Clone();
 }
 
 PRadHyCalReconstructor::PRadHyCalReconstructor(PRadHyCalReconstructor &&that)
-: type(that.type), profile(std::move(that.profile))
+: ConfigObject(that), cltype(that.cltype), profile(std::move(that.profile)), config(that.config)
 {
-    method = that.method;
-    that.method = nullptr;
+    cluster = that.cluster;
+    that.cluster = nullptr;
 }
 
 // destructor
 PRadHyCalReconstructor::~PRadHyCalReconstructor()
 {
-    delete method, method = nullptr;
+    delete cluster, cluster = nullptr;
 }
 
 // copy/move assignment operator
 PRadHyCalReconstructor &PRadHyCalReconstructor::operator =(const PRadHyCalReconstructor &rhs)
 {
-    type = rhs.type;
-    method = rhs.method->Clone();
-    profile = rhs.profile;
+    if(this == &rhs)
+        return *this;
+
+    PRadHyCalReconstructor that(rhs); // copy constructor
+    *this = std::move(that); // move assignment operator
     return *this;
 }
 
 PRadHyCalReconstructor &PRadHyCalReconstructor::operator =(PRadHyCalReconstructor &&rhs)
 {
-    type = rhs.type;
-    method = rhs.method;
-    rhs.method = nullptr;
+    if(this == &rhs)
+        return *this;
+
+    ConfigObject::operator =(rhs);
+    cltype = rhs.cltype;
+    cluster = rhs.cluster;
+    rhs.cluster = nullptr;
     profile = std::move(rhs.profile);
+    config = std::move(rhs.config);
     return *this;
 }
 
@@ -74,37 +81,37 @@ void PRadHyCalReconstructor::Configure(const std::string &path)
         verbose = true;
     }
 
-    depth_corr = getDefConfig<bool>("Shower Depth Correction", true, verbose);
-    leak_corr = getDefConfig<bool>("Leakage Correction", true, verbose);
-    linear_corr = getDefConfig<bool>("Non Linearity Correction", true, verbose);
-    corner_conn = getDefConfig<bool>("Corner Connection", false, verbose);
+    config.depth_corr = getDefConfig<bool>("Shower Depth Correction", true, verbose);
+    config.leak_corr = getDefConfig<bool>("Leakage Correction", true, verbose);
+    config.linear_corr = getDefConfig<bool>("Non Linearity Correction", true, verbose);
+    config.corner_conn = getDefConfig<bool>("Corner Connection", false, verbose);
 
-    log_weight_thres = getDefConfig<float>("Log Weight Threshold", 3.6, verbose);
-    min_cluster_energy = getDefConfig<float>("Minimum Cluster Energy", 50., verbose);
-    min_center_energy = getDefConfig<float>("Minimum Center Energy", 10., verbose);
-    min_cluster_size = getDefConfig<unsigned int>("Minimum Cluster Size", 1, verbose);
-    least_leak = getDefConfig<float>("Least Leakage Fraction", 0.05, verbose);
-    leak_iters = getDefConfig<unsigned int>("Leakage Iterations", 3, verbose);
-    linear_corr_limit = getDefConfig<float>("Non Linearity Limit", 0.6, verbose);
-    split_iter = getDefConfig<unsigned int>("Split Iteration", 6, verbose);
-    least_share = getDefConfig<float>("Least Split Fraction", 0.01, verbose);
+    config.log_weight_thres = getDefConfig<float>("Log Weight Threshold", 3.6, verbose);
+    config.min_cluster_energy = getDefConfig<float>("Minimum Cluster Energy", 50., verbose);
+    config.min_center_energy = getDefConfig<float>("Minimum Center Energy", 10., verbose);
+    config.min_cluster_size = getDefConfig<unsigned int>("Minimum Cluster Size", 1, verbose);
+    config.least_leak = getDefConfig<float>("Least Leakage Fraction", 0.05, verbose);
+    config.leak_iters = getDefConfig<unsigned int>("Leakage Iterations", 3, verbose);
+    config.linear_corr_limit = getDefConfig<float>("Non Linearity Limit", 0.6, verbose);
+    config.split_iter = getDefConfig<unsigned int>("Split Iteration", 6, verbose);
+    config.least_split = getDefConfig<float>("Least Split Fraction", 0.01, verbose);
 
-    square_size = getDefConfig<unsigned int>("Square Size", 5, verbose);
+    config.square_size = getDefConfig<unsigned int>("Square Size", 5, verbose);
 
     // set the min module energy for all the module type
     float univ_min_energy = getDefConfig<float>("Min Module Energy", 0., false);
-    min_module_energy.resize(PRadHyCalModule::Max_Types, univ_min_energy);
+    config.min_module_energy.resize(PRadHyCalModule::Max_Types, univ_min_energy);
 
     // update the min module energy if some type is specified
     // the key is "Min Module Energy [typename]"
-    for(unsigned int i = 0; i < min_module_energy.size(); ++i)
+    for(unsigned int i = 0; i < config.min_module_energy.size(); ++i)
     {
         // determine key name
         std::string type = PRadHyCalModule::Type2str(i);
         std::string key = "Min Module Energy [" + type + "]";
         auto value = GetConfigValue(key);
         if(!value.IsEmpty())
-            min_module_energy[i] = value.Float();
+            config.min_module_energy[i] = value.Float();
     }
 }
 
@@ -112,7 +119,7 @@ void PRadHyCalReconstructor::Configure(const std::string &path)
 void PRadHyCalReconstructor::Reconstruct(PRadHyCalDetector *hycal, const EventData &event)
 {
     // cannot reconstruct without necessary objects
-    if(!hycal || !method) {
+    if(!hycal || !cluster) {
         std::cerr << "PRad HyCal Reconstructor Error: undefined method or null "
                   << "detector pointer. Abort event reconstruction."
                   << std::endl;
@@ -135,7 +142,7 @@ void PRadHyCalReconstructor::Reconstruct(PRadHyCalDetector *hycal, const EventDa
 void PRadHyCalReconstructor::Reconstruct(PRadHyCalDetector *hycal)
 {
     // cannot reconstruct without necessary objects
-    if(!hycal || !method) {
+    if(!hycal || !cluster) {
         std::cerr << "PRad HyCal Reconstructor Error: undefined method or null detector pointer. "
                   << "Abort event reconstruction."
                   << std::endl;
@@ -156,7 +163,7 @@ void PRadHyCalReconstructor::Reconstruct(PRadHyCalDetector *hycal)
 void PRadHyCalReconstructor::ReconstructHits(PRadHyCalDetector *det)
 {
     // form clusters
-    method->FormCluster(this);
+    cluster->FormCluster(module_hits, module_clusters);
 
     // hits container from the detector
     auto &container = det->GetHits();
@@ -184,7 +191,7 @@ void PRadHyCalReconstructor::CollectHits(PRadHyCalDetector *det)
     for(auto &module : det->GetModuleList())
     {
         float energy = module->GetEnergy();
-        if(energy > min_module_energy[module->GetType()]) {
+        if(energy > config.min_module_energy[module->GetType()]) {
             module_hits.emplace_back(module, module->GetID(), energy);
         }
     }
@@ -216,7 +223,7 @@ void PRadHyCalReconstructor::CollectHits(PRadHyCalDetector *det, const EventData
         double val = (double)adc.value - channel->GetPedestal().mean;
         double energy = module->GetEnergy(val);
 
-        if(energy > min_module_energy[module->GetType()]) {
+        if(energy > config.min_module_energy[module->GetType()]) {
             module_hits.emplace_back(module, module->GetID(), energy);
         }
     }
@@ -271,9 +278,9 @@ void PRadHyCalReconstructor::AddTiming(PRadHyCalDetector *det, const EventData &
 }
 
 // set method
-bool PRadHyCalReconstructor::SetMethod(MethodEnum newtype)
+bool PRadHyCalReconstructor::SetMethod(ClMethod newtype)
 {
-    if(newtype == type && method) {
+    if(newtype == cltype && cluster) {
         return true;
     }
 
@@ -282,8 +289,8 @@ bool PRadHyCalReconstructor::SetMethod(MethodEnum newtype)
 
     switch(newtype)
     {
-    case Island: newone = new PRadIslandCluster(); break;
-    case Square: newone = new PRadSquareCluster(); break;
+    case Island: newone = new PRadIslandCluster(this); break;
+    case Square: newone = new PRadSquareCluster(this); break;
     default: break;
     }
 
@@ -303,16 +310,16 @@ bool PRadHyCalReconstructor::SetMethod(MethodEnum newtype)
     }
 
     // free previous method
-    delete method;
-    method = newone;
-    type = newtype;
+    delete cluster;
+    cluster = newone;
+    cltype = newtype;
     return true;
 }
 
 // set method
 bool PRadHyCalReconstructor::SetMethod(const std::string &name)
 {
-    return SetMethod(str2MethodEnum(name.c_str()));
+    return SetMethod(str2ClMethod(name.c_str()));
 }
 
 // show available methods
@@ -322,7 +329,7 @@ const
     std::vector<std::string> res;
     for(int i = 0; i < static_cast<int>(Max_Methods); ++i)
     {
-        res.emplace_back(MethodEnum2str(i));
+        res.emplace_back(ClMethod2str(i));
     }
 
     return res;
@@ -332,8 +339,8 @@ const
 bool PRadHyCalReconstructor::CheckCluster(const ModuleCluster &cluster)
 const
 {
-    if((cluster.energy < min_cluster_energy) ||
-       (cluster.hits.size() < min_cluster_size))
+    if((cluster.energy < config.min_cluster_energy) ||
+       (cluster.hits.size() < config.min_cluster_size))
             return false;
 
     return true;
@@ -360,7 +367,7 @@ const
     float alpE = cluster.center->GetCalibConst().NonLinearCorr(cluster.energy);
 
     // do non-linearity energy correction
-    if(linear_corr && fabs(alpE) < linear_corr_limit) {
+    if(config.linear_corr && fabs(alpE) < config.linear_corr_limit) {
         float corr = 1./(1. + alpE);
         // save the correction factor, not alpha(E)
         hycal_hit.lin_corr = corr;
@@ -377,7 +384,7 @@ const
 void PRadHyCalReconstructor::LeakCorr(ModuleCluster &cluster)
 const
 {
-    if(!leak_corr ||                            // correction disabled
+    if(!config.leak_corr ||                     // correction disabled
        TEST_BIT(cluster.flag, kLeakCorr) ||     // already corrected
        cluster.hits.size() < 4)                 // insufficient hits to constrain
         return;
@@ -403,7 +410,7 @@ const
     double est = EvalCluster(pos, cluster);
 
     // iteration to correct virtual hits
-    int iter = leak_iters;
+    int iter = config.leak_iters;
     std::vector<double> vhits_e(vhits.size());
     while(iter-- > 0) {
         // save current status of vhits
@@ -457,7 +464,7 @@ const
         float frac = getProf(hit.x, hit.y, cluster.energy, vhit).frac;
 
         double ene;
-        if(frac > least_leak && frac < 1.) {
+        if(frac > config.least_leak && frac < 1.) {
             ene = hit.E*frac;
         } else {
             ene = 0.;
@@ -498,7 +505,8 @@ const
         ++count;
 
         double diff = hit.energy - c.E*prof.frac;
-        double sigma2 = 0.816*hit.energy + res*c.E*prof.err;
+        double dE = res*c.E;
+        double sigma2 = c.E*c.E*prof.err*prof.err + dE*dE*prof.frac*prof.frac;
 
         // log likelyhood for double exponential distribution
         est += fabs(diff)/sqrt(sigma2);
@@ -511,7 +519,7 @@ const
 float PRadHyCalReconstructor::getWeight(const float &E, const float &E0)
 const
 {
-    float w = log_weight_thres + log(E/E0);
+    float w = config.log_weight_thres + log(E/E0);
     if(w < 0.)
         return 0.;
     return w;
@@ -521,7 +529,7 @@ const
 float PRadHyCalReconstructor::getShowerDepth(int module_type, const float &E)
 const
 {
-    if(depth_corr && E > 0.) {
+    if(config.depth_corr && E > 0.) {
         // here all the values are hard coded, because these are all physical
         // values corresponding to the material, so no need to change
         // it returns the maximum shower depth that

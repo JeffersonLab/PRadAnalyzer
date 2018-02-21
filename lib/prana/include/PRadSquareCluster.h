@@ -7,11 +7,11 @@
 class PRadSquareCluster : public PRadHyCalCluster
 {
 public:
-    PRadSquareCluster();
+    PRadSquareCluster(class PRadHyCalReconstructor *r);
     virtual ~PRadSquareCluster();
     PRadHyCalCluster *Clone() const;
 
-    void FormCluster(PRadHyCalReconstructor *r);
+    void FormCluster(std::vector<ModuleHit> &hs, std::vector<ModuleCluster> &cls) const;
 
 protected:
     void groupHits(std::vector<ModuleHit> &hits,
@@ -23,7 +23,7 @@ protected:
     bool checkBelongs(const ModuleHit &center, const ModuleHit &hit, float factor) const;
 
 protected:
-    PRadHyCalReconstructor *rec;
+    class PRadHyCalReconstructor *rec;
 };
 
 #endif
