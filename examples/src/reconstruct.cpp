@@ -65,7 +65,14 @@ void reconstruct(const char *path)
     string rootfile = ConfigParser::decompose_path(path).name + "_recon.root";
     TFile f(rootfile.c_str(), "RECREATE");
     TTree t("T", "T");
-    TH1F hist1("ProfileEstimator", "ProfileEstimator", 500, 0., 50.);
+    vector<TH1F> hists;
+    for(int i = 0; i < static_cast<int>(PRadHyCalModule::Max_Types); ++i)
+    {
+        string name = "ProfEst_" + PRadHyCalModule::Type2str(i);
+        hists.emplace_back(name.c_str(), name.c_str(), 500, 0., 50.);
+        name += "_tr";
+        hists.emplace_back(name.c_str(), name.c_str(), 500, 0., 50.);
+    }
 
     const size_t max_hits = 100;
     int N, Nm, Nc;
@@ -158,7 +165,9 @@ void reconstruct(const char *path)
                 if(good[Nc]) {
                     auto hit = recon->Cluster2Hit(cluster);
                     prof[Nc] = recon->EvalCluster(hit, cluster);
-                    hist1.Fill(prof[Nc]);
+                    int hidx = cluster.center->GetType()*2;
+                    if(TEST_BIT(cluster.flag, kTransition)) hidx += 1;
+                    hists[hidx].Fill(prof[Nc]);
                 } else {
                     prof[Nc] = -1.;
                 }
@@ -184,6 +193,7 @@ void reconstruct(const char *path)
     cout << PRadInfoCenter::GetLiveTime() << endl;
 
     t.Write();
-    hist1.Write();
+    for(auto &hist : hists)
+        hist.Write();
     f.Close();
 }

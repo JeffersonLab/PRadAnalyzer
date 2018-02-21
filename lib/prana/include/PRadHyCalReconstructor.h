@@ -24,23 +24,34 @@ public:
     // clustering method enum
     enum ClMethod
     {
-        Undefined = -1,
+        Undefined_ClMethod = -1,
         Island = 0,
         Square,
-        Max_Methods,
+        Max_ClMethods,
     };
     // macro in ConfigParser.h
-    ENUM_MAP(ClMethod, "Island|Square");
+    ENUM_MAP(ClMethod, 0, "Island|Square");
+
+    // position reconstruction method
+    enum PosMethod
+    {
+        Undefined_PosMethod = -1,
+        Logarithmic = 0,
+        Linear,
+        Max_PosMethods,
+    };
+    ENUM_MAP(PosMethod, 0, "Logarithmic|Linear");
 
     // configuraiton data package
     struct Config
     {
         // general
-        bool depth_corr, leak_corr, linear_corr;
+        bool depth_corr, leak_corr, linear_corr, pos_s_corr;
         float log_weight_thres, min_cluster_energy, min_center_energy;
         float least_leak, linear_corr_limit;
         unsigned int min_cluster_size, leak_iters;
         std::vector<float> min_module_energy;
+        std::vector<std::vector<float>> pos_s_pars;
 
         // for island
         bool corner_conn;
@@ -89,12 +100,19 @@ public:
     void LoadProfile(int t, const std::string &path) {profile.Load(t, path);}
 
     // methods information
-    bool SetMethod(const std::string &name);
-    bool SetMethod(ClMethod newtype);
-    class PRadHyCalCluster *GetMethod() const {return cluster;}
-    ClMethod GetMethodType() const {return cltype;}
-    std::string GetMethodName() const {return ClMethod2str(cltype);}
-    std::vector<std::string> GetMethodNames() const;
+    bool SetClusterMethod(const std::string &name);
+    bool SetClusterMethod(ClMethod newtype);
+    class PRadHyCalCluster *GetClusterMethod() const {return cluster;}
+    ClMethod GetClusterMethodType() const {return cltype;}
+    std::string GetClusterMethodName() const {return ClMethod2str(cltype);}
+    std::vector<std::string> GetClusterMethodNames() const;
+
+    bool SetPositionMethod(const std::string &name);
+    bool SetPositionMethod(PosMethod newtype);
+    PosMethod GetPositionMethodType() const {return postype;}
+    std::string GetPositionMethodName() const {return PosMethod2str(postype);}
+    std::vector<std::string> GetPositionMethodNames() const;
+
 
     // containers
     const std::vector<ModuleHit> &GetHits() const {return module_hits;}
@@ -102,6 +120,7 @@ public:
 
 protected:
     float getWeight(const float &E, const float &E0) const;
+    float getPosBias(const float &dx) const;
     float getShowerDepth(int module_type, const float &E) const;
     int reconstructPos(const ModuleHit &center, BaseHit *temp, int count, BaseHit *hit) const;
     int reconstructPos(const ModuleCluster &cl, BaseHit *hit) const;
@@ -113,9 +132,10 @@ protected:
 
 
 private:
+    PRadClusterProfile profile;
     ClMethod cltype;
     class PRadHyCalCluster *cluster;
-    PRadClusterProfile profile;
+    PosMethod postype;
     Config config;
 
     std::vector<ModuleHit> module_hits;

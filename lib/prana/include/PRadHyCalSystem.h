@@ -71,7 +71,6 @@ public:
     inline void Reconstruct() {return recon.Reconstruct(hycal);}
     inline void Reconstruct(const EventData &data) {return recon.Reconstruct(hycal, data);}
     PRadHyCalReconstructor *GetReconstructor() {return &recon;}
-    void SetClusterMethod(const std::string &name);
 
     // detector related
     void SetDetector(PRadHyCalDetector *h);

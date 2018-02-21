@@ -563,7 +563,7 @@ PRadTriggerType PRadEvioParser::bit_to_trigger(const unsigned int &bit)
     for(; (bit >> trg) > 0; ++trg)
     {
         if(trg >= MAX_Trigger) {
-            return Undefined;
+            return Undefined_Trigger;
         }
     }
 

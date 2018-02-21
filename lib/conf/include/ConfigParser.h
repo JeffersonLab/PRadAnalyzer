@@ -9,20 +9,20 @@
 #include "ConfigValue.h"
 
 // a macro to auto generate enum2str and str2enum
-// name mapping begins at 0 and continuously increase, split by '|'
+// name mapping begins at bias and continuously increase, split by '|'
 // an example:
-// enum ABC {a = 0, b, c};
-// ENUM_MAP(ABC, "a|b|c")
+// enum ABC {a = 3, b, c};
+// ENUM_MAP(ABC, 3, "a|b|c")
 // ABC2str(0) = "a"
 // str2ABC("b") = 1
-#define ENUM_MAP(type, strings) \
+#define ENUM_MAP(type, bias, strings) \
     static std::string type ## 2str(int T) \
     { \
-        return ConfigParser::get_split_part(T, strings, '|'); \
+        return ConfigParser::get_split_part(T - (bias), strings, '|'); \
     }; \
     static type str2 ## type(const char *str) \
     { \
-        return static_cast<type>(ConfigParser::get_part_count(str, strings, '|')); \
+        return static_cast<type>(bias + ConfigParser::get_part_count(str, strings, '|')); \
     }
 
 // config parser class

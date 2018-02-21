@@ -34,7 +34,7 @@ public:
         Max_Types,
     };
     // macro in ConfigParser.h
-    ENUM_MAP(Type, "PbGlass|PbWO4");
+    ENUM_MAP(Type, 0, "PbGlass|PbWO4");
 
     struct Neighbor
     {

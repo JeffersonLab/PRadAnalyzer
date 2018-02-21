@@ -36,7 +36,7 @@ public:
         Max_Sector,
     };
     // macro in ConfigParser.h
-    ENUM_MAP(SectorType, "Center|Top|Right|Bottom|Left");
+    ENUM_MAP(SectorType, 0, "Center|Top|Right|Bottom|Left");
 
     struct SectorInfo
     {

@@ -165,10 +165,11 @@ void PRadHyCalSystem::Configure(const std::string &path)
     ReadTriggerEffFile(GetConfig<std::string>("Trigger Efficiency Map"));
 
     // choose clustering method
-    recon.SetMethod(GetConfig<std::string>("Cluster Method"));
+    recon.SetClusterMethod(GetConfig<std::string>("Cluster Method"));
+    recon.SetPositionMethod(GetConfig<std::string>("Position Method"));
 
     // configurate reconstructor
-    recon.Configure(GetConfig<std::string>("Cluster Configuration"));
+    recon.Configure(GetConfig<std::string>("Reconstructor Configuration"));
 
     // load cluster profile
     for(int i = 0; i < static_cast<int>(PRadHyCalModule::Max_Types); ++i)
@@ -565,12 +566,6 @@ void PRadHyCalSystem::ChooseEvent(const EventData &event)
 
         tdc_list[tdc.channel_id]->AddTimeMeasure(tdc.value);
     }
-}
-
-// set the clustering method for the system
-void PRadHyCalSystem::SetClusterMethod(const std::string &name)
-{
-    recon.SetMethod(name);
 }
 
 // reset current histograms and detector status

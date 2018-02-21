@@ -27,7 +27,7 @@ enum PRadTriggerType
     PHYS_TaggerE,
     PHYS_Scintillator,
     MAX_Trigger,
-    Undefined,
+    Undefined_Trigger,
 };
 
 enum EvioBankType

@@ -248,9 +248,9 @@ void ReconSettingPanel::ConnectHyCalSystem(PRadHyCalSystem *h)
         return;
 
     // name list
-    auto methods = hycal->GetReconstructor()->GetMethodNames();
+    auto methods = hycal->GetReconstructor()->GetClusterMethodNames();
     // current method name
-    auto current = hycal->GetReconstructor()->GetMethodType();
+    auto current = hycal->GetReconstructor()->GetClusterMethodType();
 
     for(size_t i = 0; i < methods.size(); ++i)
     {
@@ -339,7 +339,7 @@ void ReconSettingPanel::loadHyCalConfig()
     std::string config_path = hyCalConfigPath->text().toStdString();
     std::string name = hyCalMethods->currentText().toStdString();
 
-    hycal->GetReconstructor()->SetMethod(name);
+    hycal->GetReconstructor()->SetClusterMethod(name);
     hycal->GetReconstructor()->Configure(config_path);
 }
 

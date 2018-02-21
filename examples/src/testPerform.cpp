@@ -48,7 +48,7 @@ void testHyCalCluster(const string &file, PRadHyCalSystem *sys)
 
     sys->ChooseRun(file);
     cout << "Test HyCal Clustering Performance for file " << file << endl;
-    cout << "Using method " << sys->GetReconstructor()->GetMethodName() << endl;
+    cout << "Using method " << sys->GetReconstructor()->GetClusterMethodName() << endl;
 
     dst_parser->OpenInput(file);
 

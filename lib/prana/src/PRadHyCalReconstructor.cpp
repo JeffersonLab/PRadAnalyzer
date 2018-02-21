@@ -17,24 +17,30 @@
 
 
 
+//============================================================================//
+// Constructor, Destructor, Assignment Operators                              //
+//============================================================================//
+
 // constructor
 PRadHyCalReconstructor::PRadHyCalReconstructor(const std::string &conf_path)
-: cltype(Undefined), cluster(nullptr)
+: cltype(Undefined_ClMethod), cluster(nullptr), postype(Logarithmic)
 {
     // default island method
-    SetMethod(Island);
+    SetClusterMethod(Island);
     Configure(conf_path);
 }
 
 // copy/move constructor
 PRadHyCalReconstructor::PRadHyCalReconstructor(const PRadHyCalReconstructor &that)
-: ConfigObject(that), cltype(that.cltype), profile(that.profile), config(that.config)
+: ConfigObject(that), profile(that.profile),
+  cltype(that.cltype), postype(that.postype), config(that.config)
 {
     cluster = that.cluster->Clone();
 }
 
 PRadHyCalReconstructor::PRadHyCalReconstructor(PRadHyCalReconstructor &&that)
-: ConfigObject(that), cltype(that.cltype), profile(std::move(that.profile)), config(that.config)
+: ConfigObject(that), profile(std::move(that.profile)),
+  cltype(that.cltype), postype(that.postype), config(std::move(that.config))
 {
     cluster = that.cluster;
     that.cluster = nullptr;
@@ -63,15 +69,21 @@ PRadHyCalReconstructor &PRadHyCalReconstructor::operator =(PRadHyCalReconstructo
         return *this;
 
     ConfigObject::operator =(rhs);
+    profile = std::move(rhs.profile);
     cltype = rhs.cltype;
     cluster = rhs.cluster;
     rhs.cluster = nullptr;
-    profile = std::move(rhs.profile);
+    postype = rhs.postype;
     config = std::move(rhs.config);
     return *this;
 }
 
 
+//============================================================================//
+// Public Member Functions                                                    //
+//============================================================================//
+
+// configuration
 void PRadHyCalReconstructor::Configure(const std::string &path)
 {
     bool verbose = false;
@@ -81,10 +93,11 @@ void PRadHyCalReconstructor::Configure(const std::string &path)
         verbose = true;
     }
 
+    // general
     config.depth_corr = getDefConfig<bool>("Shower Depth Correction", true, verbose);
     config.leak_corr = getDefConfig<bool>("Leakage Correction", true, verbose);
     config.linear_corr = getDefConfig<bool>("Non Linearity Correction", true, verbose);
-    config.corner_conn = getDefConfig<bool>("Corner Connection", false, verbose);
+    config.pos_s_corr = getDefConfig<bool>("S Shape Correction", false, verbose);
 
     config.log_weight_thres = getDefConfig<float>("Log Weight Threshold", 3.6, verbose);
     config.min_cluster_energy = getDefConfig<float>("Minimum Cluster Energy", 50., verbose);
@@ -93,18 +106,23 @@ void PRadHyCalReconstructor::Configure(const std::string &path)
     config.least_leak = getDefConfig<float>("Least Leakage Fraction", 0.05, verbose);
     config.leak_iters = getDefConfig<unsigned int>("Leakage Iterations", 3, verbose);
     config.linear_corr_limit = getDefConfig<float>("Non Linearity Limit", 0.6, verbose);
+
+    // square
+    config.square_size = getDefConfig<unsigned int>("Square Size", 5, verbose);
+
+    // island
+    config.corner_conn = getDefConfig<bool>("Corner Connection", false, verbose);
     config.split_iter = getDefConfig<unsigned int>("Split Iteration", 6, verbose);
     config.least_split = getDefConfig<float>("Least Split Fraction", 0.01, verbose);
 
-    config.square_size = getDefConfig<unsigned int>("Square Size", 5, verbose);
-
     // set the min module energy for all the module type
     float univ_min_energy = getDefConfig<float>("Min Module Energy", 0., false);
-    config.min_module_energy.resize(PRadHyCalModule::Max_Types, univ_min_energy);
+    config.min_module_energy.resize(static_cast<int>(PRadHyCalModule::Max_Types),
+                                    univ_min_energy);
 
     // update the min module energy if some type is specified
     // the key is "Min Module Energy [typename]"
-    for(unsigned int i = 0; i < config.min_module_energy.size(); ++i)
+    for(int i = 0; i < (int)config.min_module_energy.size(); ++i)
     {
         // determine key name
         std::string type = PRadHyCalModule::Type2str(i);
@@ -112,6 +130,27 @@ void PRadHyCalReconstructor::Configure(const std::string &path)
         auto value = GetConfigValue(key);
         if(!value.IsEmpty())
             config.min_module_energy[i] = value.Float();
+    }
+
+    // s shape correction parameters
+    config.pos_s_pars.resize(static_cast<int>(Max_PosMethods));
+    int max_pars = 4;
+    for(int i = 0; i < (int)config.pos_s_pars.size(); ++i)
+    {
+        std::string type = PosMethod2str(i);
+        std::string key = "S Shape Parameters [" + type + "]";
+        auto valstr = GetConfigValue(key);
+        auto vals = ConfigParser::split(valstr, ",");  // split input string
+
+        auto &par_pack = config.pos_s_pars.at(i);
+        par_pack.resize(max_pars, 0.);
+        for(int j = 0; j < max_pars && !vals.empty(); ++j)
+        {
+            // trim off white spaces
+    	    ConfigValue val = ConfigParser::trim(vals.front(), " \t");
+    	    vals.pop_front();
+            par_pack[j] = val.Float();
+        }
     }
 }
 
@@ -277,8 +316,8 @@ void PRadHyCalReconstructor::AddTiming(PRadHyCalDetector *det, const EventData &
     }
 }
 
-// set method
-bool PRadHyCalReconstructor::SetMethod(ClMethod newtype)
+// set cluster method by enum
+bool PRadHyCalReconstructor::SetClusterMethod(ClMethod newtype)
 {
     if(newtype == cltype && cluster) {
         return true;
@@ -296,10 +335,10 @@ bool PRadHyCalReconstructor::SetMethod(ClMethod newtype)
 
     // warn the failure of set method
     if(newone == nullptr) {
-        auto method_names = GetMethodNames();
-        std::cout << "PRad HyCal System Warning: Failed to set clustering method. \n"
-                  << "Available methods are: \n";
+        std::cout << "PRad HyCal Reconstructor Warning: Failed to set clustering "
+                  << "method. \nAvailable methods are: \n";
 
+        auto method_names = GetClusterMethodNames();
         for(auto &n : method_names)
         {
             std::cout << "\t" << n << "\n";
@@ -316,20 +355,61 @@ bool PRadHyCalReconstructor::SetMethod(ClMethod newtype)
     return true;
 }
 
-// set method
-bool PRadHyCalReconstructor::SetMethod(const std::string &name)
+// set cluster method by name
+bool PRadHyCalReconstructor::SetClusterMethod(const std::string &name)
 {
-    return SetMethod(str2ClMethod(name.c_str()));
+    return SetClusterMethod(str2ClMethod(name.c_str()));
 }
 
-// show available methods
-std::vector<std::string> PRadHyCalReconstructor::GetMethodNames()
+// show available cluster methods
+std::vector<std::string> PRadHyCalReconstructor::GetClusterMethodNames()
 const
 {
     std::vector<std::string> res;
-    for(int i = 0; i < static_cast<int>(Max_Methods); ++i)
+    for(int i = 0; i < static_cast<int>(Max_ClMethods); ++i)
     {
         res.emplace_back(ClMethod2str(i));
+    }
+
+    return res;
+}
+
+// set position reconstruction method by enum
+bool PRadHyCalReconstructor::SetPositionMethod(PosMethod newtype)
+{
+    int id = static_cast<int>(newtype);
+    if(id < 0 || id >= static_cast<int>(Max_PosMethods)) {
+        std::cout << "PRad HyCal Reconstructor Warning: Failed to set clustering "
+                  << "method. \nAvailable methods are: \n";
+
+        auto method_names = GetPositionMethodNames();
+        for(auto &n : method_names)
+        {
+            std::cout << "\t" << n << "\n";
+        }
+        std::cout << std::endl;
+
+        return false;
+    }
+
+    postype = newtype;
+    return true;
+}
+
+// set position reconstruction method by name
+bool PRadHyCalReconstructor::SetPositionMethod(const std::string &name)
+{
+    return SetPositionMethod(str2PosMethod(name.c_str()));
+}
+
+// show available position methods
+std::vector<std::string> PRadHyCalReconstructor::GetPositionMethodNames()
+const
+{
+    std::vector<std::string> res;
+    for(int i = 0; i < static_cast<int>(Max_PosMethods); ++i)
+    {
+        res.emplace_back(PosMethod2str(i));
     }
 
     return res;
@@ -515,11 +595,26 @@ const
     return est/count;
 }
 
+//============================================================================//
+// Protected/Private Functions                                                //
+//============================================================================//
+
 // get position weight
 float PRadHyCalReconstructor::getWeight(const float &E, const float &E0)
 const
 {
-    float w = config.log_weight_thres + log(E/E0);
+    float w;
+    switch(postype)
+    {
+    default:
+    case Logarithmic:
+        w = config.log_weight_thres + std::log(E/E0);
+        break;
+    case Linear:
+        w = E/E0;
+        break;
+    }
+
     if(w < 0.)
         return 0.;
     return w;
@@ -546,6 +641,24 @@ const
     }
 
     return 0.;
+}
+
+// correct S shape bias in position reconstruction
+float PRadHyCalReconstructor::getPosBias(const float &dx)
+const
+{
+    // formula is
+    // dx*(dx^2 - 0.25)*(c0 + c1*dx^2 + c2*dx^4 + c3*dx^6)
+    float dx2 = dx*dx;
+    float res = 0.;
+    float fac = 1.;
+    for(auto &par : config.pos_s_pars[static_cast<size_t>(postype)])
+    {
+        res += fac*par;
+        fac *= dx2;
+    }
+
+    return dx*res*(dx2 - 0.25);
 }
 
 // reconstruct position from the temp container
@@ -583,9 +696,18 @@ const
         }
     }
 
-    hit->x = center->GetX() + wx/wtot*center->GetSizeX();
-    hit->y = center->GetY() + wy/wtot*center->GetSizeY();
+    float dx = wx/wtot;
+    float dy = wy/wtot;
+
+    hit->x = center->GetX() + dx*center->GetSizeX();
+    hit->y = center->GetY() + dy*center->GetSizeY();
     hit->z = center->GetZ();
+
+    // currently supports crystal modules
+    if(config.pos_s_corr && center->GetType() == PRadHyCalModule::PbWO4) {
+        hit->x += getPosBias(dx);
+        hit->y += getPosBias(dy);
+    }
 
     return phits;
 }

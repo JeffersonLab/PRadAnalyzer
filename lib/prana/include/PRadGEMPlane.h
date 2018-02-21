@@ -22,13 +22,13 @@ class PRadGEMPlane
 public:
     enum Type
     {
-        Undefined = -1,
+        Undefined_Type = -1,
         Plane_X = 0,
         Plane_Y,
-        Plane_Max
+        Max_Types,
     };
     // macro in ConfigParser.h
-    ENUM_MAP(Type, "X|Y");
+    ENUM_MAP(Type, 0, "X|Y");
 
 public:
     // constructors

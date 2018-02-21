@@ -29,7 +29,7 @@ PRadGEMDetector::PRadGEMDetector(const std::string &readoutBoard,
 : PRadDetector(detector),
   gem_srs(g), type(detectorType), readout_board(readoutBoard)
 {
-    planes.resize(PRadGEMPlane::Plane_Max, nullptr);
+    planes.resize(PRadGEMPlane::Max_Types, nullptr);
 
     gem_hits.reserve(GEM_CLUSTERS_BUFFER);
 }
