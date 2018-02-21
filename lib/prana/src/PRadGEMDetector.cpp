@@ -27,7 +27,7 @@ PRadGEMDetector::PRadGEMDetector(const std::string &readoutBoard,
                                  const std::string &detector,
                                  PRadGEMSystem *g)
 : PRadDetector(detector),
-  gem_srs(g), type(detectorType), readout_board(readoutBoard)
+  gem_srs(g), type(detectorType), readout_board(readoutBoard), res(0.)
 {
     planes.resize(PRadGEMPlane::Max_Types, nullptr);
 
@@ -40,7 +40,7 @@ PRadGEMDetector::PRadGEMDetector(const std::string &readoutBoard,
 // copy constructor
 PRadGEMDetector::PRadGEMDetector(const PRadGEMDetector &that)
 : PRadDetector(that), gem_srs(nullptr), type(that.type),
-  readout_board(that.readout_board), gem_hits(that.gem_hits)
+  readout_board(that.readout_board), gem_hits(that.gem_hits), res(that.res)
 {
     for(auto &plane : that.planes)
     {
@@ -57,7 +57,7 @@ PRadGEMDetector::PRadGEMDetector(const PRadGEMDetector &that)
 PRadGEMDetector::PRadGEMDetector(PRadGEMDetector &&that)
 : PRadDetector(that), gem_srs(nullptr), type(std::move(that.type)),
   readout_board(std::move(that.readout_board)), planes(std::move(that.planes)),
-  gem_hits(std::move(gem_hits))
+  gem_hits(std::move(gem_hits)), res(that.res)
 {
     // reset the planes' detector
     ConnectPlanes();
@@ -99,6 +99,7 @@ PRadGEMDetector &PRadGEMDetector::operator =(PRadGEMDetector &&rhs)
     readout_board = std::move(rhs.readout_board);
     planes = std::move(rhs.planes);
     gem_hits = std::move(gem_hits);
+    res = rhs.res;
 
     ConnectPlanes();
 
@@ -243,7 +244,8 @@ void PRadGEMDetector::Reconstruct(PRadGEMCluster *gem_recon)
     gem_recon->CartesianReconstruct(plane_x->GetStripClusters(),
                                     plane_y->GetStripClusters(),
                                     gem_hits,
-                                    det_id);
+                                    det_id,
+                                    res);
 }
 
 // collect all the hits from APVs

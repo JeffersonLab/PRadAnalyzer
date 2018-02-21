@@ -72,6 +72,39 @@ public:
         }
     };
 
+    // regions for resolution study
+    enum ResRegion
+    {
+        Undefined_ResRegion = -1,
+        PbWO4 = 0,
+        PbGlass,
+        Transition,
+        Max_ResRegions,
+    };
+
+    ENUM_MAP(ResRegion, 0, "PbWO4|PbGlass|Transition");
+
+    // data structure to save resolution parameters
+    // units are GeV and mm
+    struct ResParams
+    {
+        // each params set should have 3 parameters for resolution calculation
+        double ene[Max_ResRegions][3], pos[Max_ResRegions][3];
+
+        // constructor, zero all elements
+        ResParams()
+        {
+            for(int i = 0; i < static_cast<int>(Max_ResRegions); ++i)
+            {
+                for(int j = 0; j < 3; ++j)
+                {
+                    ene[i][j] = 0.;
+                    pos[i][j] = 0.;
+                }
+            }
+        }
+    };
+
 public:
     // constructor
     PRadHyCalDetector(const std::string &name = "HyCal", PRadHyCalSystem *sys = nullptr);
@@ -128,6 +161,16 @@ public:
     const std::vector<HyCalHit> &GetHits() const {return hycal_hits;}
     const std::vector<SectorInfo> &GetSectorInfo() const {return sector_info;}
 
+    // resolution related
+    // inpput energy should be MeV
+    ResRegion GetResRegion(PRadHyCalModule *c) const;
+    double GetEneRes(PRadHyCalModule *c, double E) const;
+    double GetEneRes(ResRegion, double E) const;
+    double GetPosRes(PRadHyCalModule *c, double E) const;
+    double GetPosRes(ResRegion, double E) const;
+    bool SetEneRes(ResRegion, double a, double b, double c);
+    bool SetPosRes(ResRegion, double a, double b, double c);
+
     // quantized distance between modules
     double QuantizedDist(const PRadHyCalModule *m1, const PRadHyCalModule *m2) const;
     double QuantizedDist(double x1, double y1, double x2, double y2) const;
@@ -141,10 +184,10 @@ public:
 
 public:
     // resolution formula, E, a, b, c should have consistent unit
-    static inline double resolution(double E, double a, double b, double c)
+    static inline double resolution(double E, const double *pars)
     {
-        // a/E ++ b/sqrt(E) ++ c, ++ means quadratic sum
-        return sqrt(a/E*a/E + b*b/E + c*c);
+        // a/sqrt(E) ++ b ++ c/E, ++ means quadratic sum
+        return sqrt(pars[0]*pars[0]/E + pars[1]*pars[1] + pars[2]*pars[2]/E/E);
     }
 
 protected:
@@ -157,6 +200,7 @@ protected:
     std::unordered_map<std::string, PRadHyCalModule*> name_map;
     std::vector<HyCalHit> hycal_hits;
     std::vector<SectorInfo> sector_info;
+    ResParams res_pars;
 };
 
 #endif

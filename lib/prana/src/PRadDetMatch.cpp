@@ -44,10 +44,6 @@ void PRadDetMatch::Configure(const std::string &path)
         verbose = true;
     }
 
-    CONF_CONN(leadGlassRes, "Lead_Glass_Resolution", 6.5, verbose);
-    CONF_CONN(transitionRes, "Transition_Resolution", 5.0, verbose);
-    CONF_CONN(crystalRes, "Crystal_Resolution", 2.5, verbose);
-    CONF_CONN(gemRes, "GEM_Resolution", 0.08, verbose);
     CONF_CONN(matchSigma, "Match_Factor", 5, verbose);
     CONF_CONN(overlapSigma, "GEM_Overlap_Factor", 10, verbose);
     CONF_CONN(squareSel, "Square_Selection", true, verbose);
@@ -144,24 +140,8 @@ const
 bool PRadDetMatch::PreMatch(const HyCalHit &hycal, const GEMHit &gem)
 const
 {
-    // determine the resolution from hycal hit information
-    double range;
-
-    // transition region
-    if(TEST_BIT(hycal.flag, kTransition)) {
-        range = transitionRes/std::sqrt(hycal.E/1000.);
-    // crystal region
-    } else if(TEST_BIT(hycal.flag, kPbWO4)) {
-        //range = crystalRes/std::sqrt(hycal.E/1000.);
-        // hard coded from fit of real data
-        range = 2.44436/std::sqrt(hycal.E/1000.) + 1.09709e-1/(hycal.E/1000.) - 1.76315e-2;
-    // lead glass part or undefined
-    } else {
-        range = leadGlassRes/std::sqrt(hycal.E/1000.);
-    }
-
-    // how many sigma away from the maching range
-    range *= matchSigma;
+    // determine the matching range from hycal hit resolution and match factor
+    float range = hycal.sig_pos*matchSigma;
 
     if(squareSel) {
         Point diff = PRadCoordSystem::ProjectionCoordDiff(hycal, gem);
@@ -213,7 +193,7 @@ const
         const GEMHit &hit1 = h.gem1.front(), &hit2 = h.gem2.front();
         float gem_dist = PRadCoordSystem::ProjectionDistance(hit1, hit2, PRadCoordSystem::target(), hit1.z);
         // not overlapping match
-        if(gem_dist > overlapSigma * gemRes) {
+        if(gem_dist > overlapSigma * hit1.sig_pos) {
             float dist1 = PRadCoordSystem::ProjectionDistance(h, hit1);
             float dist2 = PRadCoordSystem::ProjectionDistance(h, hit2);
             // gem1 matches

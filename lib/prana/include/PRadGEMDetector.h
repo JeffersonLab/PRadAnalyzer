@@ -41,6 +41,7 @@ public:
 
     // public member functions
     void SetSystem(PRadGEMSystem *sys, bool false_set = false);
+    void SetResolution(double r) {res = r;}
     void UnsetSystem(bool false_unset = false);
     bool AddPlane(PRadGEMPlane *plane);
     bool AddPlane(const int &type, const std::string &name, const double &size,
@@ -55,6 +56,7 @@ public:
 
     // get parameters
     PRadGEMSystem *GetSystem() const {return gem_srs;}
+    double GetResolution() const {return res;}
     const std::string &GetType() const {return type;}
     const std::string &GetReadoutBoard() const {return readout_board;}
     PRadGEMPlane *GetPlane(const int &type) const;
@@ -70,6 +72,7 @@ private:
     std::string readout_board;
     std::vector<PRadGEMPlane*> planes;
     std::vector<GEMHit> gem_hits;
+    float res;
 };
 
 #endif

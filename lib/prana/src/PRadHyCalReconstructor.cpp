@@ -454,6 +454,11 @@ const
     // z position will need a depth correction
     hycal_hit.z += getShowerDepth(cluster.center->GetType(), cluster.energy);
 
+    // add resolution information
+    auto detector = cluster.center->GetDetector();
+    hycal_hit.sig_ene = detector->GetEneRes(cluster.center.ptr, hycal_hit.E);
+    hycal_hit.sig_pos = detector->GetPosRes(cluster.center.ptr, hycal_hit.E);
+
     return hycal_hit;
 }
 

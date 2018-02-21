@@ -171,12 +171,16 @@ void PRadHyCalSystem::Configure(const std::string &path)
     // configurate reconstructor
     recon.Configure(GetConfig<std::string>("Reconstructor Configuration"));
 
+    // lamda to help find strings with "key [type]" in configuration
+    auto findstr = [&](const std::string &key, const std::string &type)
+                   {
+                       return GetConfigValue(key + " [" + type + "]");
+                   };
+
     // load cluster profile
     for(int i = 0; i < static_cast<int>(PRadHyCalModule::Max_Types); ++i)
     {
-        std::string type = PRadHyCalModule::Type2str(i);
-        std::string key = "Cluster Profile [" + type + "]";
-        auto value = GetConfigValue(key);
+        auto value = findstr("Cluster Profile", PRadHyCalModule::Type2str(i));
         if(!value.IsEmpty())
             recon.LoadProfile(i, value.String());
     }
@@ -187,9 +191,52 @@ void PRadHyCalSystem::Configure(const std::string &path)
                             GetConfig<std::string>("Calibration Period File"));
     ReadCalPeriodFile(file_path);
 
+    // set run number
     int run_number;
     CONF_CONN(run_number, "Run Number", 0, false);
     ChooseRun(run_number, false);
+
+    // set resolution for detector
+    if(hycal) {
+        auto s2vals = [](const std::string &str)
+                      {
+                          auto vals = ConfigParser::split(str, ",");
+                          std::vector<float> res;
+                          res.reserve(vals.size());
+                          for(auto &val : vals)
+                          {
+                              res.push_back(std::stof(ConfigParser::trim(val, " \t")));
+                          }
+                          return res;
+                      };
+
+        auto warn = [](int size, const std::string &str)
+                    {
+                        std::cout << "PRad HyCal System Warning: Expected 3 parameters "
+                                  << "for resolution, but received " << size << " in "
+                                  << "\"" << str << "\". Skip setting." << std::endl;
+                    };
+
+        for(int i = 0; i < static_cast<int>(PRadHyCalDetector::Max_ResRegions); ++i)
+        {
+            auto type = static_cast<PRadHyCalDetector::ResRegion>(i);
+            auto valstr = findstr("Energy Resolution", PRadHyCalDetector::ResRegion2str(i));
+            auto vals = s2vals(valstr);
+            if(vals.size() == 3) {
+                hycal->SetEneRes(type, vals[0], vals[1], vals[2]);
+            } else {
+                warn(vals.size(), valstr);
+            }
+
+            valstr = findstr("Position Resolution", PRadHyCalDetector::ResRegion2str(i));
+            vals = s2vals(valstr);
+            if(vals.size() == 3) {
+                hycal->SetPosRes(type, vals[0], vals[1], vals[2]);
+            } else {
+                warn(vals.size(), valstr);
+            }
+        }
+    }
 }
 
 // read DAQ channel list

@@ -103,7 +103,7 @@ PRadHyCalDetector::PRadHyCalDetector(const std::string &det, PRadHyCalSystem *sy
 // copy constructor
 PRadHyCalDetector::PRadHyCalDetector(const PRadHyCalDetector &that)
 : PRadDetector(that), system(nullptr), hycal_hits(that.hycal_hits),
-  sector_info(that.sector_info)
+  sector_info(that.sector_info), res_pars(that.res_pars)
 {
     for(auto module : that.module_list)
     {
@@ -123,7 +123,7 @@ PRadHyCalDetector::PRadHyCalDetector(PRadHyCalDetector &&that)
 : PRadDetector(that), system(nullptr), module_list(std::move(that.module_list)),
   vmodule_list(std::move(vmodule_list)), id_map(std::move(that.id_map)),
   name_map(std::move(that.name_map)), hycal_hits(std::move(that.hycal_hits)),
-  sector_info(std::move(that.sector_info))
+  sector_info(std::move(that.sector_info)), res_pars(std::move(that.res_pars))
 {
     // reset the connections between module and HyCal
     for(auto module : module_list)
@@ -168,6 +168,7 @@ PRadHyCalDetector &PRadHyCalDetector::operator =(PRadHyCalDetector &&rhs)
     name_map = std::move(rhs.name_map);
     hycal_hits = std::move(rhs.hycal_hits);
     sector_info = std::move(rhs.sector_info);
+    res_pars = std::move(rhs.res_pars);
 
     for(auto module : module_list)
         module->SetDetector(this, true);
@@ -599,6 +600,80 @@ const
         energy += module->GetEnergy();
     }
     return energy;
+}
+
+PRadHyCalDetector::ResRegion PRadHyCalDetector::GetResRegion(PRadHyCalModule *c)
+const
+{
+    if(TEST_BIT(c->GetLayoutFlag(), kTransition)) {
+        return Transition;
+    } else {
+        switch(c->GetType())
+        {
+        case PRadHyCalModule::PbWO4:
+            return PbWO4;
+        case PRadHyCalModule::PbGlass:
+            return PbGlass;
+        default:
+            return Undefined_ResRegion;
+        }
+    }
+}
+
+// input/output in the unit of MeV
+double PRadHyCalDetector::GetEneRes(PRadHyCalModule *c, double E)
+const
+{
+    return GetEneRes(GetResRegion(c), E);
+}
+
+// input/output in the unit of MeV
+double PRadHyCalDetector::GetEneRes(ResRegion r, double E)
+const
+{
+    int rid = static_cast<int>(r);
+    if(rid < 0) return 0.;
+    return E*resolution(E/1000., res_pars.ene[rid])/100.;
+}
+
+// input/output in the unit of MeV/mm
+double PRadHyCalDetector::GetPosRes(PRadHyCalModule *c, double E)
+const
+{
+    return GetPosRes(GetResRegion(c), E);
+}
+
+// input/output in the unit of MeV/mm
+double PRadHyCalDetector::GetPosRes(ResRegion r, double E)
+const
+{
+    int rid = static_cast<int>(r);
+    if(rid < 0) return 0.;
+    return resolution(E/1000., res_pars.pos[rid]);
+}
+
+// set energy resolution parameters
+bool PRadHyCalDetector::SetEneRes(ResRegion r, double a, double b, double c)
+{
+    int rid = static_cast<int>(r);
+    if(rid < 0) return false;
+
+    res_pars.ene[rid][0] = a;
+    res_pars.ene[rid][1] = b;
+    res_pars.ene[rid][2] = c;
+    return true;
+}
+
+// set position resolution parameters
+bool PRadHyCalDetector::SetPosRes(ResRegion r, double a, double b, double c)
+{
+    int rid = static_cast<int>(r);
+    if(rid < 0) return false;
+
+    res_pars.pos[rid][0] = a;
+    res_pars.pos[rid][1] = b;
+    res_pars.pos[rid][2] = c;
+    return true;
 }
 
 // get the sector id for quantized distance, highly specific for HyCal layout

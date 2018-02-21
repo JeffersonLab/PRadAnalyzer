@@ -189,12 +189,26 @@ void PRadGEMSystem::Configure(const std::string &path)
 
     gem_recon.Configure(GetConfig<std::string>("GEM Cluster Configuration"));
 
+    // read gem map, build DAQ system and detectors
     try{
         ReadMapFile(GetConfig<std::string>("GEM Map"));
         ReadPedestalFile(GetConfig<std::string>("GEM Pedestal"));
     } catch(PRadException &e) {
         std::cerr << e.FailureType() << ": "
                   << e.FailureDesc() << std::endl;
+    }
+
+    // set resolution for each detector, defalt 0.1
+    float def_res = 0.1;
+    for(auto &det : det_slots)
+    {
+        if(det == nullptr) continue;
+        std::string key = "Position Resolution [" + det->GetName() + "]";
+        auto val = GetConfigValue(key);
+        if(!val.IsEmpty())
+            det->SetResolution(val.Double());
+        else
+            det->SetResolution(def_res);
     }
 }
 

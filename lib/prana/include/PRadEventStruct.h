@@ -583,6 +583,7 @@ enum HyCalHitStatus
     kInnerBound,        // cluster near the inner hole of HyCal
     kOuterBound,        // cluster near the outer boundary of HyCal
     kLeakCorr,          // cluster with leakage correction
+    kDenCorr,           // cluster with density correction (poistion bias correction)
 };
 
 // hycal reconstructed hit
@@ -598,17 +599,20 @@ public:
     int16_t cid;            // Cluster's central cell ID
     float E_leak;           // Leakage correction on energy (MeV)
     float lin_corr;         // Non Linearity factor for energy correction E_f = E_i*lin_corr
+    float sig_ene;          // energy resolution
+    float sig_pos;          // position resolution
     uint16_t time[TIME_MEASURE_SIZE];      // time information from central TDC group
 
     HyCalHit()
-    : flag(0), type(0), status(0), nblocks(0), npos(0), cid(0), E_leak(0.), lin_corr(1.)
+    : flag(0), type(0), status(0), nblocks(0), npos(0), cid(0), E_leak(0.), lin_corr(1.),
+      sig_ene(0.), sig_pos(0.)
     {
         clear_time();
     }
 
     HyCalHit(int16_t id, uint32_t f, float ene, float leak)
     : BaseHit(0., 0., 0., ene), flag(f), type(0), status(0), nblocks(0), npos(0),
-      cid(id), E_leak(leak), lin_corr(1.)
+      cid(id), E_leak(leak), lin_corr(1.), sig_ene(0.), sig_pos(0.)
     {
         clear_time();
     }
@@ -642,16 +646,17 @@ public:
     float y_peak;           // y peak charge
     int32_t x_size;         // x hits size
     int32_t y_size;         // y hits size
+    float sig_pos;          // position resolution
 
     GEMHit()
     : det_id(-1), x_charge(0.), y_charge(0.), x_peak(0.), y_peak(0.),
-      x_size(0), y_size(0)
+      x_size(0), y_size(0), sig_pos(0.)
     {}
 
-    GEMHit(float xx, float yy, float zz,
-           int d, float xc, float yc, float xp, float yp, int xs, int ys)
+    GEMHit(float xx, float yy, float zz, int d, float xc, float yc,
+           float xp, float yp, int xs, int ys, float sig)
     : BaseHit(xx, yy, zz, 0.), det_id(d), x_charge(xc), y_charge(yc),
-      x_peak(xp), y_peak(yp), x_size(xs), y_size(ys)
+      x_peak(xp), y_peak(yp), x_size(xs), y_size(ys), sig_pos(sig)
     {}
 
 };

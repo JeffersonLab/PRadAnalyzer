@@ -308,7 +308,8 @@ const
 void PRadGEMCluster::CartesianReconstruct(const std::vector<StripCluster> &x_cluster,
                                           const std::vector<StripCluster> &y_cluster,
                                           std::vector<GEMHit> &container,
-                                          int det_id)
+                                          int det_id,
+                                          float res)
 const
 {
     // empty first
@@ -324,7 +325,8 @@ const
                                    det_id,                              // detector id
                                    xc.total_charge, yc.total_charge,    // fill in total charge
                                    xc.peak_charge, yc.peak_charge,      // fill in peak charge
-                                   xc.hits.size(), yc.hits.size());     // number of hits
+                                   xc.hits.size(), yc.hits.size(),      // number of hits
+                                   res);                                // position resolution
         }
     }
 }

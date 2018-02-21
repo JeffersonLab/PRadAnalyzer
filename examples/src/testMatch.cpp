@@ -119,6 +119,11 @@ void testMatch(const string &path)
             coord_sys->Transform(PRadDetector::PRadGEM1, gem1_hit.begin(), gem1_hit.end());
             coord_sys->Transform(PRadDetector::PRadGEM2, gem2_hit.begin(), gem2_hit.end());
 
+            // project to HyCal surface
+            coord_sys->Projection(hycal_hit.begin(), hycal_hit.end());
+            coord_sys->Projection(gem1_hit.begin(), gem1_hit.end());
+            coord_sys->Projection(gem2_hit.begin(), gem2_hit.end());
+
             for(auto &hit : hycal_hit)
             {
                 histhycal->Fill(PRadCoordSystem::GetPolarAngle(hit), hit.E);
@@ -134,9 +139,6 @@ void testMatch(const string &path)
 
             // hits matching, return matched index
             auto matched = det_match->Match(hycal_hit, gem1_hit, gem2_hit);
-
-            // project to HyCal surface
-            coord_sys->Projection(matched.begin(), matched.end());
 
             for(auto &hit : matched)
             {
