@@ -40,10 +40,10 @@ void PRadGEMCluster::Configure(const std::string &path)
         verbose = true;
     }
 
-    min_cluster_hits = getDefConfig<unsigned int>("Min Cluster Hits", 1, verbose);
-    max_cluster_hits = getDefConfig<unsigned int>("Max Cluster Hits", 20, verbose);
-    split_cluster_diff = getDefConfig<float>("Split Threshold", 14, verbose);
-    cross_talk_width = getDefConfig<float>("Cross Talk Width", 2, verbose);
+    CONF_CONN(min_cluster_hits, "Min Cluster Hits", 1, verbose);
+    CONF_CONN(max_cluster_hits, "Max Cluster Hits", 20, verbose);
+    CONF_CONN(split_cluster_diff, "Split Threshold", 14, verbose);
+    CONF_CONN(cross_talk_width, "Cross Talk Width", 2, verbose);
 
     // get cross talk characteristic distance
     charac_dists.clear();

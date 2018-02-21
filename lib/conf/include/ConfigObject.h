@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include "ConfigParser.h"
 
+#define CONF_CONN(val, str, def, warn) val=getDefConfig<decltype(val)>(str, def, warn)
+
 class ConfigObject
 {
 public:

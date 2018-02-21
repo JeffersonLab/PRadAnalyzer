@@ -182,10 +182,10 @@ void PRadGEMSystem::Configure(const std::string &path)
         verbose = true;
     }
 
-    def_ts = getDefConfig<unsigned int>("Default Time Samples", 3, verbose);
-    def_cth = getDefConfig<float>("Default Common Mode Threshold", 20, verbose);
-    def_zth = getDefConfig<float>("Default Zero Suppression Threshold", 5, verbose);
-    def_ctth = getDefConfig<float>("Default Cross Talk Threshold", 8, verbose);
+    CONF_CONN(def_ts, "Default Time Samples", 3, verbose);
+    CONF_CONN(def_cth, "Default Common Mode Threshold", 20, verbose);
+    CONF_CONN(def_zth, "Default Zero Suppression Threshold", 5, verbose);
+    CONF_CONN(def_ctth, "Default Cross Talk Threshold", 8, verbose);
 
     gem_recon.Configure(GetConfig<std::string>("GEM Cluster Configuration"));
 

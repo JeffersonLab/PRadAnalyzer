@@ -187,7 +187,8 @@ void PRadHyCalSystem::Configure(const std::string &path)
                             GetConfig<std::string>("Calibration Period File"));
     ReadCalPeriodFile(file_path);
 
-    int run_number = getDefConfig<int>("Run Number", 1291, false);
+    int run_number;
+    CONF_CONN(run_number, "Run Number", 0, false);
     ChooseRun(run_number, false);
 }
 

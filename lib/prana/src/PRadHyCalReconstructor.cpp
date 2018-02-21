@@ -94,32 +94,29 @@ void PRadHyCalReconstructor::Configure(const std::string &path)
     }
 
     // general
-    config.depth_corr = getDefConfig<bool>("Shower Depth Correction", true, verbose);
-    config.leak_corr = getDefConfig<bool>("Leakage Correction", true, verbose);
-    config.linear_corr = getDefConfig<bool>("Non Linearity Correction", true, verbose);
-    config.pos_s_corr = getDefConfig<bool>("S Shape Correction", false, verbose);
+    CONF_CONN(config.depth_corr, "Shower Depth Correction", true, verbose);
+    CONF_CONN(config.leak_corr, "Leakage Correction", true, verbose);
+    CONF_CONN(config.linear_corr, "Non Linearity Correction", true, verbose);
+    CONF_CONN(config.pos_s_corr, "S Shape Correction", false, verbose);
 
-    config.log_weight_thres = getDefConfig<float>("Log Weight Threshold", 3.6, verbose);
-    config.min_cluster_energy = getDefConfig<float>("Minimum Cluster Energy", 50., verbose);
-    config.min_center_energy = getDefConfig<float>("Minimum Center Energy", 10., verbose);
-    config.min_cluster_size = getDefConfig<unsigned int>("Minimum Cluster Size", 1, verbose);
-    config.least_leak = getDefConfig<float>("Least Leakage Fraction", 0.05, verbose);
-    config.leak_iters = getDefConfig<unsigned int>("Leakage Iterations", 3, verbose);
-    config.linear_corr_limit = getDefConfig<float>("Non Linearity Limit", 0.6, verbose);
+    CONF_CONN(config.log_weight_thres, "Log Weight Threshold", 3.6, verbose);
+    CONF_CONN(config.min_cluster_energy, "Minimum Cluster Energy", 50., verbose);
+    CONF_CONN(config.min_center_energy, "Minimum Center Energy", 10., verbose);
+    CONF_CONN(config.min_cluster_size, "Minimum Cluster Size", 1, verbose);
+    CONF_CONN(config.least_leak, "Least Leakage Fraction", 0.05, verbose);
+    CONF_CONN(config.leak_iters, "Leakage Iterations", 3, verbose);
+    CONF_CONN(config.linear_corr_limit, "Non Linearity Limit", 0.6, verbose);
 
     // square
-    config.square_size = getDefConfig<unsigned int>("Square Size", 5, verbose);
+    CONF_CONN(config.square_size, "Square Size", 5, verbose);
 
     // island
-    config.corner_conn = getDefConfig<bool>("Corner Connection", false, verbose);
-    config.split_iter = getDefConfig<unsigned int>("Split Iteration", 6, verbose);
-    config.least_split = getDefConfig<float>("Least Split Fraction", 0.01, verbose);
+    CONF_CONN(config.corner_conn, "Corner Connection", false, verbose);
+    CONF_CONN(config.split_iter, "Split Iteration", 6, verbose);
+    CONF_CONN(config.least_split, "Least Split Fraction", 0.01, verbose);
 
-    // set the min module energy for all the module type
-    float univ_min_energy = getDefConfig<float>("Min Module Energy", 0., false);
-    config.min_module_energy.resize(static_cast<int>(PRadHyCalModule::Max_Types),
-                                    univ_min_energy);
-
+    // default min module energy
+    config.min_module_energy.resize(static_cast<int>(PRadHyCalModule::Max_Types), 0.);
     // update the min module energy if some type is specified
     // the key is "Min Module Energy [typename]"
     for(int i = 0; i < (int)config.min_module_energy.size(); ++i)

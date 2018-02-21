@@ -44,13 +44,13 @@ void PRadDetMatch::Configure(const std::string &path)
         verbose = true;
     }
 
-    leadGlassRes = getDefConfig<float>("Lead_Glass_Resolution", 10, verbose);
-    transitionRes = getDefConfig<float>("Transition_Resolution", 7, verbose);
-    crystalRes = getDefConfig<float>("Crystal_Resolution", 3, verbose);
-    gemRes = getDefConfig<float>("GEM_Resolution", 0.08, verbose);
-    matchSigma = getDefConfig<float>("Match_Factor", 5, verbose);
-    overlapSigma = getDefConfig<float>("GEM_Overlap_Factor", 10, verbose);
-    squareSel = getDefConfig<bool>("Square_Selection", true, verbose);
+    CONF_CONN(leadGlassRes, "Lead_Glass_Resolution", 6.5, verbose);
+    CONF_CONN(transitionRes, "Transition_Resolution", 5.0, verbose);
+    CONF_CONN(crystalRes, "Crystal_Resolution", 2.5, verbose);
+    CONF_CONN(gemRes, "GEM_Resolution", 0.08, verbose);
+    CONF_CONN(matchSigma, "Match_Factor", 5, verbose);
+    CONF_CONN(overlapSigma, "GEM_Overlap_Factor", 10, verbose);
+    CONF_CONN(squareSel, "Square_Selection", true, verbose);
 }
 
 template<typename T>
