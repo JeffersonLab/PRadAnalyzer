@@ -13,8 +13,8 @@
 // an example:
 // enum ABC {a = 3, b, c};
 // ENUM_MAP(ABC, 3, "a|b|c")
-// ABC2str(0) = "a"
-// str2ABC("b") = 1
+// ABC2str(3) = "a"
+// str2ABC("b") = 4
 #define ENUM_MAP(type, bias, strings) \
     static std::string type ## 2str(int T) \
     { \
