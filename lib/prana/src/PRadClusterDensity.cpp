@@ -71,17 +71,33 @@ const
 
     // required infromation
     auto &pset = psets[static_cast<int>(cur_set)];
-    float dx = (hit.x - ctr->GetX())/ctr->GetSizeX();
-    float dy = (hit.y - ctr->GetY())/ctr->GetSizeY();
 
     // energy index
     float angle = PRadCoordSystem::GetPolarAngle(Point(hit.x, hit.y, PRadCoordSystem::hycal_z() + hit.z));
     int ie = getEnergyIndex(hit.E, angle*cana::deg2rad, 6.*hit.sig_ene);
 
+    // position correction
+    if(pos_corr && !TEST_BIT(hit.flag, kDenCorr)) {
+        // geometrical index
+        int ig = getGeometryIndex(ctr);
+        int idx = ie + ig*5;
+        if(ie >= 0 && ig >= 0 && idx < (int) pset.ppars.size()) {
+            float dx = (hit.x - ctr->GetX())/ctr->GetSizeX();
+            float dy = (hit.y - ctr->GetY())/ctr->GetSizeY();
+            auto &pars = pset.ppars[idx];
+            hit.x += GetPosBias(pars.x, dx)*ctr->GetSizeX();
+            hit.y += GetPosBias(pars.y, dy)*ctr->GetSizeY();
+            SET_BIT(hit.flag, kDenCorr);
+        }
+    }
+
     // energy correction
     if(ene_corr && !TEST_BIT(hit.flag, kSEneCorr)) {
         int ep_set = pset.energy_range.size() - 1;
         int ee_set = ep_set + 1;
+        // this will be affected by pos correction, it is intended
+        float dx = (hit.x - ctr->GetX())/ctr->GetSizeX();
+        float dy = (hit.y - ctr->GetY())/ctr->GetSizeY();
 
         // ep index
         if(ie == ep_set) {
@@ -99,19 +115,6 @@ const
                 SET_BIT(hit.flag, kSEneCorr);
                 hit.E += hit.E_Scorr;
             }
-        }
-    }
-
-    // position correction
-    if(pos_corr && !TEST_BIT(hit.flag, kDenCorr)) {
-        // geometrical index
-        int ig = getGeometryIndex(ctr);
-        int idx = ie + ig*5;
-        if(ie >= 0 && ig >= 0 && idx < (int) pset.ppars.size()) {
-            auto &pars = pset.ppars[idx];
-            hit.x += GetPosBias(pars.x, dx)*ctr->GetSizeX();
-            hit.y += GetPosBias(pars.y, dy)*ctr->GetSizeY();
-            SET_BIT(hit.flag, kDenCorr);
         }
     }
 
