@@ -97,7 +97,7 @@ void PRadHyCalReconstructor::Configure(const std::string &path)
     CONF_CONN(config.depth_corr, "Shower Depth Correction", true, verbose);
     CONF_CONN(config.leak_corr, "Leakage Correction", true, verbose);
     CONF_CONN(config.linear_corr, "Non Linearity Correction", true, verbose);
-    CONF_CONN(config.pos_s_corr, "S Shape Correction", false, verbose);
+    CONF_CONN(config.den_corr, "Density Correction", false, verbose);
 
     CONF_CONN(config.log_weight_thres, "Log Weight Threshold", 3.6, verbose);
     CONF_CONN(config.min_cluster_energy, "Minimum Cluster Energy", 50., verbose);
@@ -127,27 +127,6 @@ void PRadHyCalReconstructor::Configure(const std::string &path)
         auto value = GetConfigValue(key);
         if(!value.IsEmpty())
             config.min_module_energy[i] = value.Float();
-    }
-
-    // s shape correction parameters
-    config.pos_s_pars.resize(static_cast<int>(Max_PosMethods));
-    int max_pars = 4;
-    for(int i = 0; i < (int)config.pos_s_pars.size(); ++i)
-    {
-        std::string type = PosMethod2str(i);
-        std::string key = "S Shape Parameters [" + type + "]";
-        auto valstr = GetConfigValue(key);
-        auto vals = ConfigParser::split(valstr, ",");  // split input string
-
-        auto &par_pack = config.pos_s_pars.at(i);
-        par_pack.resize(max_pars, 0.);
-        for(int j = 0; j < max_pars && !vals.empty(); ++j)
-        {
-            // trim off white spaces
-    	    ConfigValue val = ConfigParser::trim(vals.front(), " \t");
-    	    vals.pop_front();
-            par_pack[j] = val.Float();
-        }
     }
 }
 
@@ -567,15 +546,8 @@ const
 double PRadHyCalReconstructor::EvalCluster(const BaseHit &c, const ModuleCluster &cl)
 const
 {
+    double res = cl.center->GetDetector()->GetEneRes(cl.center.ptr, c.E);
     double est = 0.;
-
-    // determine energy resolution
-    double res = 0.026;  // 2.6% for PbWO4
-    if(TEST_BIT(cl.flag, kPbGlass))
-        res = 0.065;    // 6.5% for PbGlass
-    if(TEST_BIT(cl.flag, kTransition))
-        res = 0.050;    // 5.0% for transition
-    res /= sqrt(c.E/1000.);
 
     int count = 0;
     for(auto &hit : cl.hits)
@@ -587,8 +559,7 @@ const
         ++count;
 
         double diff = hit.energy - c.E*prof.frac;
-        double dE = res*c.E;
-        double sigma2 = c.E*c.E*prof.err*prof.err + dE*dE*prof.frac*prof.frac;
+        double sigma2 = c.E*c.E*prof.err*prof.err + res*res*prof.frac*prof.frac;
 
         // log likelyhood for double exponential distribution
         est += fabs(diff)/sqrt(sigma2);
@@ -645,24 +616,6 @@ const
     return 0.;
 }
 
-// correct S shape bias in position reconstruction
-float PRadHyCalReconstructor::getPosBias(const float &dx)
-const
-{
-    // formula is
-    // dx*(dx^2 - 0.25)*(c0 + c1*dx^2 + c2*dx^4 + c3*dx^6)
-    float dx2 = dx*dx;
-    float res = 0.;
-    float fac = 1.;
-    for(auto &par : config.pos_s_pars[static_cast<size_t>(postype)])
-    {
-        res += fac*par;
-        fac *= dx2;
-    }
-
-    return dx*res*(dx2 - 0.25);
-}
-
 // reconstruct position from the temp container
 int PRadHyCalReconstructor::reconstructPos(const ModuleHit &center,
                                            BaseHit *temp, int count, BaseHit *hit)
@@ -705,10 +658,9 @@ const
     hit->y = center->GetY() + dy*center->GetSizeY();
     hit->z = center->GetZ();
 
-    // currently supports crystal modules
-    if(config.pos_s_corr && center->GetType() == PRadHyCalModule::PbWO4) {
-        hit->x += getPosBias(dx);
-        hit->y += getPosBias(dy);
+    // do density correction
+    if(config.den_corr) {
+        density.CorrectBias(center, *hit, energy);
     }
 
     return phits;

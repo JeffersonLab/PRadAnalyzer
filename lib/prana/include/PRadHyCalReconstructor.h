@@ -5,6 +5,7 @@
 #include <string>
 #include "PRadEventStruct.h"
 #include "PRadClusterProfile.h"
+#include "PRadClusterDensity.h"
 #include "ConfigParser.h"
 #include "ConfigObject.h"
 
@@ -46,12 +47,11 @@ public:
     struct Config
     {
         // general
-        bool depth_corr, leak_corr, linear_corr, pos_s_corr;
+        bool depth_corr, leak_corr, linear_corr, den_corr;
         float log_weight_thres, min_cluster_energy, min_center_energy;
         float least_leak, linear_corr_limit;
         unsigned int min_cluster_size, leak_iters;
         std::vector<float> min_module_energy;
-        std::vector<std::vector<float>> pos_s_pars;
 
         // for island
         bool corner_conn;
@@ -98,6 +98,9 @@ public:
     // profile related
     PRadClusterProfile *GetProfile() {return &profile;}
     void LoadProfile(int t, const std::string &path) {profile.Load(t, path);}
+    PRadClusterDensity *GetDensityParams() {return &density;}
+    void LoadDensityParams(int t, const std::string &path) {density.Load(t, path);}
+    void ChooseDensitySet(PRadClusterDensity::SetEnum i) {density.ChooseSet(i);}
 
     // methods information
     bool SetClusterMethod(const std::string &name);
@@ -120,7 +123,7 @@ public:
 
 protected:
     float getWeight(const float &E, const float &E0) const;
-    float getPosBias(const float &dx) const;
+    float getPosBias(const std::vector<float> &pars, const float &dx) const;
     float getShowerDepth(int module_type, const float &E) const;
     int reconstructPos(const ModuleHit &center, BaseHit *temp, int count, BaseHit *hit) const;
     int reconstructPos(const ModuleCluster &cl, BaseHit *hit) const;
@@ -133,6 +136,7 @@ protected:
 
 private:
     PRadClusterProfile profile;
+    PRadClusterDensity density;
     ClMethod cltype;
     class PRadHyCalCluster *cluster;
     PosMethod postype;

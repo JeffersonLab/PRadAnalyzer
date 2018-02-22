@@ -522,6 +522,28 @@ deque<string> ConfigParser::split(const string &str, const string &s)
     return eles;
 }
 
+// split a string and convert all parts to float numbers
+vector<float> ConfigParser::stofs(const string &str, const string &s, const string &w)
+{
+    vector<float> res;
+    for(auto &val : split(str, s))
+    {
+        res.push_back(stof(trim(val, w)));
+    }
+    return res;
+}
+
+// split a string and convert all parts to double numbers
+vector<double> ConfigParser::stods(const string &str, const string &s, const string &w)
+{
+    vector<double> res;
+    for(auto &val : split(str, s))
+    {
+        res.push_back(stod(trim(val, w)));
+    }
+    return res;
+}
+
 // get the split part at num
 string ConfigParser::get_split_part(int num, const char *str, const char &s)
 {

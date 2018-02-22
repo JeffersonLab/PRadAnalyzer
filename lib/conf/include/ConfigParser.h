@@ -167,6 +167,8 @@ public:
     static std::deque<std::string> split(const char* str, const size_t &size, const std::string &s);
     static std::string get_split_part(int num, const char *str, const char &s);
     static int get_part_count(const char *cmp, const char *str, const char &s);
+    static std::vector<float> stofs(const std::string &str, const std::string &s, const std::string &w);
+    static std::vector<double> stods(const std::string &str, const std::string &s, const std::string &w);
     static std::string str_remove(const std::string &str, const std::string &ignore);
     static std::string str_replace(const std::string &str, const std::string &ignore, const char &rc = ' ');
     static std::string str_lower(const std::string &str);

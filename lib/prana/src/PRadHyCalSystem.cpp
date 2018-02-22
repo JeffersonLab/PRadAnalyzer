@@ -185,6 +185,14 @@ void PRadHyCalSystem::Configure(const std::string &path)
             recon.LoadProfile(i, value.String());
     }
 
+    // load density parameters
+    for(int i = 0; i < static_cast<int>(PRadClusterDensity::Max_SetEnums); ++i)
+    {
+        auto value = findstr("Density Profile", PRadClusterDensity::SetEnum2str(i));
+        if(!value.IsEmpty())
+            recon.LoadDensityParams(i, value.String());
+    }
+
     // read calibration period
     std::string file_path = ConfigParser::form_path(
                             GetConfig<std::string>("Calibration Folder"),
@@ -198,18 +206,6 @@ void PRadHyCalSystem::Configure(const std::string &path)
 
     // set resolution for detector
     if(hycal) {
-        auto s2vals = [](const std::string &str)
-                      {
-                          auto vals = ConfigParser::split(str, ",");
-                          std::vector<float> res;
-                          res.reserve(vals.size());
-                          for(auto &val : vals)
-                          {
-                              res.push_back(std::stof(ConfigParser::trim(val, " \t")));
-                          }
-                          return res;
-                      };
-
         auto warn = [](int size, const std::string &str)
                     {
                         std::cout << "PRad HyCal System Warning: Expected 3 parameters "
@@ -221,7 +217,7 @@ void PRadHyCalSystem::Configure(const std::string &path)
         {
             auto type = static_cast<PRadHyCalDetector::ResRegion>(i);
             auto valstr = findstr("Energy Resolution", PRadHyCalDetector::ResRegion2str(i));
-            auto vals = s2vals(valstr);
+            auto vals = ConfigParser::stofs(valstr, ",", " \t");
             if(vals.size() == 3) {
                 hycal->SetEneRes(type, vals[0], vals[1], vals[2]);
             } else {
@@ -229,7 +225,7 @@ void PRadHyCalSystem::Configure(const std::string &path)
             }
 
             valstr = findstr("Position Resolution", PRadHyCalDetector::ResRegion2str(i));
-            vals = s2vals(valstr);
+            vals = ConfigParser::stofs(valstr, ",", " \t");
             if(vals.size() == 3) {
                 hycal->SetPosRes(type, vals[0], vals[1], vals[2]);
             } else {
@@ -582,6 +578,13 @@ void PRadHyCalSystem::UpdateRunFiles(bool verbose)
         std::cout << "PRad HyCal System: Read Run Info File "
                   << "\"" << file_path << "\""
                   << std::endl;
+    }
+
+    // choose density profile set for reconstructor
+    if(run < 1362) {
+        recon.ChooseDensitySet(PRadClusterDensity::Set_1GeV);
+    } else {
+        recon.ChooseDensitySet(PRadClusterDensity::Set_2GeV);
     }
 }
 

@@ -41,6 +41,7 @@ CXX_SOURCES   = PRadDAQChannel \
                 PRadHyCalCluster \
                 PRadHyCalReconstructor \
                 PRadClusterProfile \
+                PRadClusterDensity \
                 PRadSquareCluster \
                 PRadIslandCluster \
                 PRadGEMSystem \

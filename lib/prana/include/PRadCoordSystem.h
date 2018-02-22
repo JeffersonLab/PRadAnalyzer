@@ -199,12 +199,22 @@ public:
         return ProjectionCoordDiff(Point(t1.x, t1.y, t1.z), Point(t2.x, t2.y, t2.z), ori, proj_z);
     }
 
+    static inline float GetPolarAngle(const Point &p, const Point &O = target())
+    {
+        float z = p.z - O.z, x = p.x - O.x, y = p.y - O.y;
+        float r = sqrt(z*z + x*x + y*y);
+        return acos(z/r)*cana::rad2deg;
+    }
+
     template<class T>
     static inline float GetPolarAngle(const T &hit, const Point &O = target())
     {
-        float z = hit.z - O.z;
-        float r = sqrt(pow(z, 2) + pow(hit.x - O.x, 2) + pow(hit.y - O.y, 2));
-        return acos(z/r)*cana::rad2deg;
+        return GetPolarAngle(Point(hit.x, hit.y, hit.z), O);
+    }
+
+    static inline float GetAzimuthalAngle(const Point &p, const Point &O = target())
+    {
+        return atan2(p.y - O.y, p.x - O.x)*cana::rad2deg;
     }
 
     template<class T>

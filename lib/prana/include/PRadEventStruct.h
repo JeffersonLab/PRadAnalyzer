@@ -583,7 +583,6 @@ enum HyCalHitStatus
     kInnerBound,        // cluster near the inner hole of HyCal
     kOuterBound,        // cluster near the outer boundary of HyCal
     kLeakCorr,          // cluster with leakage correction
-    kDenCorr,           // cluster with density correction (poistion bias correction)
 };
 
 // hycal reconstructed hit
