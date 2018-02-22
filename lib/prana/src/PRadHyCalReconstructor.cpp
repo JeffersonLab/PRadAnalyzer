@@ -98,6 +98,7 @@ void PRadHyCalReconstructor::Configure(const std::string &path)
     CONF_CONN(config.leak_corr, "Leakage Correction", true, verbose);
     CONF_CONN(config.linear_corr, "Non Linearity Correction", true, verbose);
     CONF_CONN(config.den_corr, "Density Correction", false, verbose);
+    CONF_CONN(config.sene_corr, "S-shape Energy Correction", false, verbose);
 
     CONF_CONN(config.log_weight_thres, "Log Weight Threshold", 3.6, verbose);
     CONF_CONN(config.min_cluster_energy, "Minimum Cluster Energy", 50., verbose);
@@ -434,9 +435,11 @@ const
     hycal_hit.z += getShowerDepth(cluster.center->GetType(), cluster.energy);
 
     // add resolution information
-    auto detector = cluster.center->GetDetector();
-    hycal_hit.sig_ene = detector->GetEneRes(cluster.center.ptr, hycal_hit.E);
-    hycal_hit.sig_pos = detector->GetPosRes(cluster.center.ptr, hycal_hit.E);
+    hycal_hit.sig_ene = cluster.center->GetEneRes(hycal_hit.E);
+    hycal_hit.sig_pos = cluster.center->GetPosRes(hycal_hit.E);
+
+    // position density correction and energy S shape correction
+    density.CorrectBias(cluster.center, hycal_hit, config.den_corr, config.sene_corr);
 
     return hycal_hit;
 }
@@ -546,7 +549,7 @@ const
 double PRadHyCalReconstructor::EvalCluster(const BaseHit &c, const ModuleCluster &cl)
 const
 {
-    double res = cl.center->GetDetector()->GetEneRes(cl.center.ptr, c.E);
+    double res = cl.center->GetEneRes(c.E);
     double est = 0.;
 
     int count = 0;
@@ -658,11 +661,6 @@ const
     hit->y = center->GetY() + dy*center->GetSizeY();
     hit->z = center->GetZ();
 
-    // do density correction
-    if(config.den_corr) {
-        density.CorrectBias(center, *hit, energy);
-    }
-
     return phits;
 }
 
@@ -694,7 +692,7 @@ const
         }
 
         double dx, dy;
-        center->GetDetector()->QuantizedDist(center.ptr, hit.ptr, dx, dy);
+        center->QuantizedDist(hit.ptr, dx, dy);
         if(std::abs(dx) < 1.01 && std::abs(dy) < 1.01) {
             temp[count].x = dx;
             temp[count].y = dy;
@@ -712,7 +710,7 @@ typedef PRadClusterProfile::Value ProfVal;
 ProfVal PRadHyCalReconstructor::getProf(const ModuleHit &c, const ModuleHit &hit)
 const
 {
-    double dist = c->GetDetector()->QuantizedDist(c.ptr, hit.ptr);
+    double dist = c->QuantizedDist(hit.ptr);
     // magic number 0.78, the center module contains about 78% of the total energy
     return profile.Get(c->GetType(), dist, c.energy/0.78);
 }

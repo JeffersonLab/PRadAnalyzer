@@ -188,9 +188,10 @@ void PRadHyCalSystem::Configure(const std::string &path)
     // load density parameters
     for(int i = 0; i < static_cast<int>(PRadClusterDensity::Max_SetEnums); ++i)
     {
-        auto value = findstr("Density Profile", PRadClusterDensity::SetEnum2str(i));
-        if(!value.IsEmpty())
-            recon.LoadDensityParams(i, value.String());
+        std::string set_name = PRadClusterDensity::SetEnum2str(i);
+        auto value1 = findstr("Density Profile", set_name);
+        auto value2 = findstr("S-Shape Energy Profile", set_name);
+        recon.LoadDensityParams(i, value1.String(), value2.String());
     }
 
     // read calibration period

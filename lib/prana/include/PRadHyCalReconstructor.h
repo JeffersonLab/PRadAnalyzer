@@ -47,7 +47,7 @@ public:
     struct Config
     {
         // general
-        bool depth_corr, leak_corr, linear_corr, den_corr;
+        bool depth_corr, leak_corr, linear_corr, den_corr, sene_corr;
         float log_weight_thres, min_cluster_energy, min_center_energy;
         float least_leak, linear_corr_limit;
         unsigned int min_cluster_size, leak_iters;
@@ -99,7 +99,8 @@ public:
     PRadClusterProfile *GetProfile() {return &profile;}
     void LoadProfile(int t, const std::string &path) {profile.Load(t, path);}
     PRadClusterDensity *GetDensityParams() {return &density;}
-    void LoadDensityParams(int t, const std::string &path) {density.Load(t, path);}
+    void LoadDensityParams(int t, const std::string &p_path, const std::string &e_path)
+    {density.Load(t, p_path, e_path);}
     void ChooseDensitySet(PRadClusterDensity::SetEnum i) {density.ChooseSet(i);}
 
     // methods information

@@ -30,15 +30,9 @@ PRadClusterDensity::~PRadClusterDensity()
     // place holder
 }
 
-bool PRadClusterDensity::Load(int is, const std::string &path, float wthres)
+// load parameters
+bool PRadClusterDensity::Load(int is, const std::string &p_path, const std::string &e_path)
 {
-    ConfigParser c_parser;
-    if(!c_parser.ReadFile(path)) {
-        std::cerr << "PRad Cluster Density Error: Cannot open data file "
-                  << "\"" << path << "\"." << std::endl;
-        return false;
-    }
-
     if(is < 0 || is >= static_cast<int>(Max_SetEnums)) {
         std::cerr << "PRad Cluster Density Error: Invalid parameter set enum = " << is
                   << ", skip reading parameters." << std::endl;
@@ -47,93 +41,81 @@ bool PRadClusterDensity::Load(int is, const std::string &path, float wthres)
 
     auto &pset = psets[is];
 
-    // configuration object
-    ConfigObject conf_obj;
-    std::string label;
-
-    // read configuration
-    while(c_parser.ParseLine())
-    {
-        // name
-        c_parser >> label;
-        // param start label
-        if(label == "params")
-            break;
-
-        // configuration strings before the param label
-        conf_obj.ReadConfigString(c_parser.CurrentLine());
-    }
-
-    // configurate pset
-    pset.beam_energy = conf_obj.GetConfig<float>("Beam Energy");
-    auto rangestr = conf_obj.GetConfig<std::string>("Energy Range");
-    pset.energy_range = ConfigParser::stofs(rangestr, ",", " \t");
-    int n_pars = conf_obj.GetConfig<int>("Number Of Params");
-    int n_geo = conf_obj.GetConfig<int>("Geometry Groups");
-    int n_ene = conf_obj.GetConfig<int>("Energy Groups");
-
-    // sanity check, (range size - 1) + ep + Moller
-    if(n_ene != static_cast<int>(pset.energy_range.size()) + 1) {
-        std::cerr << "PRad HyCal Density Error: Unmatched energy range setting and "
-                  << "number of energy groups in file "
-                  << "\"" << path << "\"." << std::endl;
+    // position density part
+    ConfigParser c_parser;
+    if(!c_parser.ReadFile(p_path)) {
+        std::cerr << "PRad Cluster Density Error: Cannot open data file "
+                  << "\"" << p_path << "\"." << std::endl;
         return false;
     }
 
-    pset.Resize(n_geo, n_ene, n_pars);
+    bool pos_success = processPosPars(c_parser, pset);
 
-    float *pars;
-    size_t index = 0, size = pset.pars.size();
-    while(c_parser.ParseLine() && index < 2*size)
-    {
-        if(c_parser.NbofElements() < n_pars + 1)
-            continue;
-
-        c_parser >> label;
-
-        if(index < size) {
-            pars = &pset.pars[index].x[0];
-        } else {
-            pars = &pset.pars[index - size].y[0];
-        }
-
-        for(int i = 0; i < n_pars; ++i)
-        {
-            c_parser >> pars[i];
-        }
-
-        index ++;
+    // energy density part
+    if(!c_parser.ReadFile(e_path)) {
+        std::cerr << "PRad Cluster Density Error: Cannot open data file "
+                  << "\"" << e_path << "\"." << std::endl;
+        return false;
     }
 
-    return true;
+    bool ene_success = processEnePars(c_parser, pset);
+
+    return pos_success&ene_success;
 }
 
 // correct S shape position reconstruction
-bool PRadClusterDensity::CorrectBias(const ModuleHit &ctr, BaseHit &hit, float energy)
+void PRadClusterDensity::CorrectBias(const ModuleHit &ctr, HyCalHit &hit, bool pos_corr, bool ene_corr)
 const
 {
-    // geometrical index
-    int ig = getGeometryIndex(ctr);
-    float angle = PRadCoordSystem::GetPolarAngle(Point(hit.x, hit.y, PRadCoordSystem::hycal_z()));
-    float res = ctr->GetDetector()->GetEneRes(ctr.ptr, energy);
+    if(!pos_corr && !ene_corr) return;
 
-    // energy index
-    int ie = getEnergyIndex(energy, angle*cana::deg2rad, 6.*res);
-
-    auto &pars = psets[static_cast<int>(cur_set)].pars;
-    int idx = ie + ig*5;
-    if(ie < 0 || ig < 0 || idx >= (int)pars.size()) {
-        std::cerr << "PRad Cluster Density Error: Cannot find corresponding parameters." << std::endl;
-        return false;
-    }
-
+    // required infromation
+    auto &pset = psets[static_cast<int>(cur_set)];
     float dx = (hit.x - ctr->GetX())/ctr->GetSizeX();
     float dy = (hit.y - ctr->GetY())/ctr->GetSizeY();
 
-    hit.x += GetPosBias(pars[idx].x, dx)*ctr->GetSizeX();
-    hit.y += GetPosBias(pars[idx].y, dy)*ctr->GetSizeY();
+    // energy index
+    float angle = PRadCoordSystem::GetPolarAngle(Point(hit.x, hit.y, PRadCoordSystem::hycal_z() + hit.z));
+    int ie = getEnergyIndex(hit.E, angle*cana::deg2rad, 6.*hit.sig_ene);
 
-    return true;
+    // energy correction
+    if(ene_corr && !TEST_BIT(hit.flag, kSEneCorr)) {
+        int ep_set = pset.energy_range.size() - 1;
+        int ee_set = ep_set + 1;
+
+        // ep index
+        if(ie == ep_set) {
+            auto pit = pset.epars_ep.find(ctr.id);
+            if(pit != pset.epars_ep.end()) {
+                hit.E_Scorr = GetEneBias(pit->second.x, dx, dy, hit.E);
+                SET_BIT(hit.flag, kSEneCorr);
+                hit.E += hit.E_Scorr;
+            }
+        // ee index
+        } else if(ie == ee_set) {
+            auto pit = pset.epars_ee.find(ctr.id);
+            if(pit != pset.epars_ee.end()) {
+                hit.E_Scorr = GetEneBias(pit->second.x, dx, dy, hit.E);
+                SET_BIT(hit.flag, kSEneCorr);
+                hit.E += hit.E_Scorr;
+            }
+        }
+    }
+
+    // position correction
+    if(pos_corr && !TEST_BIT(hit.flag, kDenCorr)) {
+        // geometrical index
+        int ig = getGeometryIndex(ctr);
+        int idx = ie + ig*5;
+        if(ie >= 0 && ig >= 0 && idx < (int) pset.ppars.size()) {
+            auto &pars = pset.ppars[idx];
+            hit.x += GetPosBias(pars.x, dx)*ctr->GetSizeX();
+            hit.y += GetPosBias(pars.y, dy)*ctr->GetSizeY();
+            SET_BIT(hit.flag, kDenCorr);
+        }
+    }
+
+    return;
 }
 
 // get S shape bias in position reconstruction
@@ -144,6 +126,18 @@ const
     // dx*(dx^2 - 0.25)*c0*(dx^4 + c1*dx^2 + c2)*(dx^2 - c3)
     float dx2 = dx*dx, dx4 = dx2*dx2;
     return dx*(dx2 - 0.25)*pars[0]*(dx4 + pars[1]*dx2 + pars[2])*(dx2 - pars[3]);
+}
+
+float PRadClusterDensity::GetEneBias(const std::vector<float> &pars, const float &dx,
+                                     const float &dy, const float &E0)
+const
+{
+    // formula is
+    // E_0/c0 /(1 + c1*dx^2 + c2*dy^2 + c3*dx^2*dy^2 + c4*dx^4 + c5*dy^4 + c6*dx + c7 * dy)
+    float dx2 = dx*dx, dx4 = dx2*dx2;
+    float dy2 = dy*dy, dy4 = dy2*dy2;
+    return E0/pars[0]/(1. + pars[1]*dx2 + pars[2]*dy2 + pars[3]*dx2*dy2
+                       + pars[4]*dx4 + pars[5]*dy4 + pars[6]*dx + pars[7]*dy);
 }
 
 // helper function, determine Moller event energy
@@ -211,3 +205,106 @@ const
     // error
     return -1;
 }
+
+// helper function to process position density file
+bool PRadClusterDensity::processPosPars(ConfigParser &c_parser, ParamsSet &pset)
+{
+    // configuration object
+    ConfigObject conf_obj;
+    std::string label;
+
+    // read configuration
+    while(c_parser.ParseLine())
+    {
+        // name
+        c_parser >> label;
+        // param start label
+        if(label == "params")
+            break;
+
+        // configuration strings before the param label
+        conf_obj.ReadConfigString(c_parser.CurrentLine());
+    }
+
+    // configurate pset
+    pset.beam_energy = conf_obj.GetConfig<float>("Beam Energy");
+    auto rangestr = conf_obj.GetConfig<std::string>("Energy Range");
+    pset.energy_range = ConfigParser::stofs(rangestr, ",", " \t");
+    int n_pars = conf_obj.GetConfig<int>("Number Of Params");
+    int n_geo = conf_obj.GetConfig<int>("Geometry Groups");
+    int n_ene = conf_obj.GetConfig<int>("Energy Groups");
+
+    // sanity check, (range size - 1) + ep + Moller
+    if(n_ene != static_cast<int>(pset.energy_range.size()) + 1) {
+        std::cerr << "PRad HyCal Density Error: Unmatched energy range setting and "
+                  << "number of energy groups in position parameter file."
+                  << std::endl;
+        return false;
+    }
+
+    pset.Resize(n_geo, n_ene, n_pars);
+
+    // read parameters for position density
+    float *pars;
+    size_t index = 0, size = pset.ppars.size();
+    while(c_parser.ParseLine() && index < 2*size)
+    {
+        c_parser >> label;
+
+        if(index < size) {
+            pars = &pset.ppars[index].x[0];
+        } else {
+            pars = &pset.ppars[index - size].y[0];
+        }
+
+        for(int i = 0; i < n_pars; ++i)
+        {
+            c_parser >> pars[i];
+        }
+
+        index ++;
+    }
+
+    return true;
+}
+
+// helper function to process energy density file
+bool PRadClusterDensity::processEnePars(ConfigParser &c_parser, ParamsSet &pset)
+{
+    bool ep_or_ee = true;
+
+    std::string name;
+    Params par;
+    // number of parameters required for energy correction
+    par.x.resize(NB_ECORR_PARS, 0.);
+    while(c_parser.ParseLine())
+    {
+        // check labels
+        c_parser >> name;
+        if(name == "EE_PARAMS") {
+            ep_or_ee = false;
+            continue;
+        } if(name == "EP_PARAMS") {
+            ep_or_ee = true;
+            continue;
+        }
+
+        // read parameters
+        for(int i = 0; i < NB_ECORR_PARS; ++i)
+        {
+            c_parser >> par.x[i];
+        }
+
+        // set map
+        int id = PRadHyCalModule::name_to_id(name);
+
+        if(ep_or_ee) {
+            pset.epars_ep[id] = par;
+        } else {
+            pset.epars_ee[id] = par;
+        }
+    }
+
+    return true;
+}
+

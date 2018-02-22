@@ -583,6 +583,8 @@ enum HyCalHitStatus
     kInnerBound,        // cluster near the inner hole of HyCal
     kOuterBound,        // cluster near the outer boundary of HyCal
     kLeakCorr,          // cluster with leakage correction
+    kDenCorr,           // cluster with density correction (for position bias)
+    kSEneCorr,          // cluster with S shape energy correction (for energy bias)
 };
 
 // hycal reconstructed hit
@@ -598,20 +600,21 @@ public:
     int16_t cid;            // Cluster's central cell ID
     float E_leak;           // Leakage correction on energy (MeV)
     float lin_corr;         // Non Linearity factor for energy correction E_f = E_i*lin_corr
+    float E_Scorr;          // S-shape correction on energy (MeV)
     float sig_ene;          // energy resolution
     float sig_pos;          // position resolution
     uint16_t time[TIME_MEASURE_SIZE];      // time information from central TDC group
 
     HyCalHit()
-    : flag(0), type(0), status(0), nblocks(0), npos(0), cid(0), E_leak(0.), lin_corr(1.),
-      sig_ene(0.), sig_pos(0.)
+    : flag(0), type(0), status(0), nblocks(0), npos(0), cid(0), E_leak(0.),
+      lin_corr(1.), E_Scorr(0.), sig_ene(0.), sig_pos(0.)
     {
         clear_time();
     }
 
     HyCalHit(int16_t id, uint32_t f, float ene, float leak)
     : BaseHit(0., 0., 0., ene), flag(f), type(0), status(0), nblocks(0), npos(0),
-      cid(id), E_leak(leak), lin_corr(1.), sig_ene(0.), sig_pos(0.)
+      cid(id), E_leak(leak), lin_corr(1.), E_Scorr(0.), sig_ene(0.), sig_pos(0.)
     {
         clear_time();
     }

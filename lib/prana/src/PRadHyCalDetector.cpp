@@ -602,7 +602,7 @@ const
     return energy;
 }
 
-PRadHyCalDetector::ResRegion PRadHyCalDetector::GetResRegion(PRadHyCalModule *c)
+PRadHyCalDetector::ResRegion PRadHyCalDetector::GetResRegion(const PRadHyCalModule *c)
 const
 {
     if(TEST_BIT(c->GetLayoutFlag(), kTransition)) {
@@ -621,7 +621,7 @@ const
 }
 
 // input/output in the unit of MeV
-double PRadHyCalDetector::GetEneRes(PRadHyCalModule *c, double E)
+double PRadHyCalDetector::GetEneRes(const PRadHyCalModule *c, double E)
 const
 {
     return GetEneRes(GetResRegion(c), E);
@@ -637,7 +637,7 @@ const
 }
 
 // input/output in the unit of MeV/mm
-double PRadHyCalDetector::GetPosRes(PRadHyCalModule *c, double E)
+double PRadHyCalDetector::GetPosRes(const PRadHyCalModule *c, double E)
 const
 {
     return GetPosRes(GetResRegion(c), E);

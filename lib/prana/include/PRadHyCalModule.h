@@ -25,12 +25,9 @@ public:
 
     enum Type
     {
-        // undefined
         Undefined_Type = -1,
-        // normal types
-        PbGlass = 0,
-        PbWO4 = 1,
-        // max number of types
+        PbGlass = 0,            // lead glass module
+        PbWO4 = 1,              // crystal module
         Max_Types,
     };
     // macro in ConfigParser.h
@@ -131,6 +128,10 @@ public:
     double GetReferenceGain(int ref) const {return cal_const.GetRefGain(ref);}
     double GetTriggerEfficiency(double energy) const {return trg_const.GetTriggerEfficiency(energy);}
     PRadTDCChannel *GetTDC() const;
+    double QuantizedDist(PRadHyCalModule *m) const;
+    void QuantizedDist(PRadHyCalModule *m, double &dx, double &dy) const;
+    double GetEneRes(double energy) const;
+    double GetPosRes(double energy) const;
 
     // compare operator
     bool operator < (const PRadHyCalModule &rhs) const
@@ -140,7 +141,8 @@ public:
 
 public:
     // static functions
-    static int name_to_primex_id(const std::string &name);
+    static int name_to_id(const std::string &name);
+    static std::string id_to_name(int id);
     static double distance(const PRadHyCalModule &m1, const PRadHyCalModule &m2);
 
 protected:
@@ -156,4 +158,5 @@ protected:
 };
 
 std::ostream &operator <<(std::ostream &os, const PRadHyCalModule &m);
-#endif
+
+#endif // PRAD_HYCAL_MODULE_H

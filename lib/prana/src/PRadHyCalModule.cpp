@@ -26,18 +26,13 @@ PRadHyCalModule::PRadHyCalModule(const std::string &n,
                                  PRadHyCalDetector *det)
 : detector(det), daq_ch(nullptr), name(n), geometry(geo)
 {
-    id = name_to_primex_id(n);
+    id = name_to_id(n);
 }
 
 PRadHyCalModule::PRadHyCalModule(int pid, const Geometry &geo, PRadHyCalDetector *det)
 : detector(det), daq_ch(nullptr), id(pid), geometry(geo)
 {
-    if(geo.type == PbGlass)
-        name = "G";
-    if(geo.type == PbWO4)
-        name = "W";
-
-    name += std::to_string(id);
+    name = id_to_name(id);
 }
 
 // copy constructor
@@ -226,12 +221,40 @@ const
     return false;
 }
 
+double PRadHyCalModule::QuantizedDist(PRadHyCalModule *m)
+const
+{
+    if(!detector) return -1.;
+    return detector->QuantizedDist(this, m);
+}
+
+void PRadHyCalModule::QuantizedDist(PRadHyCalModule *m, double &dx, double &dy)
+const
+{
+    if(detector)
+        detector->QuantizedDist(this, m, dx, dy);
+}
+
+double PRadHyCalModule::GetEneRes(double energy)
+const
+{
+    if(!detector) return 0.;
+    return detector->GetEneRes(detector->GetResRegion(this), energy);
+}
+
+double PRadHyCalModule::GetPosRes(double energy)
+const
+{
+    if(!detector) return 0.;
+    return detector->GetPosRes(detector->GetResRegion(this), energy);
+}
+
 //============================================================================//
 // Public Static Member Functions                                             //
 //============================================================================//
 
 // convert name to primex id, it is highly specific for HyCal setup
-int PRadHyCalModule::name_to_primex_id(const std::string &name)
+int PRadHyCalModule::name_to_id(const std::string &name)
 {
     try {
         // lead tungstate module
@@ -247,8 +270,22 @@ int PRadHyCalModule::name_to_primex_id(const std::string &name)
     }
 
     // unknown module
-    std::cerr << "Cannot auto determine id from mdoule" << name << std::endl;
+    std::cerr << "Cannot auto determine id from mdoule " << name << std::endl;
     return -1;
+}
+
+std::string PRadHyCalModule::id_to_name(int id)
+{
+    // HyCal module id range
+    if(id < 0 || id > 2156) {
+        return "VIRTUAL";
+    }
+
+    if(id >= PWO_ID0) {
+        return "W" + std::to_string(id - PWO_ID0);
+    } else {
+        return "G" + std::to_string(id);
+    }
 }
 
 double PRadHyCalModule::distance(const PRadHyCalModule &m1, const PRadHyCalModule &m2)

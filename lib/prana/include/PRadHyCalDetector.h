@@ -163,10 +163,10 @@ public:
 
     // resolution related
     // inpput energy should be MeV
-    ResRegion GetResRegion(PRadHyCalModule *c) const;
-    double GetEneRes(PRadHyCalModule *c, double E) const;
+    ResRegion GetResRegion(const PRadHyCalModule *c) const;
+    double GetEneRes(const PRadHyCalModule *c, double E) const;
     double GetEneRes(ResRegion, double E) const;
-    double GetPosRes(PRadHyCalModule *c, double E) const;
+    double GetPosRes(const PRadHyCalModule *c, double E) const;
     double GetPosRes(ResRegion, double E) const;
     bool SetEneRes(ResRegion, double a, double b, double c);
     bool SetPosRes(ResRegion, double a, double b, double c);

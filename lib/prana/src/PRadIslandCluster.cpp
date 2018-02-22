@@ -276,7 +276,7 @@ const
 
                 // using 3x3 to reconstruct hit position
                 double dx, dy;
-                center->GetDetector()->QuantizedDist(center.ptr, hit.ptr, dx, dy);
+                center->QuantizedDist(hit.ptr, dx, dy);
                 if(std::abs(dx) < 1.01 && std::abs(dy) < 1.01) {
                     temp[count].x = dx;
                     temp[count].y = dy;

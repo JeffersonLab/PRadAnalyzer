@@ -2,8 +2,8 @@
 number_of_params = 4
 geometry_groups = 112
 energy_groups = 5
-beam_energy = 1097
-energy_range = 0, 250, 750, 1500
+beam_energy = 2142
+energy_range = 0, 500, 1500, 2500
 # data
 params
 hx2_0_0    -6.69e+02  -3.33e-01  2.42e-02   1.08e-01   9.75e-01
