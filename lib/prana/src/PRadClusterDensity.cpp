@@ -136,11 +136,11 @@ float PRadClusterDensity::GetEneBias(const std::vector<float> &pars, const float
 const
 {
     // formula is
-    // E_0/c0 /(1 + c1*dx^2 + c2*dy^2 + c3*dx^2*dy^2 + c4*dx^4 + c5*dy^4 + c6*dx + c7 * dy)
+    // E0/c0/(1 + c1*dx^2 + c2*dy^2 + c3*dx^2*dy^2 + c4*dx^4 + c5*dy^4 + c6*dx + c7 * dy) - E0
     float dx2 = dx*dx, dx4 = dx2*dx2;
     float dy2 = dy*dy, dy4 = dy2*dy2;
-    return E0/pars[0]/(1. + pars[1]*dx2 + pars[2]*dy2 + pars[3]*dx2*dy2
-                       + pars[4]*dx4 + pars[5]*dy4 + pars[6]*dx + pars[7]*dy);
+    return E0*(1./pars[0]/(1. + pars[1]*dx2 + pars[2]*dy2 + pars[3]*dx2*dy2
+                       + pars[4]*dx4 + pars[5]*dy4 + pars[6]*dx + pars[7]*dy) - 1.);
 }
 
 // helper function, determine Moller event energy
