@@ -65,6 +65,23 @@ const
     }
 }
 
+
+// recursive function for the DFS grouping
+void dfs_group(std::vector<ModuleHit*> &container, int idx,
+               std::vector<ModuleHit> &hits, std::vector<bool> &visits,
+               bool corner)
+{
+    auto &hit = hits[idx];
+    container.push_back(&hit);
+    visits[idx] = true;
+    for(size_t i = 0; i < hits.size(); ++i)
+    {
+        if(visits[i] || ! hit->IsNeighbor(hits[i].id, corner))
+                continue;
+        dfs_group(container, i, hits, visits, corner);
+    }
+}
+
 // group adjacent hits into raw clusters
 // list is suitable for the merge process, but it has poor performance while loop
 // over all the elements, the test with real data prefers vector as container
@@ -72,66 +89,21 @@ void PRadIslandCluster::groupHits(std::vector<ModuleHit> &hits,
                                   std::vector<std::vector<ModuleHit*>> &groups)
 const
 {
-    // roughly combine all adjacent hits
-    for(auto &hit : hits)
+    std::vector<bool> visits(hits.size(), false);
+    for(size_t i = 0; i < hits.size(); ++i)
     {
-        // not belong to any existing cluster
-        if(!fillClusters(hit, groups)) {
-            std::vector<ModuleHit*> new_group;
-            new_group.reserve(50);
-            new_group.push_back(&hit);
-            groups.emplace_back(std::move(new_group));
-        }
+        if(visits[i] || (hits[i].energy > rec->config.min_cluster_energy))
+            continue;
+
+        // found a new group
+        std::vector<ModuleHit*> new_group;
+        new_group.reserve(50);
+        // group all the possible hits
+        dfs_group(new_group, i, hits, visits, rec->config.corner_conn);
+        // save this group
+        groups.emplace_back(std::move(new_group));
     }
 
-    // merge adjacent groups
-
-    for(auto it = groups.begin(); it != groups.end(); ++it)
-    {
-        auto it_next = it;
-        while(++it_next != groups.end())
-        {
-            if(checkAdjacent(*it, *it_next)) {
-                it_next->insert(it_next->end(), it->begin(), it->end());
-                groups.erase(it--);
-                break;
-            }
-        }
-    }
-}
-
-bool PRadIslandCluster::fillClusters(ModuleHit &hit,
-                                     std::vector<std::vector<ModuleHit*>> &groups)
-const
-{
-    for(auto &group : groups)
-    {
-        for(auto &prev_hit : group)
-        {
-            // it belongs to a existing cluster
-            if(hit->IsNeighbor(prev_hit->id, rec->config.corner_conn)) {
-                group.push_back(&hit);
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-inline bool PRadIslandCluster::checkAdjacent(const std::vector<ModuleHit*> &g1,
-                                             const std::vector<ModuleHit*> &g2)
-const
-{
-    for(auto &m1 : g1)
-    {
-        for(auto &m2 : g2)
-        {
-            if((*m1)->IsNeighbor(m2->id, rec->config.corner_conn)) return true;
-        }
-    }
-
-    return false;
 }
 
 // split one group into several clusters
