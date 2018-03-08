@@ -27,7 +27,7 @@
 #include <QLabel>
 
 #define COORD_ITEMS 6
-#define MATCH_ITEMS 6
+#define MATCH_ITEMS 2
 
 ReconSettingPanel::ReconSettingPanel(QWidget *parent)
 : QDialog(parent), hycal(nullptr), gem(nullptr), coordSystem(nullptr), detMatch(nullptr)
@@ -200,9 +200,7 @@ QGroupBox *ReconSettingPanel::createMatchGroup()
     // the label name should be the same as configuration element name
     // it will be used to retrieve and set the configuration value
     QStringList matchDescript;
-    matchDescript << "Lead Glass Resolution" << "Transition Resolution"
-                  << "Crystal Resolution" << "Match Factor"
-                  << "GEM Resolution" << "GEM Overlap Factor";
+    matchDescript << "Match Factor" << "GEM Overlap Factor";
 
     for(size_t i = 0; i < matchConfBox.size(); ++i)
     {
