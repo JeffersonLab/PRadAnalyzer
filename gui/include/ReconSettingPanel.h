@@ -84,6 +84,8 @@ private:
     QSpinBox *gemMinHits;
     QLabel *gemMaxLabel;
     QSpinBox *gemMaxHits;
+    QLabel *gemConseLabel;
+    QSpinBox *gemConse;
     QLabel *gemSplitLabel;
     QDoubleSpinBox *gemSplitThres;
 

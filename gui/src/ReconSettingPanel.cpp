@@ -123,10 +123,15 @@ QGroupBox *ReconSettingPanel::createGEMGroup()
     gemSplitThres->setRange(1., 1000.);
     gemSplitThres->setSingleStep(0.1);
 
+    gemConseLabel = new QLabel("Consecutive Threshold");
+    gemConse = new QSpinBox;
+    gemConse->setRange(1, 15);
+
     QFormLayout *layout = new QFormLayout;
     layout->addRow(gemMinLabel, gemMinHits);
     layout->addRow(gemMaxLabel, gemMaxHits);
     layout->addRow(gemSplitLabel, gemSplitThres);
+    layout->addRow(gemConseLabel, gemConse);
 
     gemGroup->setLayout(layout);
 

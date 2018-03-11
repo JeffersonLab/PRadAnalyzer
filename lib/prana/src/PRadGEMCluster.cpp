@@ -44,6 +44,7 @@ void PRadGEMCluster::Configure(const std::string &path)
     CONF_CONN(max_cluster_hits, "Max Cluster Hits", 20, verbose);
     CONF_CONN(split_cluster_diff, "Split Threshold", 14, verbose);
     CONF_CONN(cross_talk_width, "Cross Talk Width", 2, verbose);
+    CONF_CONN(consecutive_thres, "Consecutive Threshold", 1, verbose);
 
     // get cross talk characteristic distance
     charac_dists.clear();
@@ -62,15 +63,65 @@ const
     // group consecutive hits as the preliminary clusters
     groupHits(hits, clusters);
 
-    // split the clusters that may contain multiple physical hits
-    splitCluster(clusters);
-
     // reconstruct the cluster position
-    reconstructCluster(clusters);
+    for(auto &cluster : clusters)
+    {
+        reconstructCluster(cluster);
+    }
 
-    // remove the clusters that does not pass certain criteria
-    filterCluster(clusters);
+    // set cross talk flag
+    setCrossTalk(clusters);
 }
+
+typedef std::vector<StripHit>::iterator SHit;
+void cluster_hits(SHit beg, SHit end, double thres, std::vector<StripCluster> &clusters)
+{
+    auto size = end - beg;
+    if(size < 3) {
+        clusters.emplace_back(std::vector<StripHit>(beg, end));
+        return;
+    }
+
+    // find the first local minimum
+    bool descending = false, extremum = false;
+    auto minimum = beg;
+    auto it_n = beg + 1;
+    for(auto it = beg; it != end; ++it, ++it_n)
+    {
+        if(descending) {
+            // update minimum
+            if(it->charge < minimum->charge)
+                minimum = it;
+
+            // transcending trend, confirm a local minimum (valley)
+            if(it_n->charge - it->charge > thres) {
+                extremum = true;
+                // only needs the first local minimum, thus exit the loop
+                break;
+            }
+        } else {
+            // descending trend, expect a local minimum
+            if(it->charge - it_n->charge > thres) {
+                descending = true;
+                minimum = it_n;
+            }
+        }
+    }
+
+    if(extremum) {
+        // half the charge of overlap strip
+        minimum->charge /= 2.;
+
+        // new split cluster
+        clusters.emplace_back(std::vector<StripHit>(beg, minimum));
+
+        // check the leftover strips
+        cluster_hits(minimum, end, thres, clusters);
+    } else {
+        clusters.emplace_back(std::vector<StripHit>(beg, end));
+    }
+}
+
 
 // used for separate hits of overlapped APVs
 #define IS_FROM_APV_SET1(hit) ( ((hit).apv_addr == APVAddress(1, 8)) || \
@@ -97,14 +148,15 @@ const
 
         // end of list, group the last cluster
         if(next == hits.end()) {
-            clusters.emplace_back(std::vector<StripHit>(cluster_begin, next));
+            cluster_hits(cluster_begin, next, split_cluster_diff, clusters);
             break;
         }
 
         // recursively group hits for overlapped APVs
-        if(next->strip == it->strip)
-        {
+        if(next->strip == it->strip) {
             std::vector<StripHit> dup1, dup2;
+            dup1.reserve(hits.size());
+            dup2.reserve(hits.size());
 
             // duplicate shared strips but halve the charge
             for(auto itd = cluster_begin; itd != it; ++itd)
@@ -117,6 +169,7 @@ const
             }
 
             // dispatch the rest strips by APV address
+            // duplicating always occurs at the end
             for(auto itd = it; itd != hits.end(); ++itd)
             {
                 if(IS_FROM_APV_SET1(*itd))
@@ -132,132 +185,41 @@ const
             break; // finished all grouping, break out the entire loop
 
         // not consecutive, create a new cluster
-        } else if(next->strip - it->strip > 1) {
-            clusters.emplace_back(std::vector<StripHit>(cluster_begin, next));
+        } else if(next->strip - it->strip > (int)consecutive_thres) {
+            cluster_hits(cluster_begin, next, split_cluster_diff, clusters);
             cluster_begin = next;
         }
     }
 }
 
-// split cluster at valley
-void PRadGEMCluster::splitCluster(std::vector<StripCluster> &clusters)
-const
+// helper function to check cross talk strips
+inline bool is_pure_ct(const StripCluster &cl)
 {
-    // We are trying to find the valley that satisfies certain critieria,
-    // i.e., less than a sigma comparing to neighbor strips on both sides.
-    // Such valley probably means two clusters are grouped together, so it
-    // will be separated, and each gets 1/2 of the charge from the overlap
-    // strip.
-
-    // loop over the cluster list
-    // since the vector size is changing, it cannot use iterator
-    for(size_t i = 0; i < clusters.size(); ++i)
+    for(auto &hit : cl.hits)
     {
-        // no need to do separation if less than 3 hits
-        if(clusters[i].hits.size() < 3)
-            continue;
-
-        // new cluster for the latter part after split
-        StripCluster split_cluster;
-
-        // insert the splited cluster if there is one
-        if(splitCluster_sub(clusters[i], split_cluster)) {
-            // insert keeps the original order, but has a worse performance
-            clusters.insert(clusters.begin()+i+1, split_cluster);
-        }
+        // still has non-cross-talk strips
+        if(!hit.cross_talk)
+            return false;
     }
+
+    // pure cross talk strips
+    return true;
 }
 
-// This function helps splitCluster
-// It finds the FIRST local minimum, separate the cluster at its position
-// The charge at local minimum strip will be halved, and kept for both original
-// and split clusters.
-// It returns true if a cluster is split, and vice versa
-// The split part of the original cluster c will be removed, and filled in c1
-bool PRadGEMCluster::splitCluster_sub(StripCluster &c, StripCluster &c1)
-const
+// helper function to check cross talk characteristic distance
+typedef std::vector<StripCluster>::iterator SCit;
+inline bool ct_distance(SCit it, SCit beg, SCit end, float width, const std::vector<float> &charac)
 {
-    // we use 2 consecutive iterator
-    auto it = c.hits.begin();
-    auto it_next = it + 1;
-
-    // loop to find the local minimum
-    bool descending = false, extremum = false;
-    auto minimum = it;
-    for(; it_next != c.hits.end(); ++it, ++it_next)
-    {
-        if(descending) {
-            // update minimum
-            if(it->charge < minimum->charge)
-                minimum = it;
-
-            // transcending trend, confirm a local minimum (valley)
-            if(it_next->charge - it->charge > split_cluster_diff) {
-                extremum = true;
-                // only needs the first local minimum, thus exit the loop
-                break;
-            }
-        } else {
-            // descending trend, expect a local minimum
-            if(it->charge - it_next->charge > split_cluster_diff) {
-                descending = true;
-                minimum = it_next;
-            }
-        }
-    }
-
-    if(extremum) {
-        // half the charge of overlap strip
-        minimum->charge /= 2.;
-
-        // new split cluster
-        c1 = StripCluster(std::vector<StripHit>(minimum, c.hits.end()));
-
-        // remove the hits that are moved into new cluster, but keep the minimum
-        c.hits.erase(std::next(minimum, 1), c.hits.end());
-    }
-
-    return extremum;
-}
-
-// filter out bad clusters
-#define MAX_CLUSTER_WIDTH 2.0
-void PRadGEMCluster::filterCluster(std::vector<StripCluster> &clusters)
-const
-{
-    // remove cluster that has too less/many hits
-    for(auto it = clusters.begin(); it != clusters.end(); ++it)
-    {
-        if((it->hits.size() < min_cluster_hits) ||
-           (it->hits.size() > max_cluster_hits))
-            clusters.erase(it--);
-    }
-
-    // remove cross talk cluster
-    for(auto it = clusters.begin(); it != clusters.end(); ++it)
-    {
-	    if(filterCrossTalk(*it, clusters)) {
-            clusters.erase(it--);
-        }
-    }
-
-}
-
-bool PRadGEMCluster::filterCrossTalk(const StripCluster &cluster,
-                                     const std::vector<StripCluster> &clusters)
-const
-{
-    if(!cluster.IsCrossTalk())
+    if(beg == end)
         return false;
 
-    for(auto it = clusters.begin(); it != clusters.end(); ++it)
+    for(auto itn = beg + 1; itn != end; ++itn)
     {
-        float delta = fabs(it->position - cluster.position);
+        float delta = std::abs(it->position - itn->position);
 
-        for(auto &dist : charac_dists)
+        for(auto &dist : charac)
         {
-            if(delta > dist - cross_talk_width &&
-               delta < dist + cross_talk_width)
+            if((delta > dist - width) && (delta < dist + width))
                 return true;
         }
     }
@@ -265,34 +227,64 @@ const
     return false;
 }
 
-// calculate the cluster position
-// it reconstruct the position of cluster using linear weight of charge portion
-void PRadGEMCluster::reconstructCluster(std::vector<StripCluster> &clusters)
+void PRadGEMCluster::setCrossTalk(std::vector<StripCluster> &clusters)
 const
 {
-    for(auto &c : clusters)
-    {
-        // here determine position, peak charge and total charge of the cluster
-        c.total_charge = 0.;
-        c.peak_charge = 0.;
-        float weight_pos = 0.;
+    // sort by peak charge
+    std::sort(clusters.begin(), clusters.end(),
+              [](const StripCluster &c1, const StripCluster &c2)
+              {
+                  return c1.peak_charge < c2.peak_charge;
+              });
 
-        // no hits
-        if(!c.hits.size())
+    for(auto it = clusters.begin(); it != clusters.end(); ++it)
+    {
+        // only remove cross talk clusters that is a composite of cross talk strips
+        if(!is_pure_ct(*it))
             continue;
 
-        for(auto &hit : c.hits)
-        {
-            if(c.peak_charge < hit.charge)
-                c.peak_charge = hit.charge;
-
-            c.total_charge += hit.charge;
-
-            weight_pos +=  hit.position*hit.charge;
-        }
-
-        c.position = weight_pos/c.total_charge;
+        it->cross_talk = ct_distance(it, it + 1, clusters.end(), cross_talk_width, charac_dists);
     }
+}
+
+// calculate the cluster position
+// it reconstruct the position of cluster using linear weight of charge fraction
+void PRadGEMCluster::reconstructCluster(StripCluster &cluster)
+const
+{
+    // no hits
+    if(cluster.hits.empty())
+        return;
+
+    // determine position, peak charge and total charge of the cluster
+    cluster.total_charge = 0.;
+    cluster.peak_charge = 0.;
+    float weight_pos = 0.;
+
+    for(auto &hit : cluster.hits)
+    {
+        if(cluster.peak_charge < hit.charge)
+            cluster.peak_charge = hit.charge;
+
+        cluster.total_charge += hit.charge;
+        weight_pos +=  hit.position*hit.charge;
+    }
+
+    cluster.position = weight_pos/cluster.total_charge;
+}
+
+
+// is it a good cluster
+bool PRadGEMCluster::IsGoodCluster(const StripCluster &cluster)
+const
+{
+    // bad size
+    if((cluster.hits.size() < min_cluster_hits) ||
+       (cluster.hits.size() > max_cluster_hits))
+        return false;
+
+    // not a cross talk cluster
+    return !cluster.cross_talk;
 }
 
 // this function accepts x, y clusters from detectors and then form GEM Cluster
@@ -311,8 +303,13 @@ const
     // fill possible clusters in
     for(auto &xc : x_cluster)
     {
+        if(!IsGoodCluster(xc))
+            continue;
         for(auto &yc : y_cluster)
         {
+            if(!IsGoodCluster(yc))
+                continue;
+
             container.emplace_back(xc.position, yc.position, 0.,        // by default z = 0
                                    det_id,                              // detector id
                                    xc.total_charge, yc.total_charge,    // fill in total charge

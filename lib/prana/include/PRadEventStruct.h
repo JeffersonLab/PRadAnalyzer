@@ -511,30 +511,20 @@ struct StripCluster
     float position;
     float peak_charge;
     float total_charge;
+    bool cross_talk;
     std::vector<StripHit> hits;
 
     StripCluster()
-    : position(0.), peak_charge(0.), total_charge(0.)
+    : position(0.), peak_charge(0.), total_charge(0.), cross_talk(false)
     {}
 
     StripCluster(const std::vector<StripHit> &p)
-    : position(0.), peak_charge(0.), total_charge(0.), hits(p)
+    : position(0.), peak_charge(0.), total_charge(0.), cross_talk(false), hits(p)
     {}
 
     StripCluster(std::vector<StripHit> &&p)
-    : position(0.), peak_charge(0.), total_charge(0.), hits(std::move(p))
+    : position(0.), peak_charge(0.), total_charge(0.), cross_talk(false), hits(std::move(p))
     {}
-
-    bool IsCrossTalk()
-    const
-    {
-        for(auto &hit : hits)
-        {
-            if(!hit.cross_talk)
-                return false;
-        }
-        return true;
-    }
 };
 
 //============================================================================//
