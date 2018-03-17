@@ -78,7 +78,8 @@ PRadEventViewer::PRadEventViewer()
   epic_sys(new PRadEPICSystem()),
   tagger_sys(new PRadTaggerSystem()),
   hycal_sys(new PRadHyCalSystem()),
-  gem_sys(new PRadGEMSystem())
+  gem_sys(new PRadGEMSystem()),
+  event_number(0)
 {
     prad_root = getenv("PRAD_PATH");
     if(prad_root.size() && prad_root.back() != '/') {
@@ -394,7 +395,7 @@ void PRadEventViewer::createControlPanel()
     clusterSpin->setPrefix("Cluster # ");
     clusterSpin->setRange(0, 0);
     layout->addWidget(clusterSpin,          0, 2, 1, 1);
-    connect(clusterSpin, SIGNAL(valueChanged(int)), this, SLOT(Refresh()));
+    connect(clusterSpin, SIGNAL(valueChanged(int)), this, SLOT(handleClusterChange(int)));
 #endif
 
     controlPanel = new QWidget(this);
@@ -565,13 +566,7 @@ void PRadEventViewer::Refresh()
         HyCal->ModuleAction(&HyCalModule::ShowOccupancy);
         break;
     case EnergyView:
-#ifdef RECON_DISPLAY
-        if(clusterSpin->value() > 0) {
-            HyCal->ShowCluster(hycal_sys->GetReconstructor()->GetClusters().at(clusterSpin->value() - 1));
-        }
-        else
-#endif
-        { HyCal->ModuleAction(&HyCalModule::ShowEnergy); }
+        HyCal->ModuleAction(&HyCalModule::ShowEnergy);
         break;
     case CustomView:
         HyCal->ModuleAction(&HyCalModule::ShowCustomValue);
@@ -849,27 +844,15 @@ void PRadEventViewer::changeCurrentEvent(int evt)
 
 void PRadEventViewer::handleEventChange(int evt)
 {
-    if(evt < 1) {
+    evt = evt - 1;
+
+    if(evt < 0) {
         Refresh();
         return;
     }
 
     try {
-        auto &event = handler->GetEvent(evt - 1); // fetch data from handler
-        handler->ChooseEvent(event);
-
-#ifdef RECON_DISPLAY
-
-        // clear cluster selection range
-        clusterSpin->setRange(0, 0);
-        // clear previous reconstructed events
-        HyCal->ClearHitsMarks();
-
-        if(reconSetting->IsEnabled() && event.is_physics_event()) {
-            showReconEvent();
-        }
-#endif
-
+        chooseEvent(evt);
         Refresh();
     } catch (PRadException &e) {
         QMessageBox::critical(this,
@@ -892,6 +875,119 @@ void PRadEventViewer::updateEventRange()
     UpdateHistCanvas();
 
     emit currentEventChanged(eventSpin->value());
+}
+
+void PRadEventViewer::chooseEvent(int index)
+{
+    auto &event = handler->GetEvent(index);
+
+    // update event information
+    event_number = event.event_number;
+    HyCal->ShowEvent(event);
+    gem_sys->ChooseEvent(event);
+
+// do reconstruction
+#ifdef RECON_DISPLAY
+    // clear cluster selection range
+    clusterSpin->setRange(0, 0);
+    // clear previous reconstructed events
+    HyCal->ClearHitsMarks();
+
+    // stop if cluster display is turned off, or the event is non-physics event
+    if(!reconSetting->IsEnabled() || !event.is_physics_event())
+        return;
+
+    // reconstruction
+    hycal_sys->Reconstruct();
+    gem_sys->Reconstruct();
+    auto gem1 = gem_sys->GetDetector(PRadDetector::PRadGEM1);
+    auto gem2 = gem_sys->GetDetector(PRadDetector::PRadGEM2);
+
+    // get reconstructed hits
+    auto &hycal_hit = HyCal->GetHits();
+    auto &gem1_hit = gem1->GetHits();
+    auto &gem2_hit = gem2->GetHits();
+
+    // coordinates transform, projection
+    coordSystem->TransformHits(HyCal);
+    coordSystem->TransformHits(gem1);
+    coordSystem->TransformHits(gem2);
+
+    // project hits to HyCal surface
+    coordSystem->Projection(hycal_hit.begin(), hycal_hit.end());
+    coordSystem->Projection(gem1_hit.begin(), gem1_hit.end());
+    coordSystem->Projection(gem2_hit.begin(), gem2_hit.end());
+
+    // hits matching
+    auto matched = detMatch->Match(hycal_hit, gem1_hit, gem2_hit);
+
+    // display HyCal hits
+    if(reconSetting->ShowDetector(PRadDetector::HyCal)) {
+
+        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetector::HyCal);
+        if(reconSetting->ShowMatchedDetector(PRadDetector::HyCal)) {
+            for(auto &m : matched)
+            {
+                QPointF p(CARTESIAN_TO_HYCALSCENE(m.hycal.x, m.hycal.y));
+                HyCal->AddHitsMark("HyCal Hit", p, attr, QString::number(m.E) + "MeV");
+            }
+        } else {
+            for(auto &hit : hycal_hit)
+            {
+                QPointF p(CARTESIAN_TO_HYCALSCENE(hit.x, hit.y));
+                HyCal->AddHitsMark("HyCal Hit", p, attr, QString::number(hit.E) + " MeV");
+            }
+        }
+
+    }
+
+    // display GEM1 hits
+    if(reconSetting->ShowDetector(PRadDetector::PRadGEM1)) {
+
+        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetector::PRadGEM1);
+        if(reconSetting->ShowMatchedDetector(PRadDetector::PRadGEM1)) {
+            for(auto &m : matched)
+            {
+                if(TEST_BIT(m.mflag, kGEM1Match)) {
+                    QPointF p(CARTESIAN_TO_HYCALSCENE(m.gem1.front().x, m.gem1.front().y));
+                    HyCal->AddHitsMark("GEM1 Hit", p, attr);
+                }
+            }
+        } else {
+            for(auto &hit : gem1_hit)
+            {
+                QPointF p(CARTESIAN_TO_HYCALSCENE(hit.x, hit.y));
+                HyCal->AddHitsMark("GEM1 Hit", p, attr);
+            }
+        }
+    }
+
+    // display GEM2 hits
+    if(reconSetting->ShowDetector(PRadDetector::PRadGEM2)) {
+
+        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetector::PRadGEM2);
+        if(reconSetting->ShowMatchedDetector(PRadDetector::PRadGEM2)) {
+            for(auto &m : matched)
+            {
+                if(TEST_BIT(m.mflag, kGEM2Match)) {
+                    QPointF p(CARTESIAN_TO_HYCALSCENE(m.gem2.front().x, m.gem2.front().y));
+                    HyCal->AddHitsMark("GEM2 Hit", p, attr);
+                }
+            }
+        } else {
+            for(auto &hit : gem2_hit)
+            {
+                QPointF p(CARTESIAN_TO_HYCALSCENE(hit.x, hit.y));
+                HyCal->AddHitsMark("GEM2 Hit", p, attr);
+            }
+        }
+    }
+
+    // update the cluster size
+    int mcl = hycal_sys->GetReconstructor()->GetClusters().size();
+    clusterSpin->setRange(0, mcl);
+
+#endif // RECON_DISPLAY
 }
 
 void PRadEventViewer::UpdateHistCanvas()
@@ -1008,7 +1104,7 @@ void PRadEventViewer::UpdateStatusInfo()
                  + tr(" \261 ")
 #endif
                  + QString::number(pedSig,'f',2)                    // pedestal sigma
-              << QString::number(handler->GetCurrentEventNb())      // current event
+              << QString::number(event_number)                      // current event
               << QString::number(selection->GetEnergy())
                  + tr(" MeV / ")                                    // energy
                  + QString::number(HyCal->GetEnergy())
@@ -1343,99 +1439,15 @@ void PRadEventViewer::setupReconMethods()
     emit(changeCurrentEvent(eventSpin->value()));
 }
 
-void PRadEventViewer::showReconEvent()
+void PRadEventViewer::handleClusterChange(int idx)
 {
-    if(handler->GetEventCount() == 0)
-        return;
-
-    // reconstruction
-    hycal_sys->Reconstruct();
-    gem_sys->Reconstruct();
-    PRadGEMDetector *gem1 = gem_sys->GetDetector(PRadDetector::PRadGEM1);
-    PRadGEMDetector *gem2 = gem_sys->GetDetector(PRadDetector::PRadGEM2);
-
-    // get reconstructed clusters
-    auto &hycal_hit = HyCal->GetHits();
-    auto &gem1_hit = gem1->GetHits();
-    auto &gem2_hit = gem2->GetHits();
-
-    // coordinates transform, projection
-    coordSystem->TransformHits(HyCal);
-    coordSystem->TransformHits(gem1);
-    coordSystem->TransformHits(gem2);
-
-    coordSystem->Projection(hycal_hit.begin(), hycal_hit.end());
-    coordSystem->Projection(gem1_hit.begin(), gem1_hit.end());
-    coordSystem->Projection(gem2_hit.begin(), gem2_hit.end());
-
-    // hits matching
-    auto matched = detMatch->Match(hycal_hit, gem1_hit, gem2_hit);
-
-    // display HyCal hits
-    if(reconSetting->ShowDetector(PRadDetector::HyCal)) {
-
-        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetector::HyCal);
-        if(reconSetting->ShowMatchedDetector(PRadDetector::HyCal)) {
-            for(auto &m : matched)
-            {
-                QPointF p(CARTESIAN_TO_HYCALSCENE(m.hycal.x, m.hycal.y));
-                HyCal->AddHitsMark("HyCal Hit", p, attr, QString::number(m.E) + "MeV");
-            }
-        } else {
-            for(auto &hit : hycal_hit)
-            {
-                QPointF p(CARTESIAN_TO_HYCALSCENE(hit.x, hit.y));
-                HyCal->AddHitsMark("HyCal Hit", p, attr, QString::number(hit.E) + " MeV");
-            }
-        }
-
+    if(idx > 0) {
+        HyCal->ShowCluster(hycal_sys->GetReconstructor()->GetClusters().at(idx - 1));
+    } else {
+        HyCal->ShowEvent();
     }
 
-    // display GEM1 hits
-    if(reconSetting->ShowDetector(PRadDetector::PRadGEM1)) {
-
-        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetector::PRadGEM1);
-        if(reconSetting->ShowMatchedDetector(PRadDetector::PRadGEM1)) {
-            for(auto &m : matched)
-            {
-                if(TEST_BIT(m.mflag, kGEM1Match)) {
-                    QPointF p(CARTESIAN_TO_HYCALSCENE(m.gem1.front().x, m.gem1.front().y));
-                    HyCal->AddHitsMark("GEM1 Hit", p, attr);
-                }
-            }
-        } else {
-            for(auto &hit : gem1_hit)
-            {
-                QPointF p(CARTESIAN_TO_HYCALSCENE(hit.x, hit.y));
-                HyCal->AddHitsMark("GEM1 Hit", p, attr);
-            }
-        }
-    }
-
-    // display GEM2 hits
-    if(reconSetting->ShowDetector(PRadDetector::PRadGEM1)) {
-
-        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetector::PRadGEM2);
-        if(reconSetting->ShowMatchedDetector(PRadDetector::PRadGEM2)) {
-            for(auto &m : matched)
-            {
-                if(TEST_BIT(m.mflag, kGEM2Match)) {
-                    QPointF p(CARTESIAN_TO_HYCALSCENE(m.gem2.front().x, m.gem2.front().y));
-                    HyCal->AddHitsMark("GEM2 Hit", p, attr);
-                }
-            }
-        } else {
-            for(auto &hit : gem2_hit)
-            {
-                QPointF p(CARTESIAN_TO_HYCALSCENE(hit.x, hit.y));
-                HyCal->AddHitsMark("GEM2 Hit", p, attr);
-            }
-        }
-    }
-
-    // update the cluster size
-    int mcl = hycal_sys->GetReconstructor()->GetClusters().size();
-    clusterSpin->setRange(0, mcl);
+    Refresh();
 }
 
 #endif
@@ -1581,8 +1593,8 @@ void PRadEventViewer::onlineUpdate(const size_t &max_events)
         }
 
         if(num) {
-            // show this event
-            handler->ChooseEvent(0);
+            // always show the front event
+            chooseEvent(0);
             UpdateHistCanvas();
             UpdateOnlineInfo();
             Refresh();

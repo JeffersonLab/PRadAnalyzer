@@ -140,6 +140,7 @@ private:
     void createStatusWindow();
     void setupInfoWindow();
     void updateEventRange();
+    void chooseEvent(int index);
     void readEventFromFile(const QString &filepath);
     void readCustomValue(const QString &filepath);
     void onlineUpdate(const size_t &max_events);
@@ -166,6 +167,7 @@ private:
     PRadTaggerSystem *tagger_sys;
     PRadHyCalSystem *hycal_sys;
     PRadGEMSystem *gem_sys;
+    int event_number;
     HistType histType;
     AnnoType annoType;
     ViewMode viewMode;
@@ -249,9 +251,9 @@ private:
 
 #ifdef RECON_DISPLAY
 private slots:
-    void showReconEvent();
     void setupReconMethods();
     void enableReconstruct();
+    void handleClusterChange(int idx);
 private:
     void setupReconDisplay();
 

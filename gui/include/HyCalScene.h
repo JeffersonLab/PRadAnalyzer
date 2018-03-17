@@ -90,15 +90,18 @@ public:
     void UpdateScalerBox(const QString &text, const int &group = 0);
     void UpdateScalerBox(const QStringList &texts);
     void ShowScalers(const bool &s = true) {showScalers = s;}
+    void ShowEvent();
+    void ShowEvent(const EventData &event);
     void ShowCluster(const ModuleCluster &cluster);
     template<typename... Args>
-    void ModuleAction(void (HyCalModule::*act)(Args...), Args&&... args)
+    inline void ModuleAction(void (HyCalModule::*act)(Args...), Args&&... args)
     {
         for(auto &module : module_list)
             (((HyCalModule*)module)->*act)(std::forward<Args>(args)...);
     }
     // overloaded
     bool ReadModuleList(const std::string &path);
+    double GetEnergy() const;
 
 protected:
     void drawForeground(QPainter *painter, const QRectF &rect);

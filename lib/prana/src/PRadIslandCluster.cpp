@@ -92,17 +92,16 @@ const
     std::vector<bool> visits(hits.size(), false);
     for(size_t i = 0; i < hits.size(); ++i)
     {
-        if(visits[i] || (hits[i].energy > rec->config.min_cluster_energy))
+        // already in a group
+        if(visits[i])
             continue;
 
-        // found a new group
-        std::vector<ModuleHit*> new_group;
-        // reserve some space for performance
-        new_group.reserve(ISLAND_GROUP_RESERVE);
+        // create a new group and reserve some space for the possible hits
+        groups.emplace_back();
+        groups.back().reserve(ISLAND_GROUP_RESERVE);
+
         // group all the possible hits
-        dfs_group(new_group, i, hits, visits, rec->config.corner_conn);
-        // save this group
-        groups.emplace_back(std::move(new_group));
+        dfs_group(groups.back(), i, hits, visits, rec->config.corner_conn);
     }
 
 }
@@ -143,6 +142,7 @@ const
     for(auto it = hits.begin(); it != hits.end(); ++it)
     {
         auto &hit1 = *it;
+        // not a qualified center
         if(hit1->energy < rec->config.min_center_energy)
             continue;
 

@@ -25,11 +25,13 @@ public:
     void ShowPedSigma();
     void ShowOccupancy();
     void ShowEnergy();
-    void ShowEnergy(const double &energy);
+    inline void SetEnergy() {energy = PRadHyCalModule::GetEnergy();}
+    inline void SetEnergy(double ene) {energy = ene;}
     void ShowCustomValue() {SetColor(custom_value);}
     void SetCustomValue(double val) {custom_value = val;}
     const double &GetCustomValue() const {return custom_value;}
     QString GetReadID() const {return qname;}
+    const double &GetEnergy() const {return energy;}
 
     // overload
     QRectF boundingRect() const;
@@ -51,6 +53,7 @@ private:
     QColor color;
     QFont font;
     QPainterPath shape;
+    double energy;
     double custom_value;
 
 #ifdef USE_CAEN_HV

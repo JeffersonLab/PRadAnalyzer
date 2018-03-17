@@ -179,10 +179,5 @@ void HyCalModule::ShowOccupancy()
 
 void HyCalModule::ShowEnergy()
 {
-    ShowEnergy(PRadHyCalModule::GetEnergy());
-}
-
-void HyCalModule::ShowEnergy(const double &energy)
-{
     SetColor(energy);
 }

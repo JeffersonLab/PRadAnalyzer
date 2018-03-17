@@ -8,6 +8,7 @@
 //============================================================================//
 
 #include "HyCalScene.h"
+#include "PRadHyCalSystem.h"
 #include "PRadEventViewer.h"
 #include "HyCalModule.h"
 #include "ConfigParser.h"
@@ -311,20 +312,39 @@ void HyCalScene::ClearHitsMarks()
     hitsMarkList.clear();
 }
 
+void HyCalScene::ShowEvent()
+{
+    ModuleAction(&HyCalModule::SetEnergy);
+}
+
+void HyCalScene::ShowEvent(const EventData &event)
+{
+    // update event first
+    system->ChooseEvent(event);
+    ShowEvent();
+}
+
 void HyCalScene::ShowCluster(const ModuleCluster &cluster)
 {
-    // erase all the modules
-    for(auto module : module_list)
-    {
-        ((HyCalModule*)module)->ShowEnergy(0);
-    }
+    ModuleAction(&HyCalModule::SetEnergy, 0.);
 
     // show only the cluster info
-    for(auto hit : cluster.hits)
+    for(auto &hit : cluster.hits)
     {
         HyCalModule *module = (HyCalModule*)PRadHyCalDetector::GetModule(hit.id);
         if(module)
-            module->ShowEnergy(hit.energy);
+            module->SetEnergy(hit.energy);
     }
 }
 
+double HyCalScene::GetEnergy()
+const
+{
+    double ene = 0.;
+    for(auto &module : module_list)
+    {
+        ene += ((HyCalModule*)module)->GetEnergy();
+    }
+
+    return ene;
+}

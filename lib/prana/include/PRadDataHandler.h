@@ -75,10 +75,7 @@ public:
     void FeedData(const EPICSRawData &epicsData);
 
 
-    // show data
-    void ChooseEvent(const int &idx = -1);
-    void ChooseEvent(const EventData &event);
-    int GetCurrentEventNb() const {return current_event;}
+    // event storage
     unsigned int GetEventCount() const {return event_data.size();}
     const EventData &GetEvent(const unsigned int &index) const throw (PRadException);
     const std::deque<EventData> &GetEventData() const {return event_data;}
@@ -100,7 +97,6 @@ private:
     PRadGEMSystem *gem_sys;
     bool onlineMode;
     bool replayMode;
-    int current_event;
     std::thread end_thread;
 
     // data related

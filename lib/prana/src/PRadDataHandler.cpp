@@ -30,8 +30,7 @@
 PRadDataHandler::PRadDataHandler()
 : parser(this),
   epic_sys(nullptr), tagger_sys(nullptr), hycal_sys(nullptr), gem_sys(nullptr),
-  onlineMode(false), replayMode(false), current_event(0),
-  new_event(new EventData), proc_event(new EventData)
+  onlineMode(false), replayMode(false), new_event(new EventData), proc_event(new EventData)
 {
     // place holder
 }
@@ -40,8 +39,7 @@ PRadDataHandler::PRadDataHandler()
 PRadDataHandler::PRadDataHandler(const PRadDataHandler &that)
 : parser(this),
   epic_sys(nullptr), tagger_sys(nullptr), hycal_sys(nullptr), gem_sys(nullptr),
-  onlineMode(that.onlineMode), replayMode(that.replayMode),
-  current_event(that.current_event), event_data(that.event_data),
+  onlineMode(that.onlineMode), replayMode(that.replayMode), event_data(that.event_data),
   new_event(new EventData(*that.new_event)), proc_event(new EventData(*that.proc_event))
 {
     // place holder
@@ -50,8 +48,7 @@ PRadDataHandler::PRadDataHandler(const PRadDataHandler &that)
 PRadDataHandler::PRadDataHandler(PRadDataHandler &&that)
 : parser(this),
   epic_sys(nullptr), tagger_sys(nullptr), hycal_sys(nullptr), gem_sys(nullptr),
-  onlineMode(that.onlineMode), replayMode(that.replayMode),
-  current_event(that.current_event), event_data(std::move(that.event_data)),
+  onlineMode(that.onlineMode), replayMode(that.replayMode), event_data(std::move(that.event_data)),
   new_event(new EventData(std::move(*that.new_event))),
   proc_event(new EventData(std::move(*that.proc_event)))
 {
@@ -90,7 +87,6 @@ PRadDataHandler &PRadDataHandler::operator =(PRadDataHandler &&rhs)
     rhs.proc_event = nullptr;
     onlineMode = rhs.onlineMode;
     replayMode = rhs.replayMode;
-    current_event = rhs.current_event;
     event_data = std::move(rhs.event_data);
 
     return *this;
@@ -378,27 +374,6 @@ void PRadDataHandler::EndProcess(EventData *ev)
 
     // clear the event for the future usage
     ev->clear();
-}
-
-// show the event to event viewer
-void PRadDataHandler::ChooseEvent(const int &idx)
-{
-    if (event_data.size()) { // offline mode, pick the event given by console
-        if((unsigned int) idx >= event_data.size())
-            ChooseEvent(event_data.back());
-        else
-            ChooseEvent(event_data.at(idx));
-    }
-}
-
-void PRadDataHandler::ChooseEvent(const EventData &event)
-{
-    if(hycal_sys)
-        hycal_sys->ChooseEvent(event);
-    if(gem_sys)
-        gem_sys->ChooseEvent(event);
-
-    current_event = event.event_number;
 }
 
 // get the event by index

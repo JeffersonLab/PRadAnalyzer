@@ -71,8 +71,7 @@ const
     for(auto &hit : hits)
     {
         // not belongs to any cluster, and the energy is larger than center threshold
-        if(!fillClusters(hit, clusters) && (hit.energy > rec->config.min_center_energy))
-        {
+        if(!fillClusters(hit, clusters) && (hit.energy > rec->config.min_center_energy)) {
             clusters.emplace_back(hit, hit->GetLayoutFlag());
             clusters.back().AddHit(hit);
         }
