@@ -565,7 +565,7 @@ void PRadGEMAPV::CollectZeroSupHits(std::vector<GEM_Data> &hits)
 {
     for(uint32_t i = 0; i < APV_CHANNEL_SIZE; ++i)
     {
-        if(hit_pos[i] == false)
+        if(!hit_pos[i])
             continue;
 
         GEM_Data hit(fec_id, adc_ch, i);
@@ -585,7 +585,7 @@ void PRadGEMAPV::CollectZeroSupHits()
 
     for(uint32_t i = 0; i < APV_CHANNEL_SIZE; ++i)
     {
-        if(hit_pos[i] == false)
+        if(!hit_pos[i])
             continue;
 
         plane->AddStripHit(strip_map[i].plane,

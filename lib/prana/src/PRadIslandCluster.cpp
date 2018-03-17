@@ -10,6 +10,8 @@
 //               energy value from 10 MeV to 0.1 MeV, wrote a C++ wrapper for //
 //               the fortran code. 09/28/2016                                 //
 // Chao Peng, rewrote the whole fortran code into C++. 11/21/2016             //
+//            improve the island clustering with DFS method, remove LX's      //
+//            non-splitting method since it is no longer used, 03/17/2018     //
 //============================================================================//
 
 #include <cmath>
@@ -45,7 +47,6 @@ const
 //============================================================================//
 // Method based on the code from I. Larin for PrimEx                          //
 //============================================================================//
-#ifdef ISLAND_FINE_SPLIT
 
 void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hs, std::vector<ModuleCluster> &cls)
 const
@@ -68,8 +69,7 @@ const
 
 // recursive function for the DFS grouping
 void dfs_group(std::vector<ModuleHit*> &container, int idx,
-               std::vector<ModuleHit> &hits, std::vector<bool> &visits,
-               bool corner)
+               std::vector<ModuleHit> &hits, std::vector<bool> &visits, bool corner)
 {
     auto &hit = hits[idx];
     container.push_back(&hit);
@@ -97,7 +97,8 @@ const
 
         // found a new group
         std::vector<ModuleHit*> new_group;
-        new_group.reserve(50);
+        // reserve some space for performance
+        new_group.reserve(ISLAND_GROUP_RESERVE);
         // group all the possible hits
         dfs_group(new_group, i, hits, visits, rec->config.corner_conn);
         // save this group
@@ -271,119 +272,4 @@ const
     }
     split.sum_frac(hits.size(), maximums.size());
 }
-
-
-
-//============================================================================//
-// Method based on code from M. Levillain and W. Xiong                        //
-//============================================================================//
-#else
-
-void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hs, std::vector<ModuleCluster> &cls)
-const
-{
-    // clear container first
-    cls.clear();
-
-    // form clusters with high energy hit seed
-    groupHits(hs, cls);
-}
-
-void PRadIslandCluster::groupHits(std::vector<ModuleHit> &hits,
-                                  std::vector<ModuleCluster> &clusters)
-const
-{
-    // sort hits by energy
-    std::sort(hits.begin(), hits.end(),
-              [] (const ModuleHit &m1, const ModuleHit &m2)
-              {
-                  return m1.energy > m2.energy;
-              });
-
-    // loop over all hits
-    for(auto &hit : hits)
-    {
-        // not belongs to any cluster, and the energy is larger than center threshold
-        if(!fillClusters(hit, clusters) && (hit.energy > rec->config.min_center_energy))
-        {
-            clusters.emplace_back(hit, hit->GetLayoutFlag());
-            clusters.back().AddHit(hit);
-        }
-    }
-}
-
-bool PRadIslandCluster::fillClusters(ModuleHit &hit, std::vector<ModuleCluster> &c)
-const
-{
-    std::vector<unsigned int> indices;
-    indices.reserve(5);
-
-    for(unsigned int i = 0; i < c.size(); ++i)
-    {
-        for(auto &prev_hit : c.at(i).hits)
-        {
-            if(hit->IsNeighbor(prev_hit.id, true)) {
-                indices.push_back(i);
-                break;
-            }
-        }
-    }
-
-    // it belongs to no cluster
-    if(indices.empty())
-        return false;
-
-    // it belongs to single cluster
-    if(indices.size() == 1) {
-        c.at(indices.front()).AddHit(hit);
-        return true;
-    }
-
-    // it belongs to several clusters
-    return splitHit(hit, c, indices);
-}
-
-// split hit that belongs to several clusters
-bool PRadIslandCluster::splitHit(ModuleHit &hit,
-                                 std::vector<ModuleCluster> &clusters,
-                                 std::vector<unsigned int> &indices)
-const
-{
-    // energy fraction
-    float frac[indices.size()];
-    float total_frac = 0.;
-
-    // rough splitting, only use the center position
-    // to refine it, use a reconstruction position or position from other detector
-    for(unsigned int i = 0; i < indices.size(); ++i)
-    {
-        auto &center = clusters.at(indices.at(i)).center;
-        // we are comparing the relative amount of energy to be shared, so use of
-        // center energy should be equivalent to total cluster energy
-        frac[i] = rec->getProf(center, hit).frac * center.energy;
-        total_frac += frac[i];
-    }
-
-    // this hit is too far away from all clusters, discard it
-    if(total_frac == 0.) {
-        return false;
-    }
-
-    // add hit to all clusters
-    for(unsigned int i = 0; i < indices.size(); ++i)
-    {
-        // this cluster has no share of the hit
-        if(frac[i] == 0.)
-            continue;
-
-        auto &cluster = clusters.at(indices.at(i));
-        ModuleHit shared_hit(hit);
-        shared_hit.energy *= frac[i]/total_frac;
-        cluster.AddHit(shared_hit);
-    }
-
-    return true;
-}
-
-#endif
 

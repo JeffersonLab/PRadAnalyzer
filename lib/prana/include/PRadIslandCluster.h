@@ -4,12 +4,10 @@
 #include <vector>
 #include "PRadHyCalCluster.h"
 
-// use the original island method, do iterations on splitting clusters
-// undefine it will switch the method to do a coarse splitting with an
-// improved performance
-// SUGGEST to be defined since performance should not be an issue for
-// this adapted C++ island code
-#define ISLAND_FINE_SPLIT
+
+
+// reserve some space for grouping hits
+#define ISLAND_GROUP_RESERVE 50
 // do not split the group if the number of hits in it exceed this number
 #define SPLIT_MAX_HITS 100
 // do not split the group if the number of maxima in it exceed this number
@@ -30,6 +28,7 @@ struct SplitContainer
         }
     }
 
+    // get the normalized fraction
     inline float norm_frac(size_t i, size_t j)
     {
         return frac[j][i]/total[j];
@@ -46,8 +45,6 @@ public:
     void FormCluster(std::vector<ModuleHit> &hs, std::vector<ModuleCluster> &cls) const;
 
 protected:
-// primex method, do iterations for splitting
-#ifdef ISLAND_FINE_SPLIT
     void groupHits(std::vector<ModuleHit> &hits,
                    std::vector<std::vector<ModuleHit*>> &groups) const;
     bool fillClusters(ModuleHit &hit, std::vector<std::vector<ModuleHit*>> &groups) const;
@@ -60,16 +57,6 @@ protected:
     void evalFraction(const std::vector<ModuleHit*> &maximums,
                       const std::vector<ModuleHit*> &hits,
                       SplitContainer &split) const;
-
-// M. Levillain and W. Xiong method, a quick but slightly rough splitting
-#else
-    void groupHits(std::vector<ModuleHit> &hits,
-                   std::vector<ModuleCluster> &clusters) const;
-    bool fillClusters(ModuleHit &hit, std::vector<ModuleCluster> &clusters) const;
-    bool splitHit(ModuleHit &hit,
-                  std::vector<ModuleCluster> &clusters,
-                  std::vector<unsigned int> &indices) const;
-#endif
 
 protected:
     class PRadHyCalReconstructor *rec;
