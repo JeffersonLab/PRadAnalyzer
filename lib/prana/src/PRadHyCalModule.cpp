@@ -161,22 +161,11 @@ const
     return nullptr;
 }
 
+// get energy from the connected adc channel
 double PRadHyCalModule::GetEnergy()
 const
 {
-    if(daq_ch && !daq_ch->IsDead())
-        return cal_const.Calibration(daq_ch->GetReducedValue());
-
-    return 0.;
-}
-
-double PRadHyCalModule::GetEnergy(const double &value)
-const
-{
-    if(value > 0.)
-        return cal_const.Calibration(value);
-
-    return 0.;
+    return (!daq_ch || daq_ch->IsDead()) ? 0. : cal_const.Energize(daq_ch->GetReducedValue());
 }
 
 void PRadHyCalModule::GetBoundary(double &xmin, double &ymin, double &zmin,

@@ -78,7 +78,7 @@ SOURCES += src/main.cpp \
            src/LogsBox.cpp
 
 LIBS += -L$$(PRAD_LIB) -lprana -lprconf -lcana\
-        -lexpat -lgfortran \
+        -lgfortran \
         -L$$(ROOTSYS)/lib -lCore -lRint -lRIO -lNet -lHist \
                           -lGraf -lGraf3d -lGpad -lTree \
                           -lPostscript -lMatrix -lPhysics \
@@ -101,7 +101,7 @@ contains(GUI_OPTION, ONLINE_MODE) {
                src/online_monitor/PRadETStation.cpp \
                src/online_monitor/ETSettingPanel.cpp
     INCLUDEPATH += $$(ET_INC)
-    LIBS += -L$$(ET_LIB) -let
+    LIBS += -L$$(ET_LIB) -let -lexpat
     message("Online Monitor = Enabled")
 } else {
     message("Online Monitor = Disabled")

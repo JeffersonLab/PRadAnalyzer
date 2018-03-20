@@ -8,7 +8,6 @@ include ../general.mk
 TARGET_LIB    = libcana.so
 OBJECTS_DIR   = obj
 CXX_SOURCES   = cana_utils \
-				cana_interp \
                 cana_integrate
 
 HEADER_FILES  = include/*

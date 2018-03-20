@@ -10,6 +10,7 @@
 #include "PRadEPICSystem.h"
 #include "ConfigParser.h"
 #include "canalib.h"
+#include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <algorithm>

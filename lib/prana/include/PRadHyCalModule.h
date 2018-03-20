@@ -88,7 +88,7 @@ public:
     // energy related
     double Calibration(const unsigned short &adcVal) const;
     double GetEnergy() const;
-    double GetEnergy(const double &value) const;
+    inline double GetEnergy(const double &value) const {return cal_const.Energize(value);}
 
     // check
     bool IsHyCalModule() const {return (geometry.type == PbGlass) || (geometry.type == PbWO4);}

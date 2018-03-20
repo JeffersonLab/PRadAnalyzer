@@ -55,6 +55,7 @@ void PRadClusterProfile::Load(int type, const std::string &path)
         std::cerr << "PRad Cluster Profile Error: Cannot find correct configuration "
                   << "from profile " << " \"" << path << "\", "
                   << std::endl;
+        return;
     }
 
     // prepare enough space

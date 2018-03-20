@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <vector>
+#include <cmath>
 #include "PRadGEMCluster.h"
 #include "PRadGEMDetector.h"
 

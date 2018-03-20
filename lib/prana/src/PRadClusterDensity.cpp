@@ -239,8 +239,9 @@ bool PRadClusterDensity::processPosPars(ConfigParser &c_parser, ParamsSet &pset)
 
     // sanity check, (range size - 1) + ep + Moller
     if(n_ene != static_cast<int>(pset.energy_range.size()) + 1) {
-        std::cerr << "PRad HyCal Density Error: Unmatched energy range setting and "
-                  << "number of energy groups in position parameter file."
+        std::cerr << "PRad HyCal Density Error: Unmatched energy range setting ("
+                  << pset.energy_range.size() + 1 << ") and number of energy groups ("
+                  << n_ene << ") in position parameter file."
                   << std::endl;
         return false;
     }

@@ -33,9 +33,9 @@ public:
     double GetNonLinearFactor() const {return non_linear;}
     const std::vector<double> &GetRefGains() const {return base_gains;}
 
-    double Calibration(const double &adc_value) const;
     double NonLinearCorr(const double &E) const;
     float NonLinearCorr(const float &E) const;
+    inline double Energize(const double &adc) const {return (adc < 0.) ? 0. : factor*adc;}
 
 private:
     double factor;

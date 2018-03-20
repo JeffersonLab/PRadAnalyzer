@@ -6,28 +6,6 @@
 
 namespace cana
 {
-    struct PointErr
-    {
-        double x, y, stat, syst;
-
-        PointErr() {}
-        PointErr(double xi, double yi, double st, double sy)
-        : x(xi), y(yi), stat(st), syst(sy) {}
-
-        // for binary search
-        bool operator ==(double xi) const {return x == xi;}
-        bool operator <(double xi) const {return x < xi;}
-        bool operator >(double xi) const {return x > xi;}
-        bool operator != (double xi) const {return x != xi;}
-    };
-
-    // interpolation for 1 dimensional array, cubic interpolation will be used
-    // for most of the points, in the case of lacking points, quadratic or linear
-    // interpolation will be used
-    // data should be ordered in x
-    bool interp_1d(const std::vector<PointErr> &data, PointErr &p, double res = 1e-3);
-
-
     // interpolations, no safety checks, need to make sure all the points are
     // different and ordered
     //

@@ -28,7 +28,7 @@ TAR           = tar -cf
 COMPRESS      = gzip -9f
 LINK          = g++
 LFLAGS        = -Wl,-O1 -Wl,-z,relro
-LIBS          = -lpthread -lexpat \
+LIBS          = -lpthread \
                 -L$(PRAD_LIB) -lprana -lprconf -lcana -lcneural \
 				-L$(ROOTSYS)/lib -lCore -lRint -lRIO -lNet -lHist \
 				-lGraf -lGraf3d -lGpad -lTree -lPostscript -lMatrix \

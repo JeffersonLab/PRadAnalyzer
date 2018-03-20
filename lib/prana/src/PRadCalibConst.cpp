@@ -80,16 +80,6 @@ void PRadCalibConst::GainCorrection(double gain, int ref)
     }
 }
 
-// transfer adc value to energy
-double PRadCalibConst::Calibration(const double &adc_val)
-const
-{
-    if(adc_val > 0.)
-        return adc_val*factor;
-
-    return 0.;
-}
-
 // correct the non linear energy response in HyCal, unit is in MeV
 double PRadCalibConst::NonLinearCorr(const double &E)
 const
