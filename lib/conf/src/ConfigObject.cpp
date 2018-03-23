@@ -9,6 +9,7 @@
 // 10/31/2016                                                                 //
 //============================================================================//
 
+#include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
@@ -63,7 +64,8 @@ void ConfigObject::ClearConfig()
 // read configuration file and build the configuration map
 bool ConfigObject::ReadConfigFile(const std::string &path)
 {
-    ConfigParser c_parser(split_chars); // self-defined splitters
+    ConfigParser c_parser;
+    c_parser.SetSplitters(split_chars); // self-defined splitters
 
     if(c_parser.ReadFile(path)) {
         // current directory
@@ -80,7 +82,8 @@ bool ConfigObject::ReadConfigFile(const std::string &path)
 // read the configuration string directly
 void ConfigObject::ReadConfigString(const std::string &content)
 {
-    ConfigParser c_parser(split_chars);
+    ConfigParser c_parser;
+    c_parser.SetSplitters(split_chars);
 
     c_parser.ReadBuffer(content.c_str());
 
@@ -166,7 +169,7 @@ const
     for(auto &it : config_map)
     {
         save << it.first
-             << " = "
+             << " " << split_chars.front() << " "
              << it.second
              << std::endl;
     }

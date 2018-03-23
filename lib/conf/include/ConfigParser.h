@@ -2,10 +2,9 @@
 #define CONFIG_PARSER_H
 
 #include <string>
-#include <iostream>
-#include <fstream>
 #include <vector>
 #include <deque>
+#include <fstream>
 #include "ConfigValue.h"
 
 // a macro to auto generate enum2str and str2enum
@@ -31,26 +30,75 @@ class ConfigParser
     typedef std::pair<std::string, std::string> string_pair;
 
 public:
-    ConfigParser(const std::string &s = " ,\t",                     // splitters
-                 const std::string &w = " \t",                      // white_space
-                 const std::vector<std::string> &c = {"#", "//"},   // comment mark
-                 const string_pair &p = std::make_pair("/*", "*/"), // comment pair
-                 const std::string &g = "\\");                      // line glue chars
+    struct Format
+    {
+        std::string split;              // element splitters (chars)
+        std::string white;              // white spaces (chars)
+        std::string delim;              // line delimiter (string)
+        std::string glue;               // line glue (string)
+        std::string cmtmark;            // comment marks (string), until the line breaker '\n'
+        std::string cmtopen;            // comment-block opening mark (string)
+        std::string cmtclose;           // comment-block closing mark (string)
+
+        static Format Basic() {return {" \t,", " \t", "\n", "", "", "", ""};}
+        static Format BashLike() {return {" \t,", " \t", "\n", "\\", "#", "\'", "\'"};}
+        static Format CLike() {return {" \t,\n", " \t\n", ";", "", "//", "/*", "*/"};}
+    };
+
+    struct CharBuffer
+    {
+        std::vector<char> data;
+        size_t begin, end;
+
+        CharBuffer() : begin(0), end(0) {}
+
+        void Reset() {begin = 0; end = 0; data.clear();}
+        void Add(char ch)
+        {
+            if(data.size() <= end)
+                data.resize(2*data.size() + 128);
+
+            data[end++] = ch;
+        }
+
+        std::string String()
+        const
+        {
+            std::string str;
+            if(end > begin)
+                str.assign(&data[begin], end - begin);
+            return str;
+        }
+
+        inline const char &operator [] (size_t idx) const {return data[idx];}
+        inline char &operator [] (size_t idx) {return data[idx];}
+    };
+
+public:
+    ConfigParser(Format f = Format::BashLike());
+
+    ConfigParser(ConfigParser &&that);
+    ConfigParser(const ConfigParser &that);
+
     virtual ~ConfigParser();
 
-    // set members
-    void SetSplitters(const std::string &s) {splitters = s;}
-    void SetWhiteSpaces(const std::string &w) {white_spaces = w;}
-    void SetCommentMarks(const std::vector<std::string> &c) {comment_marks = c;}
-    void SetCommentPair(const std::string &o, const std::string &c)
-    {comment_pair = std::make_pair(o, c);}
-    void SetLineGlues(const std::string &g) {line_glues = g;}
-    void AddCommentMark(const std::string &c);
-    void RemoveCommentMark(const std::string &c);
-    void EraseCommentMarks();
+    ConfigParser &operator = (ConfigParser &&rhs);
+    ConfigParser &operator = (const ConfigParser &rhs);
+
+    // format related
+    inline void SetFormat(Format &&f) {form = f;}
+    inline void SetFormat(const Format &f) {form = f;}
+    inline void SetSplitters(std::string s) {form.split = s;}
+    inline void SetWhiteSpaces(std::string w) {form.white = w;}
+    inline void SetCommentMark(std::string c) {form.cmtmark = c;}
+    inline void SetCommentPair(std::string o, std::string c) {form.cmtopen = o; form.cmtclose = c;}
+    inline void SetLineGlues(std::string g) {form.glue = g;}
+    inline void SetLineBreaks(std::string b) {form.delim = b;}
+
+    const Format &GetFormat() const {return form;}
 
     // dealing with file/buffer
-    bool OpenFile(const std::string &path);
+    bool OpenFile(const std::string &path, size_t cap = 64*1024);
     bool ReadFile(const std::string &path);
     void ReadBuffer(const char*);
     void CloseFile();
@@ -66,12 +114,10 @@ public:
     // get current parsing status
     bool CheckElements(int num, int optional = 0);
     int NbofElements() const {return elements.size();}
-    int NbofLines() const {return lines.size();}
     int LineNumber() const {return line_number;}
-    const std::string &CurrentLine() const {return current_line;}
+    std::string CurrentLine() const {return cur_line.String();}
 
-    // take the lines/elements
-    std::string TakeLine();
+    // take the elements
     ConfigValue TakeFirst();
 
     template<typename T>
@@ -127,36 +173,20 @@ public:
         return res;
     }
 
-    // get members
-    const std::string &GetSplitters() const {return splitters;}
-    const std::string &GetWhiteSpaces() const {return white_spaces;}
-    const std::vector<std::string> &GetCommentMarks() const {return comment_marks;}
-    const string_pair &GetCommentPair() const {return comment_pair;}
-    const std::string &GetLineGlues() const {return line_glues;}
-
 
 private:
     // private functions
-    void bufferProcess(std::string &buffer);
-    bool parseFile();
-    bool parseBuffer();
-    size_t getCommentPoint(const std::string &str);
-    void getLineFromFile(std::string &to_be_parsed);
-    void getLineFromBuffer(std::string &to_be_parsed);
+    bool getBuffer();
+    bool getLine(CharBuffer &line_buf, bool recursive = false);
+    int parseBuffer(const CharBuffer &line);
 
 private:
     // private members
-    std::string splitters;
-    std::string white_spaces;
-    std::vector<std::string> comment_marks;
-    string_pair comment_pair;
-    std::string line_glues;
-    std::deque<std::string> lines;
-    std::deque<std::string> elements;
-    std::string current_line;
-    int line_number;
-    bool in_comment_pair;
+    Format form;
     std::ifstream infile;
+    CharBuffer buf, cur_line;
+    int line_number;
+    std::deque<std::string> elements;
 
 public:
     // static functions
@@ -164,7 +194,7 @@ public:
     static void comment_between(std::string &str, const std::string &open, const std::string &close);
     static std::string trim(const std::string &str, const std::string &w);
     static std::deque<std::string> split(const std::string &str, const std::string &s);
-    static std::deque<std::string> split(const char* str, const size_t &size, const std::string &s);
+    static std::deque<std::string> split(const char* str, const size_t &len, const std::string &s);
     static std::string get_split_part(int num, const char *str, const char &s);
     static int get_part_count(const char *cmp, const char *str, const char &s);
     static std::vector<float> stofs(const std::string &str, const std::string &s, const std::string &w);
