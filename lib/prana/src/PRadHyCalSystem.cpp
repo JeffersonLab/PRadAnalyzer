@@ -549,9 +549,9 @@ void PRadHyCalSystem::UpdateRunFiles(bool verbose)
     auto it = cana::binary_search(cal_period.begin(), cal_period.end(), run);
     if(it == cal_period.end()) {
         std::cout << "PRad HyCal System Warning: Cannot find calibration period "
-                  << "for run " << run << ", assuming period 5-1."
+                  << "for run " << run << ", assuming period 1-1."
                   << std::endl;
-        SetConfigValue("Period", 5);
+        SetConfigValue("Period", 1);
         SetConfigValue("Sub-period", 1);
     } else {
         SetConfigValue("Period", it->main);
