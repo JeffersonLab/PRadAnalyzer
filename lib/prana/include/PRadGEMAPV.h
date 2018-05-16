@@ -77,7 +77,6 @@ public:
     void FillRawData(const uint32_t *buf, const uint32_t &siz);
     void FillZeroSupData(const uint32_t &ch, const uint32_t &ts, const unsigned short &val);
     void FillZeroSupData(const uint32_t &ch, const std::vector<float> &vals);
-    void SplitData(const uint32_t &buf, float &word1, float &word2);
     void UpdatePedestal(std::vector<Pedestal> &ped);
     void UpdatePedestal(const Pedestal &ped, const uint32_t &index);
     void UpdatePedestal(const float &offset, const float &noise, const uint32_t &index);

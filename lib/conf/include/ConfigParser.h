@@ -50,13 +50,16 @@ public:
         std::vector<char> data;
         size_t begin, end;
 
-        CharBuffer() : begin(0), end(0) {}
+        CharBuffer(size_t cap = 256) : begin(0), end(0)
+        {
+            data.resize(cap);
+        }
 
         void Reset() {begin = 0; end = 0; data.clear();}
         void Add(char ch)
         {
             if(data.size() <= end)
-                data.resize(2*data.size() + 128);
+                data.resize(2*data.size());
 
             data[end++] = ch;
         }

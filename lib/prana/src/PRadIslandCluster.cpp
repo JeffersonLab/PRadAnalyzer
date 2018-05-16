@@ -112,28 +112,28 @@ void PRadIslandCluster::splitCluster(const std::vector<ModuleHit*> &group,
 const
 {
     // find local maximum
-    auto maximums = findMaximums(group);
+    auto maxima = findMaximums(group);
 
     // no cluster center found
-    if(maximums.empty())
+    if(maxima.empty())
         return;
 
-    if((maximums.size() == 1) ||                    // only 1 cluster
+    if((maxima.size() == 1) ||                    // only 1 cluster
        (group.size() >= SPLIT_MAX_HITS) ||          // too many hits
-       (maximums.size() >= SPLIT_MAX_MAXIMA)) {     // too many local maxima
+       (maxima.size() >= SPLIT_MAX_MAXIMA)) {     // too many local maxima
         // create cluster based on the center
-        clusters.emplace_back(*maximums.front(), (*maximums.front())->GetLayoutFlag());
+        clusters.emplace_back(*maxima.front(), (*maxima.front())->GetLayoutFlag());
         auto &cluster = clusters.back();
 
         for(auto &hit : group)
             cluster.AddHit(*hit);
-    // split hits between several maximums
+    // split hits between several maxima
     } else {
-        splitHits(maximums, group, clusters);
+        splitHits(maxima, group, clusters);
     }
 }
 
-// find local maximums in a group of adjacent hits
+// find local maxima in a group of adjacent hits
 std::vector<ModuleHit*> PRadIslandCluster::findMaximums(const std::vector<ModuleHit*> &hits)
 const
 {
@@ -168,8 +168,8 @@ const
     return local_max;
 }
 
-// split hits between several local maximums inside a cluster group
-void PRadIslandCluster::splitHits(const std::vector<ModuleHit*> &maximums,
+// split hits between several local maxima inside a cluster group
+void PRadIslandCluster::splitHits(const std::vector<ModuleHit*> &maxima,
                                   const std::vector<ModuleHit*> &hits,
                                   std::vector<ModuleCluster> &clusters)
 const
@@ -177,9 +177,9 @@ const
     static SplitContainer split;
 
     // initialize fractions
-    for(size_t i = 0; i < maximums.size(); ++i)
+    for(size_t i = 0; i < maxima.size(); ++i)
     {
-        auto &center = *maximums.at(i);
+        auto &center = *maxima.at(i);
         for(size_t j = 0; j < hits.size(); ++j)
         {
             auto &hit = *hits.at(j);
@@ -187,13 +187,13 @@ const
         }
     }
 
-    // do iteration to evaluate the share of hits between several maximums
-    evalFraction(hits, maximums, split);
+    // do iteration to evaluate the share of hits between several maxima
+    evalFraction(hits, maxima, split);
 
     // done iteration, add cluster according to the final share of energy
-    for(size_t i = 0; i < maximums.size(); ++i)
+    for(size_t i = 0; i < maxima.size(); ++i)
     {
-        clusters.emplace_back(*maximums[i], (*maximums[i])->GetLayoutFlag());
+        clusters.emplace_back(*maxima[i], (*maxima[i])->GetLayoutFlag());
         auto &cluster = clusters.back();
 
         for(size_t j = 0; j < hits.size(); ++j)
@@ -222,7 +222,7 @@ const
 }
 
 inline void PRadIslandCluster::evalFraction(const std::vector<ModuleHit*> &hits,
-                                            const std::vector<ModuleHit*> &maximums,
+                                            const std::vector<ModuleHit*> &maxima,
                                             SplitContainer &split)
 const
 {
@@ -233,11 +233,11 @@ const
     size_t iters = rec->config.split_iter;
     while(iters-- > 0)
     {
-        split.sum_frac(hits.size(), maximums.size());
-        for(size_t i = 0; i < maximums.size(); ++i)
+        split.sum_frac(hits.size(), maxima.size());
+        for(size_t i = 0; i < maxima.size(); ++i)
         {
             // cluster center reconstruction
-            auto &center = *maximums.at(i);
+            auto &center = *maxima.at(i);
             float tot_E = center.energy;
             int count = 0;
             for(size_t j = 0; j < hits.size(); ++j)
@@ -270,6 +270,6 @@ const
             }
         }
     }
-    split.sum_frac(hits.size(), maximums.size());
+    split.sum_frac(hits.size(), maxima.size());
 }
 

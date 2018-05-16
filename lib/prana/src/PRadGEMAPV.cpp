@@ -381,6 +381,25 @@ void PRadGEMAPV::UpdatePedestal(const float &offset, const float &noise, const u
     pedestal[index].noise = noise;
 }
 
+// split data word to adc values. Note that the endianness is changed
+inline void split_data(const uint32_t &data, float &val1, float &val2)
+{
+    union
+    {
+        uint8_t bytes[4];
+        uint16_t vals[2];
+    } word;
+
+    const uint8_t *dbyte = (const uint8_t*) &data;
+    for(int i = 0; i < 4; ++i)
+    {
+        word.bytes[i] = dbyte[3 - i];
+    }
+
+    val1 = static_cast<float>(word.vals[0]);
+    val2 = static_cast<float>(word.vals[1]);
+}
+
 // fill raw data
 void PRadGEMAPV::FillRawData(const uint32_t *buf, const uint32_t &size)
 {
@@ -391,9 +410,10 @@ void PRadGEMAPV::FillRawData(const uint32_t *buf, const uint32_t &size)
         return;
     }
 
+    // split 1 32-bit word into 2 16-bit ADC values/
     for(uint32_t i = 0; i < size; ++i)
     {
-        SplitData(buf[i], raw_data[2*i], raw_data[2*i+1]);
+        split_data(buf[i], raw_data[2*i], raw_data[2*i+1]);
     }
 
     ts_begin = getTimeSampleStart();
@@ -441,15 +461,6 @@ void PRadGEMAPV::FillZeroSupData(const uint32_t &ch, const std::vector<float> &v
         raw_data[idx] = vals[i];
     }
 
-}
-
-// split the data word, since one data word stores two channels' data
-void PRadGEMAPV::SplitData(const uint32_t &data, float &word1, float &word2)
-{
-    int data1 = (((data>>16)&0xff)<<8) | (data>>24);
-    int data2 = ((data&0xff)<<8) | ((data>>8)&0xff);
-    word1 = (float)data1;
-    word2 = (float)data2;
 }
 
 // fill pedestal histogram
