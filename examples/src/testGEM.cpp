@@ -24,7 +24,7 @@ int main(int argc, char *argv [])
 
     if(argc != 2) {
         cout << "usage: testGEM <dst_file>" << endl;
-        return 0;
+        return -1;
     }
 
     string dst_file = argv[1];

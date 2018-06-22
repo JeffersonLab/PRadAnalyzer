@@ -107,8 +107,8 @@ void FindInputFiles()
 int main(int argc, char *argv[])
 {
     if(argc != 3) {
-        cout << "usage: physReplay start_run end_run ..." << endl;
-        return 0;
+        cout << "usage: physReplay <start_run> <end_run> ..." << endl;
+        return -1;
     }
 
     // get the prad root directory

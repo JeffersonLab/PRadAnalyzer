@@ -23,7 +23,7 @@ using namespace std;
 int main(int argc, char *argv[])
 {
     if(argc != 2)
-        return 0;
+        return -1;
 
     string file = argv[1];
     double beam_energy = 2142;

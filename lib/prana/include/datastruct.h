@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 
+// PRad event types
 enum PRadEventType
 {
     CODA_Unknown = 0x0,
@@ -17,6 +18,8 @@ enum PRadEventType
     CODA_End = 0x20,
 };
 
+// trigger type
+// order follows hardware connection
 enum PRadTriggerType
 {
     NotFromTI = 0,
@@ -30,6 +33,36 @@ enum PRadTriggerType
     Undefined_Trigger,
 };
 
+// PRad Readout Controller IDs, the ID follows strictly hardware configuration
+enum PRadROCID
+{
+    PRadTS = 1,
+    PRadTagE = 2,
+    PRadROC_1 = 4,
+    PRadROC_2 = 5,
+    PRadROC_3 = 6,
+    PRadSRS_1 = 7,
+    PRadSRS_2 = 8,
+    EPICS_IOC = 129,
+};
+
+// PRad data bank ID
+// ID follows Readout list configuration for DAQ system
+enum PRadBankID
+{
+    TI_BANK = 0xe10a,
+    TAG_BANK = 0xe10b,
+    CONF_BANK = 0xe10e,
+    LIVE_BANK = 0xe112,
+    EPICS_BANK = 0xe114,
+    DSC_BANK = 0xe115,
+    GEM_BANK = 0xe11f,
+    FASTBUS_BANK = 0xe120,
+    TDC_BANK = 0xe121,
+    EVINFO_BANK = 0xc000,
+};
+
+// Evio bank types
 enum EvioBankType
 {
     Unknown_32bit = 0x0,
@@ -54,32 +87,7 @@ enum EvioBankType
     EvioNValue = 0x22,
 };
 
-enum PRadROCID
-{
-    PRadTS = 1,
-    PRadTagE = 2,
-    PRadROC_1 = 4,
-    PRadROC_2 = 5,
-    PRadROC_3 = 6,
-    PRadSRS_1 = 7,
-    PRadSRS_2 = 8,
-    EPICS_IOC = 129,
-};
-
-enum PRadBankID
-{
-    TI_BANK = 0xe10a,
-    TAG_BANK = 0xe10b,
-    CONF_BANK = 0xe10e,
-    LIVE_BANK = 0xe112,
-    EPICS_BANK = 0xe114,
-    DSC_BANK = 0xe115,
-    GEM_BANK = 0xe11f,
-    FASTBUS_BANK = 0xe120,
-    TDC_BANK = 0xe121,
-    EVINFO_BANK = 0xc000,
-};
-
+// a general structure to specify DAQ device address
 struct ChannelAddress
 {
     unsigned int crate;
@@ -136,6 +144,7 @@ namespace std
     };
 }
 
+// APV address structure
 struct APVAddress
 {
     int fec_id;

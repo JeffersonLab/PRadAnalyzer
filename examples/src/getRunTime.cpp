@@ -35,5 +35,7 @@ int main(int argc, char *argv[])
     double sec = double(end_time - begin_time)/2.5e8;
 
     std::cout << "run time: " << sec << " s." << std::endl;
+
+    return 0;
 }
 

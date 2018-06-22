@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     if(argc < 2)
     {
         cout << "usage: beamChargeCount <file1> <file2> ..." << endl;
-        return 0;
+        return -1;
     }
 
     ofstream output("beam_charge.dat", ios::app);
@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
         ChargeCount(file, output);
     }
     output.close();
+    return 0;
 }
 
 void ChargeCount(const string &file, ofstream &out)

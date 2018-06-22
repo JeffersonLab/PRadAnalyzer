@@ -356,27 +356,22 @@ struct EventData
             return 0.;
     }
 
-    DSC_Data get_dsc_channel(const uint32_t &idx)
+    DSC_Data get_trg_channel(const uint32_t &trg_type)
     const
     {
-        if(dsc_data.size() <= idx)
-            return DSC_Data();
-        else
-            return dsc_data.at(idx);
+        // physics trigger enum starts at 1, while stored at 0
+        return dsc_data.at(trg_type - 1);
     }
 
     DSC_Data get_ref_channel()
     const
     {
-        return get_dsc_channel(REF_CHANNEL);
+        return dsc_data.at(REF_CHANNEL);
     }
 
     DSC_Data get_dsc_scaled_by_ref(const uint32_t &idx)
     const
     {
-        if(idx >= dsc_data.size())
-            return DSC_Data();
-
         uint64_t ref_pulser = get_ref_channel().ungated_count;
         uint64_t ungated_scaled = (dsc_data.at(idx).ungated_count*ref_pulser)/REF_PULSER_FREQ;
         uint64_t gated_scaled = (dsc_data.at(idx).gated_count*ref_pulser)/REF_PULSER_FREQ;

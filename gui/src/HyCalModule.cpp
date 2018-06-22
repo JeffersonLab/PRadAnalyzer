@@ -69,7 +69,7 @@ void HyCalModule::paint(QPainter *painter,
     QColor fontColor = Qt::black;
 
     // mouse is hovering around, turns darker
-    if(m_hover == true) {
+    if(m_hover) {
         fillColor = fillColor.darker(125);
         fontColor = Qt::white;
     }

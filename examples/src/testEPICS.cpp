@@ -22,11 +22,12 @@ int main(int argc, char *argv[])
 {
     if(argc < 3) {
         cout << "usage: testEPICS <file> <channel_name>" << endl;
-        return 0;
+        return -1;
     }
 
     testEPICS(argv[1], argv[2]);
 
+    return 0;
 }
 
 void testEPICS(const char *path, const char *channel)

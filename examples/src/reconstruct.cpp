@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 {
     if(argc != 2) {
         cout << "usage: reconstruct <file>" << endl;
-        return 0;
+        return -1;
     }
 
     reconstruct(argv[1]);

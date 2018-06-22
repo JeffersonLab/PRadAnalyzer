@@ -16,12 +16,12 @@
 PRadInfoCenter::PRadInfoCenter()
 : live_scaled_charge(0)
 {
-    online_info.add_trigger("Lead Glass Sum", 0);
-    online_info.add_trigger("Total Sum", 1);
-    online_info.add_trigger("LMS Led", 2);
-    online_info.add_trigger("LMS Alpha Source", 3);
-    online_info.add_trigger("Tagger Master OR", 4);
-    online_info.add_trigger("Scintillator", 5);
+    online_info.add_trigger("Lead Glass Sum", PHYS_LeadGlassSum);
+    online_info.add_trigger("Total Sum", PHYS_TotalSum);
+    online_info.add_trigger("LMS Led", LMS_Led);
+    online_info.add_trigger("LMS Alpha Source", LMS_Alpha);
+    online_info.add_trigger("Tagger Master OR", PHYS_TaggerE);
+    online_info.add_trigger("Scintillator", PHYS_Scintillator);
 }
 
 // clear all the information
@@ -47,7 +47,7 @@ void PRadInfoCenter::UpdateInfo(const EventData &event)
         if(trg_ch.id < event.dsc_data.size())
         {
             // get ungated trigger counts
-            unsigned int counts = event.get_dsc_channel(trg_ch.id).ungated_count;
+            unsigned int counts = event.get_trg_channel(trg_ch.id).ungated_count;
 
             // calculate the frequency
             trg_ch.freq = (double)counts / event.get_beam_time();

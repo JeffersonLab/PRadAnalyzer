@@ -495,6 +495,7 @@ void PRadEvioParser::parseTDCV1190(const uint32_t *data, const uint32_t &size, c
 // parse JLab distriminator data
 void PRadEvioParser::parseDSCData(const uint32_t *data, const uint32_t &size)
 {
+// hardware connections
 #define GATED_TDC_GROUP 3
 #define GATED_TRG_GROUP 19
 #define UNGATED_TDC_GROUP 35
@@ -506,6 +507,7 @@ void PRadEvioParser::parseDSCData(const uint32_t *data, const uint32_t &size)
     }
 
     JLabDSCData dscData;
+    // six triggers and two pulsers
     dscData.size = 8;
     dscData.gated_buf = &data[GATED_TRG_GROUP];
     dscData.ungated_buf = &data[UNGATED_TRG_GROUP];

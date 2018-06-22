@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     if(argc < 2)
     {
         cout << "usage: cosmicCheck <file1> <file2> ..." << endl;
-        return 0;
+        return -1;
     }
 
     sys = new PRadHyCalSystem("config/hycal.conf");

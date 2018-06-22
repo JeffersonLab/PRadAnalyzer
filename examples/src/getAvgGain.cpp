@@ -108,9 +108,9 @@ int main(int argc, char * argv [])
 
     FitHistograms();
 
-
-
+    return 0;
 }
+
 //_________________________________________________________________________________
 void InitArray()
 {

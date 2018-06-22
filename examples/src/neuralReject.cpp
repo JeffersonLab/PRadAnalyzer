@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     {
         cout << "usage: neuralReject <net_file> <data_file1> <data_file2>..."
              << endl;
-        return 0;
+        return -1;
     }
 
     string net_file = argv[1];

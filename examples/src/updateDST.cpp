@@ -26,11 +26,13 @@ int main(int argc, char *argv[])
 {
     if(argc != 3) {
         cout << "usage: updateDST <in_file> <out_file>" << endl;
-        return 0;
+        return -1;
     }
 
     UpdateDST(argv[1], argv[2]);
 //    ListEvents(argv[2]);
+
+    return 0;
 }
 
 void UpdateDST(const string &inf, const string &outf)

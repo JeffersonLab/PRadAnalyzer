@@ -26,13 +26,14 @@ int main(int argc, char *argv[])
 {
     if(argc != 3) {
         cout << "usage: eventSelect <file> <bad_event_list>" << endl;
-        return 0;
+        return -1;
     }
 
     string file = argv[1];
     string bad_file = argv[2];
 
     EventSelect(file, bad_file);
+    return 0;
 }
 
 void EventSelect(const string &file, const string &bad_file)

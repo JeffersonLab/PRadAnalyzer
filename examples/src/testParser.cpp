@@ -42,4 +42,6 @@ int main(int argc, char *argv[])
          << "---[ " << timer.GetElapsedTime()/(double)count << " ms/time ]------"
          << endl;
     cout << "Finished." << endl;
+
+    return 0;
 }

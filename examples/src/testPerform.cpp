@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 {
     if(argc < 2) {
         cout << "usage: testPerform <file1> <file2> ..." << endl;
-        return 0;
+        return -1;
     }
 
     PRadBenchMark timer;
