@@ -514,13 +514,17 @@ void PRadHyCalDetector::Reset()
 // prepare dead and virtual hits for the leakage correction in reconstruction
 void PRadHyCalDetector::UpdateDeadModules()
 {
-    // set flag for dead modules
-    for(auto module : module_list)
+    // initialize
+    for(auto module: module_list)
     {
         module->ClearVirtNeighbors();
         // clear the dead module flag
         CLEAR_BIT(module->layout.flag, kDeadModule);
+    }
 
+    // set flag for dead modules
+    for(auto module : module_list)
+    {
         // module is not connected to a adc channel or the channel is dead
         if(!module->GetChannel() || module->GetChannel()->IsDead()) {
             SET_BIT(module->layout.flag, kDeadModule);

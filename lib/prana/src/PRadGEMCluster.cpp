@@ -209,12 +209,12 @@ inline bool is_pure_ct(const StripCluster &cl)
 
 // helper function to check cross talk characteristic distance
 typedef std::vector<StripCluster>::iterator SCit;
-inline bool ct_distance(SCit it, SCit beg, SCit end, float width, const std::vector<float> &charac)
+inline bool ct_distance(SCit it, SCit end, float width, const std::vector<float> &charac)
 {
-    if(beg == end)
+    if(it == end)
         return false;
 
-    for(auto itn = beg + 1; itn != end; ++itn)
+    for(auto itn = it + 1; itn != end; ++itn)
     {
         float delta = std::abs(it->position - itn->position);
 
@@ -244,7 +244,7 @@ const
         if(!is_pure_ct(*it))
             continue;
 
-        it->cross_talk = ct_distance(it, it + 1, clusters.end(), cross_talk_width, charac_dists);
+        it->cross_talk = ct_distance(it, clusters.end(), cross_talk_width, charac_dists);
     }
 }
 
