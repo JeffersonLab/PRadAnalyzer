@@ -43,33 +43,65 @@ struct Point2D
     Point2D() : x(0.), y(0.) {}
     Point2D(T xi, T yi) : x(xi), y(yi) {}
 
-    T dot(const Point2D<T> &rhs) const
+    template<typename T2>
+    T dot(const Point2D<T2> &rhs) const
     {
         return x*rhs.x + y*rhs.y;
     }
 
-    Point2D<T> operator +(const Point2D<T> &rhs) const
+    template<typename T2>
+    Point2D<T> operator +(const Point2D<T2> &rhs) const
     {
         return Point2D<T>(x + rhs.x, y + rhs.y);
     }
-    Point2D<T> operator -(const Point2D<T> &rhs) const
+    template<typename T2>
+    Point2D<T> &operator +=(const Point2D<T2> &rhs)
+    {
+        *this = *this + rhs;
+        return *this;
+    }
+
+    template<typename T2>
+    Point2D<T> operator -(const Point2D<T2> &rhs) const
     {
         return Point2D<T>(x - rhs.x, y - rhs.y);
     }
-    Point2D<T> operator *(const T &rhs) const
+    template<typename T2>
+    Point2D<T> &operator -=(const Point2D<T2> &rhs)
+    {
+        *this = *this - rhs;
+        return *this;
+    }
+
+    template<typename T2>
+    Point2D<T> operator *(const T2 &rhs) const
     {
         return Point2D<T>(x*rhs, y*rhs);
     }
-    Point2D<T> operator /(const T &rhs) const
+    template<typename T2>
+    Point2D<T> &operator *=(const T2 &rhs)
+    {
+        *this = *this * rhs;
+        return *this;
+    }
+
+    template<typename T2>
+    Point2D<T> operator /(const T2 &rhs) const
     {
         return Point2D<T>(x/rhs, y/rhs);
     }
+    template<typename T2>
+    Point2D<T> &operator /=(const T2 &rhs)
+    {
+        *this = *this / rhs;
+        return *this;
+    }
 };
 
-template<typename T>
-Point2D<T> operator *(double lhs, const Point2D<T> &rhs)
+template<typename T1, typename T2>
+Point2D<T2> operator *(const T1 &lhs, const Point2D<T2> &rhs)
 {
-    return Point2D<T>(rhs.x*lhs, rhs.y*lhs);
+    return rhs*lhs;
 }
 
 // 3D point
@@ -81,42 +113,75 @@ struct Point3D
     Point3D() : x(0.), y(0.), z(0.) {}
     Point3D(T xi, T yi, T zi) : x(xi), y(yi), z(zi) {}
 
-    T dot(const Point3D<T> &rhs) const
+    template<typename T2>
+    T dot(const Point3D<T2> &rhs) const
     {
         return x*rhs.x + y*rhs.y + z*rhs.z;
     }
 
     // find the intersect point of a line and a plane
     // (this_point, p2) forms the line and (p3, normal) forms the plane
-    Point3D<T> intersect_plane(const Point3D<T> &p2, const Point3D<T> &p3,
-                               const Point3D<T> &normal)
+    template<typename T2>
+    Point3D<T> intersect_plane(const Point3D<T2> &p2, const Point3D<T2> &p3,
+                               const Point3D<T2> &normal)
     {
         T alpha = normal.dot(p3 - *this)/normal.dot(p2 - *this);
         return *this + alpha*(p2 - *this);
     }
 
-    Point3D<T> operator +(const Point3D<T> &rhs) const
+    template<typename T2>
+    Point3D<T> operator +(const Point3D<T2> &rhs) const
     {
         return Point3D<T>(x + rhs.x, y + rhs.y, z + rhs.z);
     }
-    Point3D<T> operator -(const Point3D<T> &rhs) const
+    template<typename T2>
+    Point3D<T> &operator +=(const Point3D<T2> &rhs)
+    {
+        *this = *this + rhs;
+        return *this;
+    }
+
+    template<typename T2>
+    Point3D<T> operator -(const Point3D<T2> &rhs) const
     {
         return Point3D<T>(x - rhs.x, y - rhs.y, z - rhs.z);
     }
-    Point3D<T> operator *(const T &rhs) const
+    template<typename T2>
+    Point3D<T> &operator -=(const Point3D<T2> &rhs)
+    {
+        *this = *this - rhs;
+        return *this;
+    }
+
+    template<typename T2>
+    Point3D<T> operator *(const T2 &rhs) const
     {
         return Point3D<T>(x*rhs, y*rhs, z*rhs);
     }
-    Point3D<T> operator /(const T &rhs) const
+    template<typename T2>
+    Point3D<T> &operator *=(const T2 &rhs)
+    {
+        *this = *this * rhs;
+        return *this;
+    }
+
+    template<typename T2>
+    Point3D<T> operator /(const T2 &rhs) const
     {
         return Point3D<T>(x/rhs, y/rhs, z/rhs);
     }
+    template<typename T2>
+    Point3D<T> &operator /=(const T2 &rhs)
+    {
+        *this = *this / rhs;
+        return *this;
+    }
 };
 
-template<typename T>
-Point3D<T> operator *(double lhs, const Point3D<T> &rhs)
+template<typename T1, typename T2>
+Point3D<T2> operator *(const T1 &lhs, const Point3D<T2> &rhs)
 {
-    return Point3D<T>(rhs.x*lhs, rhs.y*lhs, rhs.z*lhs);
+    return rhs*lhs;
 }
 
 // 3D transformation
