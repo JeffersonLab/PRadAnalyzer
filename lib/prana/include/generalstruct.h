@@ -44,6 +44,12 @@ struct Point2D
     Point2D(T xi, T yi) : x(xi), y(yi) {}
 
     template<typename T2>
+    Point2D<T> operator ()(const Point2D<T2> &v)
+    {
+        return Point2D<T>(v.x, v.y);
+    }
+
+    template<typename T2>
     T dot(const Point2D<T2> &rhs) const
     {
         return x*rhs.x + y*rhs.y;
@@ -129,6 +135,11 @@ struct Point3D
         return *this + alpha*(p2 - *this);
     }
 
+    template<typename T2>
+    Point3D<T> operator ()(const Point3D<T2> &v)
+    {
+        return Point3D<T>(v.x, v.y, v.z);
+    }
     template<typename T2>
     Point3D<T> operator +(const Point3D<T2> &rhs) const
     {
