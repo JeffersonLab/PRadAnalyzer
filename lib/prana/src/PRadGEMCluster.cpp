@@ -86,8 +86,7 @@ void cluster_hits(SHit beg, SHit end, double thres, std::vector<StripCluster> &c
     // find the first local minimum
     bool descending = false, extremum = false;
     auto minimum = beg;
-    auto it_n = beg + 1;
-    for(auto it = beg; it != end; ++it, ++it_n)
+    for(auto it = beg, it_n = beg + 1; it_n != end; ++it, ++it_n)
     {
         if(descending) {
             // update minimum
