@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <vector>
+#include <deque>
 #include <cmath>
 #include "PRadGEMCluster.h"
 #include "PRadGEMDetector.h"
@@ -74,8 +75,9 @@ const
     setCrossTalk(clusters);
 }
 
-typedef std::vector<StripHit>::iterator SHit;
-void cluster_hits(SHit beg, SHit end, double thres, std::vector<StripCluster> &clusters)
+// a helper function to further separate hits at minimum
+template<class Iter>
+void split_cluster(Iter beg, Iter end, double thres, std::vector<StripCluster> &clusters)
 {
     auto size = end - beg;
     if(size < 3) {
@@ -116,16 +118,60 @@ void cluster_hits(SHit beg, SHit end, double thres, std::vector<StripCluster> &c
         clusters.emplace_back(std::vector<StripHit>(beg, minimum));
 
         // check the leftover strips
-        cluster_hits(minimum, end, thres, clusters);
+        split_cluster(minimum, end, thres, clusters);
     } else {
         clusters.emplace_back(std::vector<StripHit>(beg, end));
     }
 }
 
+// cluster consecutive hits
+template<class Iter>
+inline void cluster_hits(Iter beg, Iter end, int con_thres, double diff_thres, std::vector<StripCluster> &clusters)
+{
+    auto cbeg = beg;
+    for(auto it = beg; it != end; ++it)
+    {
+        auto it_n = it + 1;
+        if((it_n == end) || (it_n->strip - it->strip > con_thres)) {
+            split_cluster(beg, it_n, diff_thres, clusters);
+            cbeg = it_n;
+        }
+    }
+}
 
 // used for separate hits of overlapped APVs
 #define IS_FROM_APV_SET1(hit) ( ((hit).apv_addr == APVAddress(1, 8)) || \
                                 ((hit).apv_addr == APVAddress(6, 8)) )
+
+template<class Iter>
+inline bool is_duplicated_strip(Iter it)
+{
+    // strip number range for duplicates
+    if( ((it->strip < 1392) && (it->strip > 1263)) &&
+    // possible apv that connect with duplicated strips
+        ((it->apv_addr == APVAddress(1, 8)) ||
+         (it->apv_addr == APVAddress(0, 8)) ||
+         (it->apv_addr == APVAddress(3, 8)) ||
+         (it->apv_addr == APVAddress(6, 8)) ||
+         (it->apv_addr == APVAddress(5, 8)) ||
+         (it->apv_addr == APVAddress(7, 8))) )
+        return true;
+    return false;
+}
+
+template<class Iter, template<class, class> class Container>
+inline void separate_duplicates(Iter beg, Iter end,
+                                Container<StripHit, std::allocator<StripHit>> &dup1,
+                                Container<StripHit, std::allocator<StripHit>> &dup2)
+{
+    for(auto it = beg; it != end; ++it)
+    {
+        if(IS_FROM_APV_SET1(*it))
+            dup1.emplace_back(*it);
+        else
+            dup2.emplace_back(*it);
+    }
+}
 
 // group consecutive hits
 void PRadGEMCluster::groupHits(std::vector<StripHit> &hits,
@@ -140,55 +186,64 @@ const
                   return h1.strip < h2.strip;
               });
 
-    // group the hits that have consecutive strip number
-    auto cluster_begin = hits.begin();
-    for(auto it = hits.begin(); it != hits.end(); ++it)
-    {
-        auto next = it + 1;
+    // for X-plane, we have strips at the same x-position (same strip number),
+    // but they are segmented due to the central hole, this needs special treatment
+    // separate hits into normal group, upper group, lower group
+    auto normal_end = hits.begin();
+    // find the end of the normal group
+    while((normal_end != hits.end()) && !is_duplicated_strip(normal_end)) {normal_end ++;}
+    // separate the duplicated strips into two groups (upper and lower)
+    std::deque<StripHit> dup1, dup2;
+    separate_duplicates(normal_end, hits.end(), dup1, dup2);
 
-        // end of list, group the last cluster
-        if(next == hits.end()) {
-            cluster_hits(cluster_begin, next, split_cluster_diff, clusters);
-            break;
+    // no need the special treatment
+    if(dup1.empty() || dup2.empty()) {
+        cluster_hits(hits.begin(), hits.end(), consecutive_thres, split_cluster_diff, clusters);
+    // no normal hits
+    } else if(normal_end == hits.begin()) {
+        cluster_hits(dup1.begin(), dup1.end(), consecutive_thres, split_cluster_diff, clusters);
+        cluster_hits(dup2.begin(), dup2.end(), consecutive_thres, split_cluster_diff, clusters);
+    } else {
+        // group normal first
+        cluster_hits(hits.begin(), normal_end, consecutive_thres, split_cluster_diff, clusters);
+        // check if the last hit is consecutive to the duplicated groups
+        auto lastn = normal_end - 1;
+        bool neighbor1 = (dup1.begin()->strip - lastn->strip > (int)consecutive_thres);
+        bool neighbor2 = (dup2.begin()->strip - lastn->strip > (int)consecutive_thres);
+        // last hits
+        auto &last_hits = clusters.back().hits;
+        // share last hits
+        if(neighbor1 & neighbor2) {
+            // determine share by the closest hit charge
+            double factor1 = 1./(dup2.begin()->charge/dup1.begin()->charge + 1.);
+            for(auto it = last_hits.rbegin(); it != last_hits.rend(); ++it)
+            {
+                auto share_hit = *it;
+                share_hit.charge *= factor1;
+                dup1.emplace_front(share_hit);
+            }
+            double factor2 = 1. - factor1;
+            for(auto it = last_hits.rbegin(); it != last_hits.rend(); ++it)
+            {
+                auto share_hit = *it;
+                share_hit.charge *= factor2;
+                dup2.emplace_front(share_hit);
+            }
+        // merge to dup1
+        } else if (neighbor1) {
+            dup1.insert(dup1.begin(), last_hits.begin(), last_hits.end());
+        // merge to dup2
+        } else if(neighbor2) {
+            dup2.insert(dup2.begin(), last_hits.begin(), last_hits.end());
         }
 
-        // recursively group hits for overlapped APVs
-        if(next->strip == it->strip) {
-            std::vector<StripHit> dup1, dup2;
-            dup1.reserve(hits.size());
-            dup2.reserve(hits.size());
+        // discard last cluster, since it is merged into duplicates groups
+        if(neighbor1 | neighbor2)
+            clusters.pop_back();
 
-            // duplicate shared strips but halve the charge
-            for(auto itd = cluster_begin; itd != it; ++itd)
-            {
-                StripHit shared_hit(*itd);
-                shared_hit.charge /= 2.;
-
-                dup1.push_back(shared_hit);
-                dup2.push_back(shared_hit);
-            }
-
-            // dispatch the rest strips by APV address
-            // duplicating always occurs at the end
-            for(auto itd = it; itd != hits.end(); ++itd)
-            {
-                if(IS_FROM_APV_SET1(*itd))
-                    dup1.push_back(*itd);
-                else
-                    dup2.push_back(*itd);
-            }
-
-            // group the remaining strips into clusters
-            groupHits(dup1, clusters);
-            groupHits(dup2, clusters);
-
-            break; // finished all grouping, break out the entire loop
-
-        // not consecutive, create a new cluster
-        } else if(next->strip - it->strip > (int)consecutive_thres) {
-            cluster_hits(cluster_begin, next, split_cluster_diff, clusters);
-            cluster_begin = next;
-        }
+        // cluster the duplicates groups
+        cluster_hits(dup1.begin(), dup1.end(), consecutive_thres, split_cluster_diff, clusters);
+        cluster_hits(dup2.begin(), dup2.end(), consecutive_thres, split_cluster_diff, clusters);
     }
 }
 
