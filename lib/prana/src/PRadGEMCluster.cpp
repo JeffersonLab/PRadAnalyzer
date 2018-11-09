@@ -133,7 +133,7 @@ inline void cluster_hits(Iter beg, Iter end, int con_thres, double diff_thres, s
     {
         auto it_n = it + 1;
         if((it_n == end) || (it_n->strip - it->strip > con_thres)) {
-            split_cluster(beg, it_n, diff_thres, clusters);
+            split_cluster(cbeg, it_n, diff_thres, clusters);
             cbeg = it_n;
         }
     }
