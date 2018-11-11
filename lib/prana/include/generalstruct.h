@@ -182,14 +182,14 @@ struct Point3D
     template<typename T1, typename T2>
     inline Point3D<T> transform(const Point3D<T1> &trans, const Point3D<T2> &rot) const
     {
-        return (*this).rot_x(rot.x).rot_y(rot.y).rot_z(rot.z).translate(trans);
+        return (*this).translate(trans).rot_x(rot.x).rot_y(rot.y).rot_z(rot.z);
     }
 
     template<typename T1, typename T2>
     inline Point3D<T> transform_inv(const Point3D<T1> &trans, const Point3D<T2> &rot) const
     {
         auto r = -1.*rot;
-        return (*this).translate(trans*-1.).rot_z(r.z).rot_y(r.y).rot_x(r.x);
+        return (*this).rot_z(r.z).rot_y(r.y).rot_x(r.x).translate(trans*-1.);
     }
 
 
