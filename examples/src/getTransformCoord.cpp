@@ -81,13 +81,36 @@ struct Ranger
     }
 };
 
-mypt RevTransform(mypt trans, mypt rot, mypt coord);
 unordered_map<string, PosDiff> ReadPositionDiffs(const string &path);
 double TakeDifference(unordered_map<string, PosDiff> &diffs, const mypt &trans, const mypt &rot);
 
 
 int main(int argc, char *argv[])
 {
+    // test
+    // point on hycal
+    mypt hycal(20., 20., HYCAL_Z);
+    // gem center position
+    mypt gem1(1.5, 2.5, GEM1_Z);
+    // gem tilt
+    mypt gem1_tilt(100., 100., 100.);
+    // normal of gem
+    mypt norm = zaxis.transform(zero, gem1_tilt);
+    // intersection on gem plane of target->hycal projectile
+    mypt p1 = hycal.intersect_plane(zero, gem1, norm);
+    // gem coordinate
+    mypt p2 = p1.transform_inv(gem1, gem1_tilt);
+    // transform to general coordinate
+    mypt p3 = p2.transform(gem1, gem1_tilt);
+    // project to hycal
+    mypt p4 = p3.intersect_plane(zero, hycal, zaxis);
+
+    cout << "test start: " << hycal << endl;
+    cout << "gem normal: " << norm << endl;
+    cout << "intersection on gem (general coordinate): " << p1 << endl;
+    cout << "intersection on gem (gem coordinate): " << p2 << endl;
+    cout << "projection back to hycal: " << p4 << endl;
+
     // geometry
     auto obdiffs = ReadPositionDiffs("database/transform/delta_pos_table_2GeV.txt");
     unordered_map<string, PosDiff> gem[2];
@@ -144,115 +167,8 @@ int main(int argc, char *argv[])
              << "---[ shift and tilt = (" << best_shift << "), (" << best_tilt << ") ]------"
              << endl;
     }
-     /*
-    // test
-    // point on hycal
-    mypt hycal(20., 20., HYCAL_Z);
-    // gem center position
-    mypt gem1(1.5, 2.5, GEM1_Z);
-    // gem tilt
-    mypt gem1_tilt(100., 100., 100.);
-    // normal of gem
-    mypt norm = Transform(zero, gem1_tilt, zaxis);
-    // intersection on gem plane of target->hycal projectile
-    mypt p1 = hycal.intersect_plane(zero, gem1, norm);
-    // gem coordinate
-    mypt p2 = RevTransform(gem1, gem1_tilt, p1);
-    // transform to general coordinate
-    mypt p3 = Transform(gem1, gem1_tilt, p2);
-    // project to hycal
-    mypt p4 = p3.intersect_plane(zero, hycal, zaxis);
-
-    cout << norm.x << ", " << norm.y << ", " << norm.z << endl;
-    cout << p1.x << ", " << p1.y << ", " << p1.z << endl;
-    cout << p2.x << ", " << p2.y << ", " << p2.z << endl;
-    cout << p4.x << ", " << p4.y << ", " << p4.z << endl;
-    */
 
     return 0;
-}
-
-
-// transform
-mypt Transform(mypt trans, mypt rot, mypt coord)
-{
-    double x = coord.x;
-    double y = coord.y;
-    double z = coord.z;
-
-    double xt, yt, zt;
-    // firstly do the angle tilting
-    // basic rotation matrix
-    // Rx(a) = ( 1           0         0  )
-    //         ( 0       cos(a)    sin(a) )
-    //         ( 0      -sin(a)    cos(a) )
-    xt = x, yt = y, zt = z;
-    y = yt*cos(rot.x*0.001) + zt*sin(rot.x*0.001);
-    z = -yt*sin(rot.x*0.001) + zt*cos(rot.x*0.001);
-
-    // Ry(a) = ( cos(a)      0    -sin(a) )
-    //         ( 0           1         0  )
-    //         ( sin(a)      0     cos(a) )
-    xt = x, yt = y, zt = z;
-    x = xt*cos(rot.y*0.001) - zt*sin(rot.y*0.001);
-    z = xt*sin(rot.y*0.001) + zt*cos(rot.y*0.001);
-
-    // Rz(a) = ( cos(a)  sin(a)        0  )
-    //         (-sin(a)  cos(a)        0  )
-    //         ( 0           0         1  )
-    xt = x, yt = y, zt = z;
-    x = xt*cos(rot.z*0.001) + yt*sin(rot.z*0.001);
-    y = -xt*sin(rot.z*0.001) + yt*cos(rot.z*0.001);
-
-    // then correct the origin
-    x += trans.x;
-    y += trans.y;
-    z += trans.z;
-
-    return mypt(x, y, z);
-}
-
-
-// reversely transform
-mypt RevTransform(mypt trans, mypt rot, mypt coord)
-{
-    double x = coord.x;
-    double y = coord.y;
-    double z = coord.z;
-
-    trans = -1.*trans;
-    rot = -1.*rot;
-
-    // then correct the origin
-    x += trans.x;
-    y += trans.y;
-    z += trans.z;
-
-    double xt, yt, zt;
-    // Rz(a) = ( cos(a)  sin(a)        0  )
-    //         (-sin(a)  cos(a)        0  )
-    //         ( 0           0         1  )
-    xt = x, yt = y, zt = z;
-    x = xt*cos(rot.z*0.001) + yt*sin(rot.z*0.001);
-    y = -xt*sin(rot.z*0.001) + yt*cos(rot.z*0.001);
-
-    // Ry(a) = ( cos(a)      0    -sin(a) )
-    //         ( 0           1         0  )
-    //         ( sin(a)      0     cos(a) )
-    xt = x, yt = y, zt = z;
-    x = xt*cos(rot.y*0.001) - zt*sin(rot.y*0.001);
-    z = xt*sin(rot.y*0.001) + zt*cos(rot.y*0.001);
-
-    // firstly do the angle tilting
-    // basic rotation matrix
-    // Rx(a) = ( 1           0         0  )
-    //         ( 0       cos(a)    sin(a) )
-    //         ( 0      -sin(a)    cos(a) )
-    xt = x, yt = y, zt = z;
-    y = yt*cos(rot.x*0.001) + zt*sin(rot.x*0.001);
-    z = -yt*sin(rot.x*0.001) + zt*cos(rot.x*0.001);
-
-    return mypt(x, y, z);
 }
 
 
@@ -311,14 +227,14 @@ unordered_map<string, PosDiff> ReadPositionDiffs(const string &path)
         p.second.layout = module->GetLayoutFlag();
 
         // hycal module in the general coordinate system
-        auto mcenter = Transform(hycal_center, zero, p.second.hycal);
+        auto mcenter = p.second.hycal.transform(hycal_center, zero);
         // project to hycal plane (lead glass module are not on plane)
         auto pr = mcenter.intersect_plane(zero, hycal_center, zaxis);
         // take difference (gem - hycal)
         auto gem_pos = pr + p.second.diff;
         // project back to gem plane, then convert to gem coordinates
-        p.second.gem1 = RevTransform(gem_centers[0], gem_tilts[0], gem_pos.intersect_plane(zero, gem_centers[0], zaxis));
-        p.second.gem2 = RevTransform(gem_centers[1], gem_tilts[1], gem_pos.intersect_plane(zero, gem_centers[1], zaxis));
+        p.second.gem1 = gem_pos.intersect_plane(zero, gem_centers[0], zaxis).transform_inv(gem_centers[0], gem_tilts[0]*0.001);
+        p.second.gem2 = gem_pos.intersect_plane(zero, gem_centers[1], zaxis).transform_inv(gem_centers[1], gem_tilts[1]*0.001);
     }
     return res;
 }
@@ -330,8 +246,8 @@ double TakeDifference(unordered_map<string, PosDiff> &diffs,
     double sigma = 0;
     for (auto it : diffs)
     {
-        auto hycal = Transform(hycal_center, zero, it.second.hycal).intersect_plane(zero, hycal_center, zaxis);
-        auto gem = Transform(trans, rot, it.second.gem).intersect_plane(zero, hycal_center, zaxis);
+        auto hycal = it.second.hycal.transform(hycal_center, zero).intersect_plane(zero, hycal_center, zaxis);
+        auto gem = it.second.gem.transform(trans, rot*0.001).intersect_plane(zero, hycal_center, zaxis);
         auto diff = hycal - gem;
         sigma += cana::pow2(diff.x/it.second.res.x) + cana::pow2(diff.y/it.second.res.y);
     }

@@ -1,6 +1,7 @@
 #ifndef GENERAL_STRUCT_H
 #define GENERAL_STRUCT_H
 
+#include <cmath>
 // general structures that will be used among several classes
 
 // geometry for a HyCal module
@@ -53,6 +54,29 @@ struct Point2D
     T dot(const Point2D<T2> &rhs) const
     {
         return x*rhs.x + y*rhs.y;
+    }
+
+    template<typename T2>
+    inline Point2D<T> trans(const Point2D<T2> &p) const
+    {
+        return *this + p;
+    }
+
+    inline Point2D<T> rot(double a) const
+    {
+        return Point2D<T>(x*std::cos(a) + y*std::sin(a), -x*std::sin(a) + y*std::cos(a));
+    }
+
+    template<typename T2>
+    inline Point2D<T> transform(const Point2D<T2> &trans, double rot) const
+    {
+        return (*this).translate(trans).rot(rot);
+    }
+
+    template<typename T2>
+    inline Point2D<T> transform_inv(const Point2D<T2> &trans, double rot) const
+    {
+        return (*this).rot(rot*-1.).translate(trans*-1.);
     }
 
     template<typename T2>
@@ -124,6 +148,50 @@ struct Point3D
     {
         return x*rhs.x + y*rhs.y + z*rhs.z;
     }
+
+    template<typename T2>
+    inline Point3D<T> translate(const Point3D<T2> &p) const
+    {
+        return *this + p;
+    }
+
+    inline Point3D<T> rot_x(double a) const
+    {
+        // Rx(a) = ( 1           0         0  )
+        //         ( 0       cos(a)    sin(a) )
+        //         ( 0      -sin(a)    cos(a) )
+        return Point3D<T>(x, y*std::cos(a) + z*std::sin(a), -y*std::sin(a) + z*std::cos(a));
+    }
+
+    inline Point3D<T> rot_y(double a) const
+    {
+        // Ry(a) = ( cos(a)      0    -sin(a) )
+        //         ( 0           1         0  )
+        //         ( sin(a)      0     cos(a) )
+        return Point3D<T>(x*std::cos(a) - z*std::sin(a), y, x*std::sin(a) + z*std::cos(a));
+    }
+
+    inline Point3D<T> rot_z(double a) const
+    {
+        // Rz(a) = ( cos(a)  sin(a)        0  )
+        //         (-sin(a)  cos(a)        0  )
+        //         ( 0           0         1  )
+        return Point3D<T>(x*std::cos(a) + y*std::sin(a), -x*std::sin(a) + y*std::cos(a), z);
+    }
+
+    template<typename T1, typename T2>
+    inline Point3D<T> transform(const Point3D<T1> &trans, const Point3D<T2> &rot) const
+    {
+        return (*this).rot_x(rot.x).rot_y(rot.y).rot_z(rot.z).translate(trans);
+    }
+
+    template<typename T1, typename T2>
+    inline Point3D<T> transform_inv(const Point3D<T1> &trans, const Point3D<T2> &rot) const
+    {
+        auto r = -1.*rot;
+        return (*this).translate(trans*-1.).rot_z(r.z).rot_y(r.y).rot_x(r.x);
+    }
+
 
     // find the intersect point of a line and a plane
     // (this_point, p2) forms the line and (p3, normal) forms the plane

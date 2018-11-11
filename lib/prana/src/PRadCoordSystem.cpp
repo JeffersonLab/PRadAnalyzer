@@ -202,36 +202,9 @@ void PRadCoordSystem::Transform(int det_id, float &x, float &y, float &z)
 const
 {
     const DetCoord &coord = current_coord.dets.at(det_id);
-
-    float xt, yt, zt;
-
-    // firstly do the angle tilting
-    // basic rotation matrix
-    // Rx(a) = ( 1           0         0  )
-    //         ( 0       cos(a)    sin(a) )
-    //         ( 0      -sin(a)    cos(a) )
-    xt = x, yt = y, zt = z;
-    y = yt*cos(coord.rot.x*0.001) + zt*sin(coord.rot.x*0.001);
-    z = -yt*sin(coord.rot.x*0.001) + zt*cos(coord.rot.x*0.001);
-
-    // Ry(a) = ( cos(a)      0    -sin(a) )
-    //         ( 0           1         0  )
-    //         ( sin(a)      0     cos(a) )
-    xt = x, yt = y, zt = z;
-    x = xt*cos(coord.rot.y*0.001) - zt*sin(coord.rot.y*0.001);
-    z = xt*sin(coord.rot.y*0.001) + zt*cos(coord.rot.y*0.001);
-
-    // Rz(a) = ( cos(a)  sin(a)        0  )
-    //         (-sin(a)  cos(a)        0  )
-    //         ( 0           0         1  )
-    xt = x, yt = y, zt = z;
-    x = xt*cos(coord.rot.z*0.001) + yt*sin(coord.rot.z*0.001);
-    y = -xt*sin(coord.rot.z*0.001) + yt*cos(coord.rot.z*0.001);
-
-    // then correct the origin
-    x += coord.trans.x;
-    y += coord.trans.y;
-    z += coord.trans.z;
+    // we use mrad as the unit
+    auto p =Point3D<float>(x, y, z).transform(coord.trans, coord.rot*0.001);
+    x = p.x, y = p.y, z= p.z;
 }
 
 // projection from (xi, yi, zi) to zf
