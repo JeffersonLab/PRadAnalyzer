@@ -200,6 +200,7 @@ public:
     static std::deque<std::string> split(const char* str, const size_t &len, const std::string &s);
     static std::string get_split_part(int num, const char *str, const char &s);
     static int get_part_count(const char *cmp, const char *str, const char &s);
+    static std::vector<int> stois(const std::string &str, const std::string &s, const std::string &w);
     static std::vector<float> stofs(const std::string &str, const std::string &s, const std::string &w);
     static std::vector<double> stods(const std::string &str, const std::string &s, const std::string &w);
     static std::string str_remove(const std::string &str, const std::string &ignore);
@@ -220,13 +221,14 @@ public:
     static std::string form_path(const std::string &dir, const std::string &file);
     static std::string file_to_string(const std::string &path);
     // break text file into several blocks in the format
-    // <label> <open_mark> <content> <close_mark>
-    // return extracted <label> <content>
+    // <label> <open_mark> <content> <close_mark>, this structure can be separated by sep characters
+    // return extracted <residual> {<label> <content>} with white characters trimmed
     struct TextBlock {std::string label, content;};
-    static std::vector<TextBlock> break_into_blocks(const std::string &buf,
-                                                    const std::string &open = "{",
-                                                    const std::string &close = "}",
-                                                    const std::string &sep = " \t\n");
+    struct TextBlocks {std::string residual; std::vector<TextBlock> blocks;};
+    static TextBlocks break_into_blocks(const std::string &buf,
+                                        const std::string &open = "{",
+                                        const std::string &close = "}",
+                                        const std::string &seps = " \t\n");
 
 };
 

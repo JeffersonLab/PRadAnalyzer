@@ -13,6 +13,7 @@
 #include "PRadGEMDetector.h"
 #include "ConfigParser.h"
 #include "canalib.h"
+#include <utility>
 #include <fstream>
 #include <iomanip>
 
@@ -41,60 +42,173 @@ PRadCoordSystem::~PRadCoordSystem()
 // Public Member Functions                                                    //
 //============================================================================//
 
+// data structure to store detector info
+struct det_setup
+{
+    std::vector<std::pair<int, int>> run_ranges;
+    std::vector<DetCoord> dets;
+};
+
+// a helper function to process texts to get detector setup
+det_setup process_detector_setup(const std::string &str)
+{
+    det_setup result;
+    result.dets.resize(static_cast<size_t>(PRadDetector::Max_Dets));
+
+    auto text = ConfigParser::break_into_blocks(str, "{", "}");
+    ConfigParser c_parser;
+    c_parser.SetSplitters("=:");
+    std::string var_name, var_value;
+
+    // setup detectors
+    for(auto &block : text.blocks)
+    {
+        if(!ConfigParser::case_ins_equal(block.label, "Detector"))
+            continue;
+        // find detector block
+        c_parser.ReadBuffer(block.content.c_str());
+        while(c_parser.ParseLine())
+        {
+            c_parser >> var_name >> var_value;
+            // name to detector id
+            int id = PRadDetector::str2DetEnum(var_name.c_str());
+            if(id < 0) {
+                std::cout << "PRad Coord. System Warning: Unrecognized detector "
+                          << var_name << std::endl;
+                continue;
+            }
+            // convert to numbers
+            auto vals = ConfigParser::stods(var_value, ",", " \t");
+            // set detectors
+            for(int i = 0; (i < (int)vals.size()) && (i < 6); ++i)
+            {
+                result.dets[id].SetCoord(i, vals[i]);
+            }
+        }
+    }
+
+    // setup run ranges
+    c_parser.ReadBuffer(text.residual.c_str());
+    while(c_parser.ParseLine())
+    {
+        c_parser >> var_name >> var_value;
+        if(!ConfigParser::case_ins_equal(var_name, "Run"))
+            continue;
+
+        // convert numbers to set run range
+        auto vals = ConfigParser::split(var_value, ",");
+        for(auto &val : vals)
+        {
+            // it could be split by -, i.e., a - b
+            auto runs = ConfigParser::split(val, "-");
+            if(runs.empty()) {
+                std::cout << "PRad Coord. System Warning: Cannot process run range "
+                          << val << std::endl;
+                continue;
+            }
+            // begin and end
+            int begin = std::stoi(ConfigParser::trim(runs.front(), " \t"));
+            int end = std::stoi(ConfigParser::trim(runs.back(), " \t"));
+            result.run_ranges.emplace_back(begin, end);
+        }
+    }
+
+    return result;
+}
+
+// a helper function to process texts and add coordinates
+void process_beam_position(const std::string &str,
+                           const std::vector<det_setup> &setups,
+                           std::vector<RunCoord> &container)
+{
+    ConfigParser c_parser;
+    int run;
+    double beam_x, beam_y, target_z;
+    c_parser.ReadBuffer(str.c_str());
+
+    while(c_parser.ParseLine())
+    {
+        // read-in run data
+        c_parser >> run >> beam_x >> beam_y >> target_z;
+
+        // new run coordinates
+        RunCoord coord;
+        coord.run_number = run;
+
+        // no setups
+        if(setups.empty()) {
+            std::cout << "PRad Coord. System Warning: No detector setup found, "
+                      << "assume every detector is at the origin."
+                      << std::endl;
+            coord.dets.resize(static_cast<size_t>(PRadDetector::Max_Dets));
+        } else {
+            // find the setup
+            size_t is = 0;
+            for(size_t i = 0; i < setups.size(); ++i)
+            {
+                for(auto &range : setups[i].run_ranges)
+                {
+                    if((run >= range.first) && (run <= range.second)) {
+                        is = i;
+                        break;
+                    }
+                }
+            }
+
+            // convert reference coordinate system to the beam coordinate system
+            coord.dets = setups[is].dets;
+        }
+
+        // apply beam and target position
+        for(auto &det : coord.dets)
+        {
+            det.trans += Point(beam_x, beam_y, target_z);
+        }
+        container.emplace_back(coord);
+    }
+}
+
 // load coordinates data, the format should be
 // run_number, det_name, origin_x, origin_y, origin_z, theta_x, theta_y, theta_z
 void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_run)
 {
     ConfigParser c_parser;
+    // read in file
+    std::string buffer = ConfigParser::file_to_string(path);
 
     if(!c_parser.ReadFile(path)) {
-        std::cerr << "PRad Coord System Error: Cannot open data file "
+        std::cerr << "PRad Coord System Error: Invalid coordinate data file "
                   << "\"" << path << "\"."
                   << std::endl;
         return;
     }
 
+    // remove comments
+    ConfigParser::comment_between(buffer, "/*", "*/");
+    ConfigParser::comment_line(buffer, "//", "\n");
+    ConfigParser::comment_line(buffer, "#", "\n");
+
+    // get content blocks
+    auto text = ConfigParser::break_into_blocks(buffer, "{", "}");
+
+    // clear containers
     coords_data.clear();
     current_coord.Clear();
 
-    while(c_parser.ParseLine())
+    // retrieve detector setups
+    std::vector<det_setup> setups;
+    for(auto &block : text.blocks)
     {
-        if(c_parser.NbofElements() < 8)
-            continue;
-
-        int run;
-        std::string det_name;
-        float x, y, z, theta_x, theta_y, theta_z;
-
-        c_parser >> run >> det_name
-                 >> x >> y >> z >> theta_x >> theta_y >> theta_z;
-
-        size_t index = 0;
-        for(; index < (size_t) PRadDetector::Max_Dets; ++index)
-        {
-            if(det_name.find(PRadDetector::DetEnum2str(index)) != std::string::npos)
-                break;
+        if(ConfigParser::case_ins_equal(block.label, "DetectorSetup")) {
+            setups.emplace_back(process_detector_setup(block.content));
         }
+    }
 
-        if(index >= (size_t) PRadDetector::Max_Dets) {
-            std::cout << "PRad Coord System Warning: Unrecognized detector "
-                      << det_name << ", skipped reading its offsets."
-                      << std::endl;
-            continue;
-        }
-
-        DetCoord new_off(x, y, z, theta_x, theta_y, theta_z);
-
-        auto it_pair = cana::binary_search_interval(coords_data.begin(), coords_data.end(), run);
-        // not find the exact matched entry
-        if(it_pair.second == coords_data.end() || it_pair.first != it_pair.second) {
-            // create a new entry
-            RunCoord new_entry(run);
-            new_entry.dets[index] = new_off;
-            // insert the entry before the upper bound to keep the order
-            coords_data.insert(it_pair.second, new_entry);
-        } else {
-            it_pair.first->dets[index] = new_off;
+    // process beam positions, this should be done after detector setup
+    for(auto &block : text.blocks)
+    {
+        if(ConfigParser::case_ins_equal(block.label, "BeamPosition")) {
+            process_beam_position(block.content, setups, coords_data);
         }
     }
 

@@ -30,7 +30,8 @@ static const mypt hycal_center(0., 0., HYCAL_Z);
 static mypt gem_centers[2], gem_tilts[2];
 
 
-ostream &operator <<(ostream &os, const mypt &p)
+template<typename T>
+ostream &operator <<(ostream &os, const Point3D<T> &p)
 {
     os << p.x << ", " << p.y << ", " << p.z;
     return os;
@@ -129,9 +130,9 @@ int main(int argc, char *argv[])
 
     // search range
     // shift_x, shift_y, tilt_x, tilt_y, tilt_z
-    vector<double> min = {-0.2, -0.2, 0, 0., -1.};
-    vector<double> max = {0.2, 0.2, 0, 0., 1.};
-    vector<int> counts= {20, 20, 0, 0, 100};
+    vector<double> min = {-0.2, -0.2, 0, 0., -1.5};
+    vector<double> max = {0.2, 0.2, 0, 0., 1.5};
+    vector<int> counts= {20, 20, 0, 0, 200};
 
     Ranger range(min, max, counts);
 

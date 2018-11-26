@@ -269,7 +269,7 @@ bool ConfigParser::getBuffer()
 }
 
 // trim white spaces
-inline void trimbuf(const std::vector<char> &buf, size_t &begin, size_t &end, const string &w)
+inline void trimbuf(const vector<char> &buf, size_t &begin, size_t &end, const string &w)
 {
     while(begin < end)
     {
@@ -530,6 +530,17 @@ deque<string> ConfigParser::split(const char* str, const size_t &len, const stri
     delete[] str_cpy;
 
     return eles;
+}
+
+// split a string and convert all parts to float numbers
+vector<int> ConfigParser::stois(const string &str, const string &s, const string &w)
+{
+    vector<int> res;
+    for(auto &val : split(str, s))
+    {
+        res.push_back(stoi(trim(val, w)));
+    }
+    return res;
 }
 
 // split a string and convert all parts to float numbers
@@ -879,7 +890,7 @@ string ConfigParser::form_path(const string &dir, const string &file)
 }
 
 // read a file and return its content in a char string
-string ConfigParser::file_to_string(const std::string &path)
+string ConfigParser::file_to_string(const string &path)
 {
     ifstream inf(path);
 
@@ -899,30 +910,18 @@ string ConfigParser::file_to_string(const std::string &path)
     return str;
 }
 
-// break a string into several blocks with the format
+// break text file into several blocks in the format
 // <label> <open_mark> <content> <close_mark>
-// label and marks can be separated by separator chars
-// return extracted <label> and <content>
-vector<ConfigParser::TextBlock> ConfigParser::break_into_blocks(const string &buf,
-                                                                const string &open,
-                                                                const string &close,
-                                                                const string &sep)
+// return extracted <residual> {<label> <content>}
+ConfigParser::TextBlocks ConfigParser::break_into_blocks(const string &buf,
+                                                         const string &open,
+                                                         const string &close,
+                                                         const string &seps)
 {
-    vector<TextBlock> result;
+    TextBlocks result;
 
     if(buf.empty() || open.empty() || close.empty())
         return result;
-
-    // prepare white spaces removal for determining block label
-    // lambda to check if a character is a white space
-    auto is_sep = [](const char &c, const string &ws)
-                  {
-                      for(auto &w : ws)
-                      {
-                          if(c == w) return true;
-                      }
-                      return false;
-                  };
 
     size_t last_end = 0;
     // loop until no blocks found
@@ -937,39 +936,31 @@ vector<ConfigParser::TextBlock> ConfigParser::break_into_blocks(const string &bu
 
         // add content
         TextBlock block;
-        block.content = buf.substr(p.first + open.size(), p.second - p.first - open.size());
+        block.content = trim(buf.substr(p.first + open.size(), p.second - p.first - open.size()), seps);
 
         // find label
-        if(p.first <= last_end) {
+        string head = buf.substr(last_end, p.first - last_end);
+        if(head.empty()) {
             block.label = "";
-        } else if (!sep.empty()) {
-            bool find_end = false;
-            int beg = last_end, end = p.first - 1;
-
-            // the word before pair is the label
-            // white spaces will be trimmed
-            for(int i = end; i >= beg; --i)
-            {
-                // label end not determined
-                if(!find_end) {
-                    // find last not of white spaces
-                    if(is_sep(buf.at(i), sep)) end--;
-                    else find_end = true;
-                // find label begin
-                } else {
-                    // find chars until white spaces
-                    if(is_sep(buf.at(i), sep))
-                        beg = i + 1;
-                }
-            }
-            block.label = (end > beg) ? buf.substr(beg, end - beg + 1) : "";
         } else {
-            block.label = buf.substr(last_end, p.first - last_end);
+            // find end of label
+            auto end = head.find_last_not_of(seps);
+            if(end == string::npos) end = head.size() - 1;
+            // find begin of label
+            auto beg = head.find_last_of(seps, end);
+            if(beg == string::npos) beg = 0;
+            // add label
+            block.label = trim(head.substr(beg, end - beg + 1), seps);
+            // other content goes to residual
+            result.residual += head.substr(0, beg);
         }
-
-        result.emplace_back(std::move(block));
+        // combine blocks
+        result.blocks.emplace_back(move(block));
         last_end = p.second + close.size();
     }
+
+    // trim
+    result.residual = trim(result.residual, seps);
 
     return result;
 }

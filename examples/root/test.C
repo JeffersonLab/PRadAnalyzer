@@ -55,12 +55,14 @@ void test_block_read(const string &path = "block_test.conf")
     ConfigParser::comment_line(buffer, "#", "\n");
 
     // get content blocks
-    auto blocks = ConfigParser::break_into_blocks(buffer, "{", "}");
+    auto text = ConfigParser::break_into_blocks(buffer, "{", "}");
 
-    for(auto &b : blocks)
+    cout << "residual: " << text.residual << endl;
+
+    for(auto &b : text.blocks)
     {
-        cout << b.label << endl;
-        cout << b.content << endl;
+        cout << "label: " << b.label << endl;
+        cout << "content: " << b.content << endl;
     }
 }
 
