@@ -30,14 +30,6 @@ static const mypt hycal_center(0., 0., HYCAL_Z);
 static mypt gem_centers[2], gem_tilts[2];
 
 
-template<typename T>
-ostream &operator <<(ostream &os, const Point3D<T> &p)
-{
-    os << p.x << ", " << p.y << ", " << p.z;
-    return os;
-}
-
-
 struct PosDiff
 {
     mypt diff, res, hycal, gem, gem1, gem2;
