@@ -18,6 +18,7 @@ typedef Transform3D<float> DetCoord;
 struct RunCoord
 {
     int run_number;
+    Point target_center;
     std::vector<DetCoord> dets;
 
     RunCoord(int r = 0) : run_number(r)
@@ -62,6 +63,7 @@ public:
 
     // basic transform functions
     void Transform(int det_id, float &x, float &y, float &z) const;
+    void InvTransform(int det_id, float &x, float &y, float &z) const;
 
     // template functions
     // transform for clusters with det_id

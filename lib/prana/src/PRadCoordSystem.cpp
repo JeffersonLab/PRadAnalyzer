@@ -6,6 +6,19 @@
 // Chao Peng, changed the coordinates transform method, now all detectors     //
 //            are transformed directly to beam frame                          //
 // 10/21/2016                                                                 //
+//                                                                            //
+// The reconstructed coordinates are in each detector's own coordinate system //
+// The analysis coordinate system is chosen as                                //
+// (beam_x, beam_y, target_z), in which target_z is given by survey data, and //
+// it has a shift from the real target cell center.                           //
+// We utilize a two-step transform to retrieve the coordinates in the analysis//
+// coordinate system from the detector coordinate system:                     //
+// 1. Coordinates are transformed to the reference coordinate system, which is//
+//    chosen as (beam_pipe_x, beam_pipe_y, target_cell_center_z), this system //
+//    is fixed for all runs, so we can use the same shifts and angles to      //
+//    describe each detector. The order of transform is translation->rotation //
+// 2. Cooridnates are transformed from the reference system to the analysis   //
+//    system. Here only translation is applied.                               //
 //============================================================================//
 
 #include "PRadCoordSystem.h"
@@ -157,13 +170,9 @@ void process_beam_position(const std::string &str,
 
             // convert reference coordinate system to the beam coordinate system
             coord.dets = setups[is].dets;
+            coord.target_center = Point(beam_x, beam_y, target_z);
         }
 
-        // apply beam and target position
-        for(auto &det : coord.dets)
-        {
-            det.trans += Point(beam_x, beam_y, target_z);
-        }
         container.emplace_back(coord);
     }
 }
@@ -315,9 +324,29 @@ bool PRadCoordSystem::SetCurrentCoord(const RunCoord &coords)
 void PRadCoordSystem::Transform(int det_id, float &x, float &y, float &z)
 const
 {
+    // firstly transform to reference frame, get rid of detector tilting
     const DetCoord &coord = current_coord.dets.at(det_id);
     // we use mrad as the unit
-    auto p =Point3D<float>(x, y, z).transform(coord.trans, coord.rot*0.001);
+    auto p = Point(x, y, z).transform(coord.trans, coord.rot*0.001);
+
+    // then transform to beam frame
+    p += current_coord.target_center;
+
+    x = p.x, y = p.y, z= p.z;
+}
+
+// Reversely transform the beam frame to detector frame
+void PRadCoordSystem::InvTransform(int det_id, float &x, float &y, float &z)
+const
+{
+    // firstly transform back to reference frame.
+    auto p = Point(x, y, z) - current_coord.target_center;
+
+    // then transform back to detector frame
+    const DetCoord &coord = current_coord.dets.at(det_id);
+    // we use mrad as the unit
+    p = p.transform_inv(coord.trans, coord.rot*0.001);
+
     x = p.x, y = p.y, z= p.z;
 }
 
