@@ -74,6 +74,16 @@ struct Ranger
     }
 };
 
+inline mypt transform(mypt p, mypt trans, mypt rot)
+{
+    return p.rotate(rot) + trans;
+}
+
+inline mypt transform_inv(mypt p, mypt trans, mypt rot)
+{
+    return (p - trans).rotate_inv(rot);
+}
+
 unordered_map<string, PosDiff> ReadPositionDiffs(const string &path);
 double TakeDifference(unordered_map<string, PosDiff> &diffs, const mypt &trans, const mypt &rot);
 
@@ -88,13 +98,13 @@ int main(int argc, char *argv[])
     // gem tilt
     mypt gem1_tilt(100., 100., 100.);
     // normal of gem
-    mypt norm = zaxis.transform(zero, gem1_tilt);
+    mypt norm = transform(zaxis, zero, gem1_tilt);
     // intersection on gem plane of target->hycal projectile
     mypt p1 = hycal.intersect_plane(zero, gem1, norm);
     // gem coordinate
-    mypt p2 = p1.transform_inv(gem1, gem1_tilt);
+    mypt p2 = transform_inv(p1, gem1, gem1_tilt);
     // transform to general coordinate
-    mypt p3 = p2.transform(gem1, gem1_tilt);
+    mypt p3 = transform(p2, gem1, gem1_tilt);
     // project to hycal
     mypt p4 = p3.intersect_plane(zero, hycal, zaxis);
 
@@ -220,14 +230,16 @@ unordered_map<string, PosDiff> ReadPositionDiffs(const string &path)
         p.second.layout = module->GetLayoutFlag();
 
         // hycal module in the general coordinate system
-        auto mcenter = p.second.hycal.transform(hycal_center, zero);
+        auto mcenter = transform(p.second.hycal, hycal_center, zero);
         // project to hycal plane (lead glass module are not on plane)
         auto pr = mcenter.intersect_plane(zero, hycal_center, zaxis);
         // take difference (gem - hycal)
         auto gem_pos = pr + p.second.diff;
         // project back to gem plane, then convert to gem coordinates
-        p.second.gem1 = gem_pos.intersect_plane(zero, gem_centers[0], zaxis).transform_inv(gem_centers[0], gem_tilts[0]*0.001);
-        p.second.gem2 = gem_pos.intersect_plane(zero, gem_centers[1], zaxis).transform_inv(gem_centers[1], gem_tilts[1]*0.001);
+        p.second.gem1 = gem_pos.intersect_plane(zero, gem_centers[0], zaxis);
+        p.second.gem1 = transform_inv(p.second.gem1, gem_centers[0], gem_tilts[0]*0.001);
+        p.second.gem2 = gem_pos.intersect_plane(zero, gem_centers[1], zaxis);
+        p.second.gem2 = transform_inv(p.second.gem2, gem_centers[1], gem_tilts[1]*0.001);
     }
     return res;
 }
@@ -239,8 +251,8 @@ double TakeDifference(unordered_map<string, PosDiff> &diffs,
     double sigma = 0;
     for (auto it : diffs)
     {
-        auto hycal = it.second.hycal.transform(hycal_center, zero).intersect_plane(zero, hycal_center, zaxis);
-        auto gem = it.second.gem.transform(trans, rot*0.001).intersect_plane(zero, hycal_center, zaxis);
+        auto hycal = transform(it.second.hycal, hycal_center, zero).intersect_plane(zero, hycal_center, zaxis);
+        auto gem = transform(it.second.gem, trans, rot*0.001).intersect_plane(zero, hycal_center, zaxis);
         auto diff = hycal - gem;
         sigma += cana::pow2(diff.x/it.second.res.x) + cana::pow2(diff.y/it.second.res.y);
     }

@@ -97,6 +97,8 @@ det_setup process_detector_setup(const std::string &str)
             {
                 result.dets[id].SetCoord(i, vals[i]);
             }
+            // we use mrad as the unit
+            result.dets[id].rot /= 1000.;
         }
     }
 
@@ -324,30 +326,30 @@ bool PRadCoordSystem::SetCurrentCoord(const RunCoord &coords)
 void PRadCoordSystem::Transform(int det_id, float &x, float &y, float &z)
 const
 {
-    // firstly transform to reference frame, get rid of detector tilting
     const DetCoord &coord = current_coord.dets.at(det_id);
-    // we use mrad as the unit
-    auto p = Point(x, y, z).transform(coord.trans, coord.rot*0.001);
+
+    // firstly rotate in the detector frame
+    auto p = Point(x, y, z).rotate(coord.rot);
 
     // then transform to beam frame
-    p += current_coord.target_center;
+    p += coord.trans + current_coord.target_center;
 
-    x = p.x, y = p.y, z= p.z;
+    x = p.x, y = p.y, z = p.z;
 }
 
 // Reversely transform the beam frame to detector frame
 void PRadCoordSystem::InvTransform(int det_id, float &x, float &y, float &z)
 const
 {
-    // firstly transform back to reference frame.
-    auto p = Point(x, y, z) - current_coord.target_center;
-
-    // then transform back to detector frame
     const DetCoord &coord = current_coord.dets.at(det_id);
-    // we use mrad as the unit
-    p = p.transform_inv(coord.trans, coord.rot*0.001);
 
-    x = p.x, y = p.y, z= p.z;
+    // firstly transform back to detector frame
+    auto p = Point(x, y, z) - current_coord.target_center - coord.trans;
+
+    // then rotate back
+    p = p.rotate_inv(coord.rot);
+
+    x = p.x, y = p.y, z = p.z;
 }
 
 // projection from (xi, yi, zi) to zf
@@ -403,11 +405,12 @@ std::ostream &operator <<(std::ostream &os, const RunCoord &coord)
     for(size_t i = 0; i < coord.dets.size(); ++i)
     {
         const auto &det = coord.dets.at(i);
+        auto trans = det.trans + coord.target_center;
         os << std::setw(8)  << coord.run_number
            << std::setw(12) << PRadDetector::DetEnum2str(i)
-           << std::setw(12) << det.trans.x
-           << std::setw(12) << det.trans.y
-           << std::setw(12) << det.trans.z
+           << std::setw(12) << trans.x
+           << std::setw(12) << trans.y
+           << std::setw(12) << trans.z
            << std::setw(8) << det.rot.x
            << std::setw(8) << det.rot.y
            << std::setw(8) << det.rot.z

@@ -73,18 +73,6 @@ struct Point2D
         return Point2D<T>(x*std::cos(a) - y*std::sin(a), x*std::sin(a) + y*std::cos(a));
     }
 
-    template<typename T2>
-    inline Point2D<T> transform(const Point2D<T2> &trans, double rot) const
-    {
-        return (*this + trans).rotate(rot);
-    }
-
-    template<typename T2>
-    inline Point2D<T> transform_inv(const Point2D<T2> &trans, double rot) const
-    {
-        return (*this).rotate_inv(rot) - trans;
-    }
-
     Point2D<T> operator -() const
     {
         return Point2D<T>(-x, -y);
@@ -253,19 +241,6 @@ struct Point3D
         //         ( 0           0         1  )
         return Point3D<T>(x*std::cos(a) + y*std::sin(a), -x*std::sin(a) + y*std::cos(a), z);
     }
-
-    template<typename T1, typename T2>
-    inline Point3D<T> transform(const Point3D<T1> &trans, const Point3D<T2> &rot) const
-    {
-        return (*this + trans).rotate(rot);
-    }
-
-    template<typename T1, typename T2>
-    inline Point3D<T> transform_inv(const Point3D<T1> &trans, const Point3D<T2> &rot) const
-    {
-        return (*this).rotate_inv(rot) - trans;
-    }
-
 
     // find the intersect point of a line and a plane
     // (this_point, p2) forms the line and (p3, normal) forms the plane

@@ -27,9 +27,10 @@ void survey_angle_study()
 //    Pt vy = gem2[0] - gem2[3];
     Pt vx = (gem2[1] + gem2[2])/2. - (gem2[0] + gem2[3])/2.;
     Pt vy = (gem2[0] + gem2[1])/2. - (gem2[2] + gem2[3])/2.;
+    Pt vz = vx.cross(vy);
 
     // rotation angles
-    Pt rot = get_rotation(vx, vy, vx.cross(vy));
+    Pt rot = get_rotation(vy.cross(vz), vy, vz);
     cout << "rotation angles: \n" << rot*cana::rad2deg << endl;
 
     cout << "backward rotated data:" << endl;
