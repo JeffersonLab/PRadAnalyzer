@@ -163,12 +163,12 @@ QGroupBox *ReconSettingPanel::createCoordGroup()
     layout->addWidget(new QLabel(tr("Y")), 2, 2);
     layout->addWidget(new QLabel(tr("Z")), 2, 3);
     layout->addWidget(new QLabel(tr("Origin (mm)")),3, 0);
-    layout->addWidget(new QLabel(tr("Angle (mrad)")), 4, 0);
+    layout->addWidget(new QLabel(tr("Angle (rad)")), 4, 0);
 
-    int decimals[]     = {    4,     4,     1,     4,     4,     4};
-    double step[]      = { 1e-4,  1e-4,  1e-1,  1e-4,  1e-4,  1e-4};
-    double min_range[] = {  -20,   -20,     0,   -20,   -20,   -20};
-    double max_range[] = {   20,    20, 10000,    20,    20,    20};
+    int decimals[]     = {    4,     4,     1,     6,     6,     6};
+    double step[]      = { 1e-4,  1e-4,  1e-1,  1e-6,  1e-6,  1e-6};
+    double min_range[] = {  -20,   -20,     0,  -3.1,  -3.1,  -3.1};
+    double max_range[] = {   20,    20, 10000,   3.1,   3.1,   3.1};
 
     for(size_t i = 0; i < coordBox.size(); ++i)
     {

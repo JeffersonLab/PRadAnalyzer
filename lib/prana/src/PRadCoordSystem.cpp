@@ -97,8 +97,8 @@ det_setup process_detector_setup(const std::string &str)
             {
                 result.dets[id].SetCoord(i, vals[i]);
             }
-            // we use mrad as the unit
-            result.dets[id].rot /= 1000.;
+            // we use angle as the unit
+            result.dets[id].rot *= cana::deg2rad;
         }
     }
 
@@ -406,14 +406,15 @@ std::ostream &operator <<(std::ostream &os, const RunCoord &coord)
     {
         const auto &det = coord.dets.at(i);
         auto trans = det.trans + coord.target_center;
+        auto rot = det.rot*cana::rad2deg;
         os << std::setw(8)  << coord.run_number
            << std::setw(12) << PRadDetector::DetEnum2str(i)
            << std::setw(12) << trans.x
            << std::setw(12) << trans.y
            << std::setw(12) << trans.z
-           << std::setw(8) << det.rot.x
-           << std::setw(8) << det.rot.y
-           << std::setw(8) << det.rot.z
+           << std::setw(8) << rot.x
+           << std::setw(8) << rot.y
+           << std::setw(8) << rot.z
            << std::endl;
     }
 

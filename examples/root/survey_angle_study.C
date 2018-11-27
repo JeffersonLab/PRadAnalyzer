@@ -9,35 +9,74 @@ inline Pt get_rotation(Pt x, Pt y, Pt z)
     return Pt(atan2(-uz.y, uz.z), asin(uz.x), atan2(-uy.x, ux.x));
 }
 
-void survey_angle_study()
+// get gem1 rotation from survey data
+void gem1_study()
 {
-    Pt gem2[4] = {Pt(-80.6308, 104.0049, -390.9068),
-                  Pt(-80.0651, 104.0043, -390.9078),
-                  Pt(-80.0663, 102.7043, -390.9088),
-                  Pt(-80.6321, 102.7046, -390.9079)};
-    Pt center(-80.59993, 103.35537, -385.64404);
+    // unfortunately we only have two surveyed points for gem1
+    Pt sgem1[2] = {Pt(-81.1393, 102.7057, -390.9489),
+                   Pt(-81.1374, 104.0043, -390.9473)};
+    Pt scenter(-80.59993, 103.35537, -385.64404);
+    // surveyed rotations, it does not provide roll angle
+    Pt srot = Pt(0.0718, -0.1566, 0.)*cana::deg2rad;
 
+    Pt gem1[2];
+    cout << "surveyed data:" << endl;
+    for(int i = 0; i < 2; ++i)
+    {
+        cout << 1000.*(sgem1[i] - scenter) << endl;
+        gem1[i] = (sgem1[i] - scenter).rotate_inv(srot);
+    }
+
+    // we need calculate roll angle, however the y axis are not well defined on
+    // GEM plane, using these two points to define y
+    Pt vy = gem1[1] - gem1[0];
+    Pt vx(1, 0, 0);
+    Pt vz = vx.cross(vy);
+
+    // roll angle
+    srot.z = get_rotation(vy.cross(vz), vy, vz).z;
+    cout << "reconstructed rotation angles: \n" << srot*cana::rad2deg << endl;
+
+    cout << "backward rotated data:" << endl;
+    for(int i = 0; i < 2; ++i)
+    {
+        cout << 1000.*(sgem1[i] - scenter).rotate_inv(srot) << endl;
+    }
+}
+
+// get gem2 rotation from survey data
+void gem2_study()
+{
+    Pt sgem2[4] = {Pt(-80.6308, 104.0049, -390.9068),
+                   Pt(-80.0651, 104.0043, -390.9078),
+                   Pt(-80.0663, 102.7043, -390.9088),
+                   Pt(-80.6321, 102.7046, -390.9079)};
+    Pt scenter(-80.59993, 103.35537, -385.64404);
+    // surveyed rotations, it does not provide roll angle
+    Pt srot = Pt(0.0453, 0.0939, 0.)*cana::deg2rad;
+
+    Pt gem2[4];
     cout << "surveyed data:" << endl;
     for(int i = 0; i < 4; ++i)
     {
-        cout << 1000.*(gem2[i] - center) << endl;
+        cout << 1000.*(sgem2[i] - scenter) << endl;
+        gem2[i] = (sgem2[i] - scenter).rotate_inv(srot);
     }
 
-//    Pt vx = gem2[1] - gem2[0];
-//    Pt vy = gem2[0] - gem2[3];
+    // we need calculate roll angle, however the y axis are not well defined on
+    // GEM plane, using the mid points line as y
     Pt vx = (gem2[1] + gem2[2])/2. - (gem2[0] + gem2[3])/2.;
     Pt vy = (gem2[0] + gem2[1])/2. - (gem2[2] + gem2[3])/2.;
     Pt vz = vx.cross(vy);
 
-    // rotation angles
-    Pt rot = get_rotation(vy.cross(vz), vy, vz);
-    cout << "rotation angles: \n" << rot*cana::rad2deg << endl;
+    // roll angle
+    srot.z = get_rotation(vy.cross(vz), vy, vz).z;
+    cout << "reconstructed rotation angles: \n" << srot*cana::rad2deg << endl;
 
     cout << "backward rotated data:" << endl;
     for(int i = 0; i < 4; ++i)
     {
-        //cout << 1000.*(gem2p[i] - hycalp) << endl;
-        cout << 1000.*(gem2[i] - center).rotate_inv(rot) << endl;
+        cout << 1000.*(sgem2[i] - scenter).rotate_inv(srot) << endl;
     }
 }
 

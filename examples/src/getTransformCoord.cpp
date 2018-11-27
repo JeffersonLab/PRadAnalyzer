@@ -131,10 +131,10 @@ int main(int argc, char *argv[])
     }
 
     // search range
-    // shift_x, shift_y, tilt_x, tilt_y, tilt_z
-    vector<double> min = {-0.2, -0.2, 0, 0., -1.5};
-    vector<double> max = {0.2, 0.2, 0, 0., 1.5};
-    vector<int> counts= {20, 20, 0, 0, 200};
+    // shift_x, shift_y, tilt_x, tilt_y, tilt_z, units mm and degree
+    vector<double> min = {-0.3, -0.3, 0, 0., -1.5};
+    vector<double> max = {0.3, 0.3, 0, 0., 0.5};
+    vector<int> counts= {50, 50, 0, 0, 100};
 
     Ranger range(min, max, counts);
 
@@ -150,12 +150,12 @@ int main(int argc, char *argv[])
         {
             auto vals = range.At(i);
             auto shift = mypt(vals[0], vals[1], 0.) + gem_centers[k];
-            auto tilt = mypt(vals[2], vals[3], vals[4]) + gem_tilts[k];
+            auto tilt = mypt(vals[2], vals[3], vals[4])*cana::deg2rad + gem_tilts[k];
             auto est = TakeDifference(gem[k], shift, tilt);
             if(i%PROGRESS_COUNT == 0) {
                 cout <<"------[ " << i << "/" << range.size << " ]---"
                      << "---[ estimator = "  << est << " ]---"
-                     << "---[ shift and tilt = (" << shift << "), (" << tilt << ") ]------"
+                     << "---[ shift and tilt = " << shift << ", " << tilt*cana::rad2deg << " ]------"
                      << "\r" << flush;
             }
             if (est < best_est) {
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
         }
         cout <<"------[ " << range.size << " points tested ]---"
              << "---[ best estimator = "  << best_est << " ]---"
-             << "---[ shift and tilt = (" << best_shift << "), (" << best_tilt << ") ]------"
+             << "---[ shift and tilt = " << best_shift << ", " << best_tilt*cana::rad2deg << " ]------"
              << endl;
     }
 
@@ -213,10 +213,10 @@ unordered_map<string, PosDiff> ReadPositionDiffs(const string &path)
     // gem center
     gem_centers[0] = mypt(trans1.x, trans1.y, GEM1_Z);
     gem_tilts[0] = tilt1;
-    cout << "GEM1 center: (" << gem_centers[0] << "), tilt: (" << gem_tilts[0] << ")" << endl;
+    cout << "GEM1 center: " << gem_centers[0] << ", tilt: " << gem_tilts[0]*cana::rad2deg << endl;
     gem_centers[1] = mypt(trans2.x, trans2.y, GEM2_Z);
-    gem_tilts[1] = tilt1;
-    cout << "GEM2 center: (" << gem_centers[1] << "), tilt: (" << gem_tilts[1] << ")" << endl;
+    gem_tilts[1] = tilt2;
+    cout << "GEM2 center: " << gem_centers[1] << ", tilt: " << gem_tilts[1]*cana::rad2deg << endl;
 
     // read hycal module geometry
     PRadHyCalDetector hycal;
@@ -237,9 +237,9 @@ unordered_map<string, PosDiff> ReadPositionDiffs(const string &path)
         auto gem_pos = pr + p.second.diff;
         // project back to gem plane, then convert to gem coordinates
         p.second.gem1 = gem_pos.intersect_plane(zero, gem_centers[0], zaxis);
-        p.second.gem1 = transform_inv(p.second.gem1, gem_centers[0], gem_tilts[0]*0.001);
+        p.second.gem1 = transform_inv(p.second.gem1, gem_centers[0], gem_tilts[0]);
         p.second.gem2 = gem_pos.intersect_plane(zero, gem_centers[1], zaxis);
-        p.second.gem2 = transform_inv(p.second.gem2, gem_centers[1], gem_tilts[1]*0.001);
+        p.second.gem2 = transform_inv(p.second.gem2, gem_centers[1], gem_tilts[1]);
     }
     return res;
 }
@@ -252,7 +252,7 @@ double TakeDifference(unordered_map<string, PosDiff> &diffs,
     for (auto it : diffs)
     {
         auto hycal = transform(it.second.hycal, hycal_center, zero).intersect_plane(zero, hycal_center, zaxis);
-        auto gem = transform(it.second.gem, trans, rot*0.001).intersect_plane(zero, hycal_center, zaxis);
+        auto gem = transform(it.second.gem, trans, rot).intersect_plane(zero, hycal_center, zaxis);
         auto diff = hycal - gem;
         sigma += cana::pow2(diff.x/it.second.res.x) + cana::pow2(diff.y/it.second.res.y);
     }
