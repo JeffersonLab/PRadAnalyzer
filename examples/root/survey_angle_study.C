@@ -9,6 +9,68 @@ inline Pt get_rotation(Pt x, Pt y, Pt z)
     return Pt(atan2(-uz.y, uz.z), asin(uz.x), atan2(-uy.x, ux.x));
 }
 
+inline Pt switch_handedness(Pt rot)
+{
+    return Pt(-rot.x, -rot.y, rot.z);
+}
+
+// this study demonstrates the procedure to reconstruct the detector plane
+// in our analysis frame based on the survey results from CEBAF system
+void reconstruct_study()
+{
+    // survey data
+    Pt survey[4] = {Pt(-80.6308, 104.0049, -390.9068),
+                    Pt(-80.0651, 104.0043, -390.9078),
+                    Pt(-80.0663, 102.7043, -390.9088),
+                    Pt(-80.6321, 102.7046, -390.9079)};
+    Pt scenter(-80.59993, 103.35537, -385.64404);
+
+    // what we would like to see the points in our system
+    cout << "surveyed points in analysis frame:" << endl;
+    for(auto &p : survey)
+    {
+        auto ap = 1000.*(p - scenter);
+        ap.z = -ap.z;
+        cout << ap << endl;
+    }
+
+    // now get what we can observe
+    // choose an anchor point and use it as the origin of detector frame
+    Pt anchor = (survey[0] + survey[1] + survey[2] + survey[3])/4.;
+
+    // get rotation angles
+    Pt vx = (survey[1] + survey[2])/2. - (survey[0] + survey[3])/2.;
+    Pt vy = (survey[0] + survey[1])/2. - (survey[2] + survey[3])/2.;
+    Pt vz = vx.cross(vy);
+    Pt rot = get_rotation(vy.cross(vz), vy, vz);
+
+    // rotate back and get the points coordinates in detector frame
+    // these will be what we observed
+    Pt observe[4];
+    cout << "observed points in detector frame:" << endl;
+    for(int i = 0; i < 4; ++i)
+    {
+        observe[i] = 1000.*(survey[i] - anchor).rotate_inv(rot);
+        observe[i].z = -observe[i].z;
+        cout << observe[i] << endl;
+    }
+    cout << "observed anchor point in analysis frame:" << endl;
+    anchor = 1000.*(anchor - scenter);
+    anchor.z = -anchor.z;
+    cout << anchor << endl;
+    cout << "reconstruction rotation angles:" << endl;
+    cout << switch_handedness(rot)*cana::rad2deg << endl;
+
+    // reconstruct from the observed points
+    // 1. rotate around anchor
+    // 2. translate according to anchor position
+    cout << "reconstruct position" << endl;
+    for(auto &p : observe)
+    {
+        cout << p.rotate(switch_handedness(rot)) + anchor << endl;
+    }
+}
+
 // get gem1 rotation from survey data
 void gem1_study()
 {
@@ -35,13 +97,16 @@ void gem1_study()
 
     // roll angle
     srot.z = get_rotation(vy.cross(vz), vy, vz).z;
-    cout << "reconstructed rotation angles: \n" << srot*cana::rad2deg << endl;
+    cout << "extracted rotation angles: \n" << srot*cana::rad2deg << endl;
 
     cout << "backward rotated data:" << endl;
     for(int i = 0; i < 2; ++i)
     {
         cout << 1000.*(sgem1[i] - scenter).rotate_inv(srot) << endl;
     }
+
+    cout << "rotation angles for analysis frame: \n"
+         << switch_handedness(srot)*cana::rad2deg << endl;
 }
 
 // get gem2 rotation from survey data
@@ -78,6 +143,9 @@ void gem2_study()
     {
         cout << 1000.*(sgem2[i] - scenter).rotate_inv(srot) << endl;
     }
+
+    cout << "rotation angles for analysis frame: \n"
+         << switch_handedness(srot)*cana::rad2deg << endl;
 }
 
 // test if the transform can reconstruct the detector plane
