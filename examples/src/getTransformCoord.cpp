@@ -100,13 +100,13 @@ int main(int argc, char *argv[])
     // normal of gem
     mypt norm = transform(zaxis, zero, gem1_tilt);
     // intersection on gem plane of target->hycal projectile
-    mypt p1 = hycal.intersect_plane(zero, gem1, norm);
+    mypt p1 = hycal.intersect_plane(gem1, norm);
     // gem coordinate
     mypt p2 = transform_inv(p1, gem1, gem1_tilt);
     // transform to general coordinate
     mypt p3 = transform(p2, gem1, gem1_tilt);
     // project to hycal
-    mypt p4 = p3.intersect_plane(zero, hycal, zaxis);
+    mypt p4 = p3.intersect_plane(hycal, zaxis);
 
     cout << "test start: " << hycal << endl;
     cout << "gem normal: " << norm << endl;
@@ -232,13 +232,13 @@ unordered_map<string, PosDiff> ReadPositionDiffs(const string &path)
         // hycal module in the general coordinate system
         auto mcenter = transform(p.second.hycal, hycal_center, zero);
         // project to hycal plane (lead glass module are not on plane)
-        auto pr = mcenter.intersect_plane(zero, hycal_center, zaxis);
+        auto pr = mcenter.intersect_plane(hycal_center, zaxis);
         // take difference (gem - hycal)
         auto gem_pos = pr + p.second.diff;
         // project back to gem plane, then convert to gem coordinates
-        p.second.gem1 = gem_pos.intersect_plane(zero, gem_centers[0], zaxis);
+        p.second.gem1 = gem_pos.intersect_plane(gem_centers[0], zaxis);
         p.second.gem1 = transform_inv(p.second.gem1, gem_centers[0], gem_tilts[0]);
-        p.second.gem2 = gem_pos.intersect_plane(zero, gem_centers[1], zaxis);
+        p.second.gem2 = gem_pos.intersect_plane(gem_centers[1], zaxis);
         p.second.gem2 = transform_inv(p.second.gem2, gem_centers[1], gem_tilts[1]);
     }
     return res;
@@ -251,8 +251,8 @@ double TakeDifference(unordered_map<string, PosDiff> &diffs,
     double sigma = 0;
     for (auto it : diffs)
     {
-        auto hycal = transform(it.second.hycal, hycal_center, zero).intersect_plane(zero, hycal_center, zaxis);
-        auto gem = transform(it.second.gem, trans, rot).intersect_plane(zero, hycal_center, zaxis);
+        auto hycal = transform(it.second.hycal, hycal_center, zero).intersect_plane(hycal_center, zaxis);
+        auto gem = transform(it.second.gem, trans, rot).intersect_plane(hycal_center, zaxis);
         auto diff = hycal - gem;
         sigma += cana::pow2(diff.x/it.second.res.x) + cana::pow2(diff.y/it.second.res.y);
     }

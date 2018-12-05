@@ -242,14 +242,13 @@ struct Point3D
         return Point3D<T>(x*std::cos(a) + y*std::sin(a), -x*std::sin(a) + y*std::cos(a), z);
     }
 
-    // find the intersect point of a line and a plane
-    // (this_point, p2) forms the line and (p3, normal) forms the plane
+    // find the intersect point of a vector and a plane
+    // assume this point represents the vector (from origin to this point)
+    // the input plpt (a point on the plane) and norm (normal vector) form the plane
     template<typename T2>
-    Point3D<T> intersect_plane(const Point3D<T2> &p2, const Point3D<T2> &p3,
-                               const Point3D<T2> &normal) const
+    Point3D<T> intersect_plane(const Point3D<T2> &plpt,  const Point3D<T2> &norm) const
     {
-        T alpha = normal.dot(p3 - *this)/normal.dot(p2 - *this);
-        return *this + alpha*(p2 - *this);
+        return *this*(1 + norm.dot(plpt - *this)/norm.dot(*this));
     }
 
     Point3D<T> operator -() const
