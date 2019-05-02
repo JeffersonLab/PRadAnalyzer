@@ -10,3 +10,5 @@
 
 # Never ignore this file
 !.gitignore
+!root/TPE_params.dat
+
