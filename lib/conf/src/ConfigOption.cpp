@@ -128,6 +128,11 @@ bool ConfigOption::parseShortOpt(char key, int argc, char *argv[], int &idx)
 
 bool ConfigOption::ParseArgs(int argc, char *argv[])
 {
+    if (argc < 1)
+        return false;
+
+    argv0 = argv[0];
+
     bool success = true;
     arg_pack.clear();
     opt_pack.clear();
@@ -198,6 +203,12 @@ void ConfigOption::SetDesc(char mark, const char *desc)
 std::string ConfigOption::GetInstruction()
 {
     std::string res = base_desc + "\noptions:\n";
+
+    auto pvar = res.find("%0");
+    if (pvar != std::string::npos) {
+        res.replace(pvar, 2, argv0);
+    }
+
     for(auto &option : option_desc)
     {
         res += "\t" + option + "\n";

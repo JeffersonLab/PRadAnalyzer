@@ -43,6 +43,7 @@ public:
     bool ParseArgs(int argc, char *argv[]);
     size_t NbofArgs() const {return arg_pack.size();}
     size_t NbofOpts() const {return opt_pack.size();}
+    const std::string &GetArgv0() {return argv0;}
     const ConfigValue &GetArgument(size_t i) {return arg_pack.at(i);}
     const std::vector<ConfigValue> &GetArguments() {return arg_pack;}
     const std::vector<Opt> &GetOptions() {return opt_pack;}
@@ -56,6 +57,7 @@ private:
     std::unordered_map<std::string, Opt> l_opt_map;
     std::vector<Opt> opt_pack;
     std::vector<ConfigValue> arg_pack;
+    std::string argv0;
     std::string base_desc;
     std::vector<std::string> option_desc;
 };

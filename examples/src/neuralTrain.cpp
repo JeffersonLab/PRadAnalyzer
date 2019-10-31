@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
     conf_opt.AddOpts(ConfigOption::arg_require, 'c', "bank-capacity");
     conf_opt.AddOpts(ConfigOption::help_message, 'h', "help");
 
-    conf_opt.SetDesc("neuralTrain <cosmic_data> <good_data>");
+    conf_opt.SetDesc("usage: %0 <cosmic_data> <good_data>");
     conf_opt.SetDesc('n', "create network from file, a new network will be created by default.");
     conf_opt.SetDesc('l', "set the hidden layers for neural network in the format of \"val1, val2, ...\".");
     conf_opt.SetDesc('s', "set the path to save the trained network, save to \"saved.net\" by default.");

@@ -23,7 +23,7 @@ int main(int argc, char * argv [])
     conf_opt.AddOpt(ConfigOption::arg_require, 'o');
     conf_opt.AddOpt(ConfigOption::help_message, 'h');
 
-    conf_opt.SetDesc("usage: physCalib <options> <begin_run> <end_run>");
+    conf_opt.SetDesc("usage: %0 <options> <begin_run> <end_run>");
     conf_opt.SetDesc('i', "input file directory");
     conf_opt.SetDesc('o', "output file directory");
     conf_opt.SetDesc('h', "show instruction");

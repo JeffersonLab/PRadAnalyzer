@@ -31,7 +31,7 @@ int main(int argc, char * argv[])
     conf_opt.AddOpt(ConfigOption::arg_require, 'r');
     conf_opt.AddOpt(ConfigOption::help_message, 'h');
 
-    conf_opt.SetDesc("usage: replay <in_file> <out_file>");
+    conf_opt.SetDesc("usage: %0 <in_file> <out_file>");
     conf_opt.SetDesc('s', "spliting file number, default -1 (no splitting).");
     conf_opt.SetDesc('r', "set run number, only valid for --init-database, default -1 (determined from file name).");
     conf_opt.SetDesc('e', "initialize from evio.0 file");

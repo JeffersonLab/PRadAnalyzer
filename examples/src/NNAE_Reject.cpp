@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     conf_opt.AddLongOpt(ConfigOption::arg_require, "cut-energy-min", 'c');
     conf_opt.AddLongOpt(ConfigOption::arg_require, "cut-energy-max", 'd');
 
-    conf_opt.SetDesc("usage: NNAE_Prepare <data_file> <root_file> <out_dir>");
+    conf_opt.SetDesc("usage: %0 <data_file> <root_file> <out_dir>");
     conf_opt.SetDesc('a', "cut minimum angle of the most energetic cluster.");
     conf_opt.SetDesc('b', "cut maximum angle of the most energetic cluster.");
     conf_opt.SetDesc('c', "cut minimum energy of the most energetic cluster.");
