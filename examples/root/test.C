@@ -31,11 +31,11 @@ void test_reform()
              "Path = variable_test.conf \n"
              "INCLUDE({Path})");
 
-    string var1 = conf_obj.GetConfig<string>("Var1");
-    string var2 = conf_obj.GetConfig<string>("Var2");
-    string var3 = conf_obj.GetConfig<string>("Var3");
-    string var4 = conf_obj.GetConfig<string>("Var4");
-    string var5 = conf_obj.GetConfig<string>("Var5");
+    string var1 = conf_obj.GetConfigValue<string>("Var1");
+    string var2 = conf_obj.GetConfigValue<string>("Var2");
+    string var3 = conf_obj.GetConfigValue<string>("Var3");
+    string var4 = conf_obj.GetConfigValue<string>("Var4");
+    string var5 = conf_obj.GetConfigValue<string>("Var5");
 
     cout << var1 << endl
          << var2 << endl

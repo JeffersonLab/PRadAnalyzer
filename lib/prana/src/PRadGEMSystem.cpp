@@ -187,12 +187,12 @@ void PRadGEMSystem::Configure(const std::string &path)
     CONF_CONN(def_zth, "Default Zero Suppression Threshold", 5, verbose);
     CONF_CONN(def_ctth, "Default Cross Talk Threshold", 8, verbose);
 
-    gem_recon.Configure(GetConfig<std::string>("GEM Cluster Configuration"));
+    gem_recon.Configure(GetConfigValue<std::string>("GEM Cluster Configuration"));
 
     // read gem map, build DAQ system and detectors
     try{
-        ReadMapFile(GetConfig<std::string>("GEM Map"));
-        ReadPedestalFile(GetConfig<std::string>("GEM Pedestal"));
+        ReadMapFile(GetConfigValue<std::string>("GEM Map"));
+        ReadPedestalFile(GetConfigValue<std::string>("GEM Pedestal"));
     } catch(PRadException &e) {
         std::cerr << e.FailureType() << ": "
                   << e.FailureDesc() << std::endl;

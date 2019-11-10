@@ -154,22 +154,22 @@ void PRadHyCalSystem::Configure(const std::string &path)
     ConfigObject::Configure(path);
 
     if(hycal) {
-        hycal->ReadModuleList(GetConfig<std::string>("Module List"));
-        hycal->ReadVModuleList(GetConfig<std::string>("Virtual Module List"));
+        hycal->ReadModuleList(GetConfigValue<std::string>("Module List"));
+        hycal->ReadVModuleList(GetConfigValue<std::string>("Virtual Module List"));
     }
 
     // channel, pedestal and gain factors
-    ReadChannelList(GetConfig<std::string>("DAQ Channel List"));
+    ReadChannelList(GetConfigValue<std::string>("DAQ Channel List"));
 
     // trigger efficiency
-    ReadTriggerEffFile(GetConfig<std::string>("Trigger Efficiency Map"));
+    ReadTriggerEffFile(GetConfigValue<std::string>("Trigger Efficiency Map"));
 
     // choose clustering method
-    recon.SetClusterMethod(GetConfig<std::string>("Cluster Method"));
-    recon.SetPositionMethod(GetConfig<std::string>("Position Method"));
+    recon.SetClusterMethod(GetConfigValue<std::string>("Cluster Method"));
+    recon.SetPositionMethod(GetConfigValue<std::string>("Position Method"));
 
     // configurate reconstructor
-    recon.Configure(GetConfig<std::string>("Reconstructor Configuration"));
+    recon.Configure(GetConfigValue<std::string>("Reconstructor Configuration"));
 
     // lamda to help find strings with "key [type]" in configuration
     auto findstr = [&](const std::string &key, const std::string &type)
@@ -196,8 +196,8 @@ void PRadHyCalSystem::Configure(const std::string &path)
 
     // read calibration period
     std::string file_path = ConfigParser::form_path(
-                            GetConfig<std::string>("Calibration Folder"),
-                            GetConfig<std::string>("Calibration Period File"));
+                            GetConfigValue<std::string>("Calibration Folder"),
+                            GetConfigValue<std::string>("Calibration Period File"));
     ReadCalPeriodFile(file_path);
 
     // set run number
@@ -560,8 +560,8 @@ void PRadHyCalSystem::UpdateRunFiles(bool verbose)
 
     std::string file_path;
     // calibration file
-    file_path = ConfigParser::form_path(GetConfig<std::string>("Calibration Folder"),
-                                        GetConfig<std::string>("Calibration File"));
+    file_path = ConfigParser::form_path(GetConfigValue<std::string>("Calibration Folder"),
+                                        GetConfigValue<std::string>("Calibration File"));
 
     if(hycal && hycal->ReadCalibrationFile(file_path) && verbose) {
         std::cout << "PRad HyCal System: Read Calibration File "
@@ -572,8 +572,8 @@ void PRadHyCalSystem::UpdateRunFiles(bool verbose)
     // run info file
     // calibration file should be read first, since the gain will be corrected
     // based on the read calibration constants
-    file_path = ConfigParser::form_path(GetConfig<std::string>("Run Info Folder"),
-                                        GetConfig<std::string>("Run Info File"));
+    file_path = ConfigParser::form_path(GetConfigValue<std::string>("Run Info Folder"),
+                                        GetConfigValue<std::string>("Run Info File"));
 
     if(ReadRunInfoFile(file_path) && verbose) {
         std::cout << "PRad HyCal System: Read Run Info File "

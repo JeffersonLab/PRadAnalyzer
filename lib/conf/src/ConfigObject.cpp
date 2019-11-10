@@ -22,9 +22,8 @@
 //============================================================================//
 
 // constructor
-ConfigObject::ConfigObject(const std::string &splitter,
-                           const std::string &ignore)
-: split_chars(splitter), ignore_chars(ignore), __empty_value("")
+ConfigObject::ConfigObject(const std::string &splitter, const std::string &ignore, bool case_ins)
+: split_chars(splitter), ignore_chars(ignore), case_insensitive(case_ins), __empty_value("")
 {
     // set default replace bracket
     replace_pair = std::make_pair("{", "}");
@@ -67,7 +66,7 @@ bool ConfigObject::ReadConfigFile(const std::string &path)
     ConfigParser c_parser;
     c_parser.SetSplitters(split_chars); // self-defined splitters
 
-    if(c_parser.ReadFile(path)) {
+    if (c_parser.ReadFile(path)) {
         // current directory
         parserProcess(c_parser, path);
         return true;
@@ -95,10 +94,9 @@ void ConfigObject::parserProcess(ConfigParser &c_parser, const std::string &sour
 {
     std::string cur_dir = ConfigParser::decompose_path(source).dir;
 
-    while(c_parser.ParseLine())
-    {
+    while (c_parser.ParseLine()) {
         // possible control words
-        if(c_parser.NbofElements() == 1) {
+        if (c_parser.NbofElements() == 1) {
             std::string control = c_parser.TakeFirst();
             size_t pos = control.find("{THIS_DIR}");
             if(pos != std::string::npos)
@@ -126,8 +124,11 @@ void ConfigObject::parserProcess(ConfigParser &c_parser, const std::string &sour
 bool ConfigObject::HasKey(const std::string &var_name)
 const
 {
-    std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
-    if(config_map.find(key) != config_map.end())
+    std::string key = ConfigParser::str_remove(var_name, ignore_chars);
+    if (case_insensitive)
+        key = ConfigParser::str_lower(key);
+
+    if (config_map.find(key) != config_map.end())
         return true;
     return false;
 }
@@ -136,8 +137,7 @@ const
 void ConfigObject::ListKeys()
 const
 {
-    for(auto &it : config_map)
-    {
+    for (auto &it : config_map) {
         std::cout << it.first << std::endl;
     }
 }
@@ -148,8 +148,9 @@ const
 {
     std::vector<std::string> res;
 
-    for(auto &it : config_map)
+    for (auto &it : config_map) {
         res.push_back(it.first);
+    }
 
     return res;
 }
@@ -160,14 +161,13 @@ const
 {
     std::string save_path;
 
-    if(path.empty())
+    if (path.empty()) 
         save_path = config_path;
     if(save_path.empty())
         save_path = "latest.conf";
 
     std::ofstream save(save_path);
-    for(auto &it : config_map)
-    {
+    for (auto &it : config_map) {
         save << it.first
              << " " << split_chars.front() << " "
              << it.second
@@ -180,10 +180,12 @@ ConfigValue ConfigObject::GetConfigValue(const std::string &var_name)
 const
 {
     // convert to lower case and remove uninterested characters
-    std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
+    std::string key = ConfigParser::str_remove(var_name, ignore_chars);
+    if (case_insensitive)
+        key = ConfigParser::str_lower(key);
 
     auto it = config_map.find(key);
-    if(it == config_map.end()) {
+    if (it == config_map.end()) {
         return __empty_value;
     } else {
         ConfigValue result(it->second);
@@ -196,32 +198,28 @@ const
 void ConfigObject::SetConfigValue(const std::string &var_name, const ConfigValue &c_value)
 {
     // convert to lower case and remove uninterested characters
-    std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
+    std::string key = ConfigParser::str_remove(var_name, ignore_chars);
+    if (case_insensitive)
+        key = ConfigParser::str_lower(key);
 
     config_map[key] = c_value;
 }
 
 
-
-//============================================================================//
-// Protected Member Function                                                  //
-//============================================================================//
-
 // get configuration value from the map
 // if no such config value exists, it will fill the default value in
-ConfigValue ConfigObject::getDefConfig(const std::string &name,
-                                       const ConfigValue &def_value,
-                                       bool verbose)
+ConfigValue ConfigObject::GetConfigValue(const std::string &name, const ConfigValue &def_value, bool verbose)
 {
-    std::string key = ConfigParser::str_lower(ConfigParser::str_remove(name, ignore_chars));
+    std::string key = ConfigParser::str_remove(name, ignore_chars);
+    if (case_insensitive)
+        key = ConfigParser::str_lower(key);
 
     auto it = config_map.find(key);
-    if(it == config_map.end())
-    {
-        if(def_value.IsEmpty())
+    if (it == config_map.end()) {
+        if (def_value.IsEmpty())
             return __empty_value;
 
-        if(verbose) {
+        if (verbose) {
             std::cout << name << " (key: " << key << ")"
                       << " not defined in configuration file, set to default value "
                       << def_value
@@ -236,6 +234,12 @@ ConfigValue ConfigObject::getDefConfig(const std::string &name,
     return result;
 }
 
+
+
+//============================================================================//
+// Protected Member Function                                                  //
+//============================================================================//
+
 // replace the contents inside replace_pair with the configuration value
 void ConfigObject::reform(std::string &input,
                           const std::string &op,
@@ -243,10 +247,9 @@ void ConfigObject::reform(std::string &input,
 const
 {
     // loop until no pair found
-    while(true)
-    {
+    while (true) {
         auto rpair = ConfigParser::find_pair(input, op, cl);
-        if(rpair.first != std::string::npos && rpair.second != std::string::npos) {
+        if (rpair.first != std::string::npos && rpair.second != std::string::npos) {
             // get content inside the bracket
             std::string var = input.substr(rpair.first + op.size(),
                                            rpair.second - op.size() - rpair.first);
@@ -257,7 +260,7 @@ const
             std::string val;
 
             // environment variable
-            if(rpair.first > 0 && input.at(rpair.first - 1) == '$') {
+            if (rpair.first > 0 && input.at(rpair.first - 1) == '$') {
                 val = std::getenv(var.c_str());
                 // replace $ mark also
                 rpair.first--;
@@ -285,11 +288,11 @@ const
 // parse the control word and respond
 void ConfigObject::parseControl(const std::string &word)
 {
-    if(ConfigParser::str_upper(word.substr(0, 7)) == "INCLUDE") {
+    if (ConfigParser::str_upper(word.substr(0, 7)) == "INCLUDE") {
         // need the most outer pair
         auto p = ConfigParser::find_pair(word, "(", ")");
         // not find pair
-        if(p.first == std::string::npos || p.second == std::string::npos) {
+        if (p.first == std::string::npos || p.second == std::string::npos) {
             std::cout << "Unsupported control word format: " << word << "."
                       << "Expected: INCLUDE(path)"
                       << std::endl;
@@ -313,12 +316,14 @@ void ConfigObject::parseControl(const std::string &word)
 void ConfigObject::parseTerm(std::string &&var_name, std::string &&var_value)
 {
     // convert to lower case and remove uninterested characters
-    std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
+    std::string key = ConfigParser::str_remove(var_name, ignore_chars);
+    if (case_insensitive)
+        key = ConfigParser::str_lower(key);
 
-    if(key.back() == '+') {
+    if (key.back() == '+') {
         key.pop_back();
         auto it = config_map.find(key);
-        if(it != config_map.end())
+        if (it != config_map.end())
             it->second += var_value;
         else
             config_map[key] = var_value;

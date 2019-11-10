@@ -50,7 +50,7 @@ void PRadGEMCluster::Configure(const std::string &path)
 
     // get cross talk characteristic distance
     charac_dists.clear();
-    std::string dist_str = GetConfig<std::string>("Characteristic Distance");
+    std::string dist_str = GetConfigValue<std::string>("Characteristic Distance");
     charac_dists = ConfigParser::stofs(dist_str, ",", " \t");
 }
 
