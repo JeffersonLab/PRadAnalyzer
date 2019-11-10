@@ -67,6 +67,7 @@ public:
 protected:
     // protected member functions
     void reform(std::string &input, const std::string &open, const std::string &close) const;
+    std::string formKey(const std::string &raw_key) const;
 
 private:
     void parserProcess(ConfigParser &p, const std::string &source);

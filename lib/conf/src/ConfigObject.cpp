@@ -124,9 +124,7 @@ void ConfigObject::parserProcess(ConfigParser &c_parser, const std::string &sour
 bool ConfigObject::HasKey(const std::string &var_name)
 const
 {
-    std::string key = ConfigParser::str_remove(var_name, ignore_chars);
-    if (case_insensitive)
-        key = ConfigParser::str_lower(key);
+    auto key = formKey(var_name);
 
     if (config_map.find(key) != config_map.end())
         return true;
@@ -180,9 +178,7 @@ ConfigValue ConfigObject::GetConfigValue(const std::string &var_name)
 const
 {
     // convert to lower case and remove uninterested characters
-    std::string key = ConfigParser::str_remove(var_name, ignore_chars);
-    if (case_insensitive)
-        key = ConfigParser::str_lower(key);
+    auto key = formKey(var_name);
 
     auto it = config_map.find(key);
     if (it == config_map.end()) {
@@ -198,9 +194,7 @@ const
 void ConfigObject::SetConfigValue(const std::string &var_name, const ConfigValue &c_value)
 {
     // convert to lower case and remove uninterested characters
-    std::string key = ConfigParser::str_remove(var_name, ignore_chars);
-    if (case_insensitive)
-        key = ConfigParser::str_lower(key);
+    auto key = formKey(var_name);
 
     config_map[key] = c_value;
 }
@@ -208,11 +202,9 @@ void ConfigObject::SetConfigValue(const std::string &var_name, const ConfigValue
 
 // get configuration value from the map
 // if no such config value exists, it will fill the default value in
-ConfigValue ConfigObject::GetConfigValue(const std::string &name, const ConfigValue &def_value, bool verbose)
+ConfigValue ConfigObject::GetConfigValue(const std::string &var_name, const ConfigValue &def_value, bool verbose)
 {
-    std::string key = ConfigParser::str_remove(name, ignore_chars);
-    if (case_insensitive)
-        key = ConfigParser::str_lower(key);
+    auto key = formKey(var_name);
 
     auto it = config_map.find(key);
     if (it == config_map.end()) {
@@ -220,7 +212,7 @@ ConfigValue ConfigObject::GetConfigValue(const std::string &name, const ConfigVa
             return __empty_value;
 
         if (verbose) {
-            std::cout << name << " (key: " << key << ")"
+            std::cout << var_name << " (key: " << key << ")"
                       << " not defined in configuration file, set to default value "
                       << def_value
                       << std::endl;
@@ -240,10 +232,19 @@ ConfigValue ConfigObject::GetConfigValue(const std::string &name, const ConfigVa
 // Protected Member Function                                                  //
 //============================================================================//
 
+// build the key
+std::string ConfigObject::formKey(const std::string &rawKey)
+const
+{
+    std::string key = ConfigParser::str_remove(rawKey, ignore_chars);
+    if (case_insensitive) {
+        key = ConfigParser::str_lower(key);
+    }
+    return key;
+}
+
 // replace the contents inside replace_pair with the configuration value
-void ConfigObject::reform(std::string &input,
-                          const std::string &op,
-                          const std::string &cl)
+void ConfigObject::reform(std::string &input, const std::string &op, const std::string &cl)
 const
 {
     // loop until no pair found
@@ -316,9 +317,7 @@ void ConfigObject::parseControl(const std::string &word)
 void ConfigObject::parseTerm(std::string &&var_name, std::string &&var_value)
 {
     // convert to lower case and remove uninterested characters
-    std::string key = ConfigParser::str_remove(var_name, ignore_chars);
-    if (case_insensitive)
-        key = ConfigParser::str_lower(key);
+    auto key = formKey(var_name);
 
     if (key.back() == '+') {
         key.pop_back();
