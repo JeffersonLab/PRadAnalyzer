@@ -44,7 +44,7 @@ void PRadETChannel::ForceClose()
 }
 
 // Open ET
-void PRadETChannel::Open(const char* ipAddr, int tcpPort, const char* etFile) throw(PRadException)
+void PRadETChannel::Open(const char* ipAddr, int tcpPort, const char* etFile)
 {
     // Use a direct connection to the ET system
     config.SetCast(ET_DIRECT);
@@ -88,7 +88,7 @@ void PRadETChannel::SwitchStation(const string &name)
     }
 }
 
-void PRadETChannel::RemoveStation(const string &name) throw(PRadException)
+void PRadETChannel::RemoveStation(const string &name)
 {
     try {
         if(et_id != nullptr && et_alive(et_id)) {
@@ -118,7 +118,7 @@ PRadETStation* PRadETChannel::GetStation(const string &name)
 }
 
 // Attach station
-void PRadETChannel::AttachStation() throw(PRadException)
+void PRadETChannel::AttachStation()
 {
     try {
         curr_stat->Create();
@@ -131,7 +131,7 @@ void PRadETChannel::AttachStation() throw(PRadException)
 
 
 // Read one event from ET station, return true if success
-bool PRadETChannel::Read() throw(PRadException)
+bool PRadETChannel::Read()
 {
     // check if et is opened or alive
     if(et_id == nullptr || !et_alive(et_id))

@@ -49,14 +49,14 @@ public:
 public:
     PRadETChannel(size_t size = 1048576);
     virtual ~PRadETChannel();
-    void Open(const char *ipAddr, int tcpPort, const char *etFile) throw(PRadException);
+    void Open(const char *ipAddr, int tcpPort, const char *etFile);
     void NewStation(const std::string &name);
     void SwitchStation(const std::string &name);
-    void RemoveStation(const std::string &name) throw(PRadException);
-    void AttachStation() throw(PRadException);
+    void RemoveStation(const std::string &name);
+    void AttachStation();
     void DetachStation();
     void ForceClose();
-    bool Read() throw(PRadException);
+    bool Read();
     void *GetBuffer() {return (void*) buffer;}
     size_t GetBufferLength() {return bufferSize;}
     Configuration &GetConfig() {return config;}

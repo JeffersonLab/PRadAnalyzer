@@ -49,7 +49,7 @@ TEMPLATE = app
 TARGET = EventViewer
 DEPENDPATH += 
 INCLUDEPATH += include \
-               $$(PRAD_INC) \
+               $$(PRAD_PATH)/include \
 	       $$system(root-config --incdir)
 
 # Input
@@ -76,7 +76,7 @@ SOURCES += src/main.cpp \
            src/HistCanvas.cpp \
            src/LogsBox.cpp
 
-LIBS += -L$$(PRAD_LIB) -lprana -lprconf -lcana \
+LIBS += -L$$(PRAD_PATH)/lib -lprana -lprconf -lcana \
         -lgfortran \
 	$$system(root-config --libs) \
 	-L$$system(root-config --libdir) -lSpectrum

@@ -20,8 +20,8 @@ else
 endif
 
 # setup the libraries path
-setenv PRAD_LIB ${PRAD_PATH}/lib
-setenv PRAD_INC ${PRAD_PATH}/include
+set PRAD_LIB=${PRAD_PATH}/lib
+set PRAD_INC=${PRAD_PATH}/include
 
 # setup LD_LIBRARY_PATH
 if ! $?LD_LIBRARY_PATH then

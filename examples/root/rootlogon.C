@@ -1,13 +1,14 @@
 // loading the library while using root
 {
     // load library
-    string prad_lib = getenv("PRAD_LIB");
-    string prad_inc = getenv("PRAD_INC");
+    string prad_root = getenv("PRAD_PATH");
+    string prad_lib = prad_root + "/lib";
+    string prad_inc = prad_root + "/include";
 
-    if(prad_lib.empty() || prad_inc.empty()) {
+    if (prad_root.empty()) {
         cout << "WARNING: Environment variable PRAD_LIB and PRAD_INC is not defined." << endl;
         prad_lib = ".";
-        prad_inc = ".";
+	prad_inc = ".";
     }
 
     gSystem->Load((prad_lib + "/libprana.so").c_str());

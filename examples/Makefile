@@ -10,7 +10,7 @@ CXX           = g++
 CXXFLAGS      = -O1 -g -pipe -Wall -mtune=generic -fPIC \
                 -fstack-protector-strong --param=ssp-buffer-size=4 \
                 -grecord-gcc-switches
-INCPATH       = -Iinclude -I$(PRAD_INC)
+INCPATH       = -Iinclude -I$(PRAD_PATH)/include
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
 MKDIR         = mkdir -p
@@ -29,7 +29,7 @@ COMPRESS      = gzip -9f
 LINK          = g++
 LFLAGS        = -Wl,-O1 -Wl,-z,relro
 LIBS          = -lpthread \
-                -L$(PRAD_LIB) -lprana -lprconf -lcana -lcneural
+                -L$(PRAD_PATH)/lib -lprana -lprconf -lcana -lcneural
 AR            = ar cqs
 RANLIB        = 
 SED           = sed

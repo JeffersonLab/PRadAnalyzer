@@ -15,7 +15,7 @@ while [ -h "$SOURCE" ]; do
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
 
-export PRAD_PATH=$DIR/..
+export PRAD_PATH=$(dirname "$DIR")
 
 if [ `uname -m` == 'x86_64' ]; then
     export THIRD_LIB=$PRAD_PATH/thirdparty/lib64
@@ -29,7 +29,7 @@ export ET_INC=/home/chao/PRad/coda/Linux-x86_64/include
 #export ET_LIB=$THIRD_LIB
 #export ET_INC=$PWD/thirdparty/include
 
-export PRAD_LIB=$PRAD_PATH/lib
-export PRAD_INC=$PRAD_PATH/include
+PRAD_LIB=$PRAD_PATH/lib
+PRAD_INC=$PRAD_PATH/include
 
 export LD_LIBRARY_PATH=$PRAD_LIB:$THIRD_LIB:$LD_LIBRARY_PATH

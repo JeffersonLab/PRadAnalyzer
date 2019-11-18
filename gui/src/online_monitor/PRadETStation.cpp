@@ -19,7 +19,7 @@ PRadETStation::~PRadETStation()
     Remove();
 }
 
-void PRadETStation::PreSetting(int mode) throw(PRadException)
+void PRadETStation::PreSetting(int mode)
 {
     // Generic settings
     config.SetUser(ET_STATION_USER_MULTI);
@@ -72,7 +72,7 @@ void PRadETStation::PreSetting(int mode) throw(PRadException)
 }
 
 // Create station
-void PRadETStation::Create() throw(PRadException)
+void PRadETStation::Create()
 {
     char s_name[256];
     strcpy(s_name, name.c_str());
@@ -92,21 +92,21 @@ void PRadETStation::Create() throw(PRadException)
     }
 }
 
-void PRadETStation::Attach() throw(PRadException)
+void PRadETStation::Attach()
 {
     if(et_station_attach(et_system->GetID(), station_id, &attach_id) < ET_OK) {
         throw(PRadException(PRadException::ET_STATION_ATTACH_ERROR, "et_client: error in station attach!"));
     }
 }
 
-void PRadETStation::Detach() throw(PRadException)
+void PRadETStation::Detach()
 {
     if(et_station_detach(et_system->GetID(), attach_id) < ET_OK) {
         throw(PRadException(PRadException::ET_STATION_ATTACH_ERROR, "et_client: error in station dettach!"));
     }
 }
 
-void PRadETStation::Remove() throw(PRadException)
+void PRadETStation::Remove()
 {
     if(et_station_remove(et_system->GetID(), station_id) < ET_OK) {
         throw(PRadException(PRadException::ET_STATION_ATTACH_ERROR, "et_client: error in station remove!"));
