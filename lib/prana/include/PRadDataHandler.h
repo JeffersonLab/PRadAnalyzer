@@ -77,7 +77,7 @@ public:
 
     // event storage
     unsigned int GetEventCount() const {return event_data.size();}
-    const EventData &GetEvent(const unsigned int &index) const throw (PRadException);
+    const EventData &GetEvent(const unsigned int &index) const;
     const std::deque<EventData> &GetEventData() const {return event_data;}
 
     // analysis tools

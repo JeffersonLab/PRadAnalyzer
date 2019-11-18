@@ -44,8 +44,8 @@ public:
     void RemoveFEC(int fec_id);
     void DisconnectFEC(int fec_id, bool force_disconn = false);
     void Configure(const std::string &path);
-    void ReadMapFile(const std::string &path) throw(PRadException);
-    void ReadPedestalFile(const std::string &path) throw(PRadException);
+    void ReadMapFile(const std::string &path);
+    void ReadPedestalFile(const std::string &path);
     void Clear();
     void ChooseEvent(const EventData &data);
     void Reconstruct();

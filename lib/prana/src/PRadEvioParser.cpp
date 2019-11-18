@@ -111,7 +111,6 @@ int PRadEvioParser::ReadEventBuffer(const void *buf)
 
 // parse a evio block data
 int PRadEvioParser::parseEvioBlock(ifstream &in, uint32_t *buf, int max_evt)
-throw(PRadException)
 {
     streamsize buf_size = sizeof(uint32_t);
 

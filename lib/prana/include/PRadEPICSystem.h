@@ -42,7 +42,7 @@ public:
     float GetValue(const std::string &name) const;
     int GetEventNumber() const;
     int GetChannel(const std::string &name) const;
-    const EpicsData &GetEvent(const unsigned int &index) const throw(PRadException);
+    const EpicsData &GetEvent(const unsigned int &index) const;
     const std::deque<EpicsData> &GetEventData() const {return epics_data;}
     unsigned int GetEventCount() const {return epics_data.size();}
     float FindValue(int event_number, const std::string &name) const;

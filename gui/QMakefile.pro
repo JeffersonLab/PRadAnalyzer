@@ -40,8 +40,7 @@ DEFINES += MULTI_THREAD
 # general config for qmake
 ######################################################################
 
-CONFIG += c++11
-QMAKE_CXXFLAGS += -std=c++11
+QMAKE_CXXFLAGS += $$system(root-config --cflags)
 
 OBJECTS_DIR = obj
 MOC_DIR = qt_moc
@@ -51,7 +50,7 @@ TARGET = EventViewer
 DEPENDPATH += 
 INCLUDEPATH += include \
                $$(PRAD_INC) \
-               $$(ROOTSYS)/include
+	       $$system(root-config --incdir)
 
 # Input
 HEADERS += include/PRadEventViewer.h \
@@ -77,12 +76,11 @@ SOURCES += src/main.cpp \
            src/HistCanvas.cpp \
            src/LogsBox.cpp
 
-LIBS += -L$$(PRAD_LIB) -lprana -lprconf -lcana\
+LIBS += -L$$(PRAD_LIB) -lprana -lprconf -lcana \
         -lgfortran \
-        -L$$(ROOTSYS)/lib -lCore -lRint -lRIO -lNet -lHist \
-                          -lGraf -lGraf3d -lGpad -lTree \
-                          -lPostscript -lMatrix -lPhysics \
-                          -lMathCore -lThread -lGui -lSpectrum
+	$$system(root-config --libs) \
+	-L$$system(root-config --libdir) -lSpectrum
+
 
 ######################################################################
 # general config end

@@ -379,7 +379,6 @@ void PRadDataHandler::EndProcess(EventData *ev)
 // get the event by index
 const EventData &PRadDataHandler::GetEvent(const unsigned int &index)
 const
-throw (PRadException)
 {
     if(!event_data.size())
         throw PRadException("PRad Data Handler Error", "Empty data bank!");

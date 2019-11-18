@@ -302,7 +302,6 @@ void PRadDSTParser::ResizeBuffer(uint32_t size)
 
 // write current event
 void PRadDSTParser::WriteEvent()
-throw(PRadException)
 {
     try {
         if(cur_evh.Check(EventHeader, Type::event)) {
@@ -317,7 +316,6 @@ throw(PRadException)
 
 // write given event
 void PRadDSTParser::Write(const EventData &ev)
-throw(PRadException)
 {
     uint32_t out_idx = 0;
     // event information
@@ -385,7 +383,6 @@ const
 
 // write current epics event
 void PRadDSTParser::WriteEPICS()
-throw(PRadException)
 {
     try {
         if(cur_evh.Check(EventHeader, Type::epics)) {
@@ -400,7 +397,6 @@ throw(PRadException)
 
 // write given epics event
 void PRadDSTParser::Write(const EpicsData &ep)
-throw(PRadException)
 {
     uint32_t out_idx = 0;
 
@@ -435,7 +431,6 @@ const
 
 // write file map
 void PRadDSTParser::writeMap()
-throw(PRadException)
 {
     // directly write to ofstream since map can be huge
     try {
@@ -499,7 +494,6 @@ bool PRadDSTParser::ReadMap()
 //============================================================================//
 
 inline void PRadDSTParser::saveBuffer(std::ofstream &ofs, Header evh)
-throw (PRadException)
 {
     if(!ofs.is_open())
         throw PRadException("WRITE DST", "output file is not opened!");
@@ -515,7 +509,6 @@ throw (PRadException)
 }
 
 inline PRadDSTParser::Header PRadDSTParser::getBuffer(std::ifstream &ifs)
-throw (PRadException)
 {
     if(!ifs.is_open())
         throw PRadException("READ DST", "input file is not opened!");

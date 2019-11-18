@@ -8,15 +8,16 @@
 
 include ../general.mk
 FFLAGS        = -fPIC -cpp -ffixed-line-length-none
-CXXFLAGS      = -shared -std=c++11 -m64 -O2 -g -pipe -Wall $(DEFINES) \
-				-fstack-protector-strong --param=ssp-buffer-size=4 \
-				-grecord-gcc-switches -mtune=generic -fPIC
-INCPATH       = -I$(ROOTSYS)/include -I../conf/include -I../cana/include
-LIBS          = -lpthread -lgfortran \
-				-L.. -lprconf -lcana \
-                -L$(ROOTSYS)/lib -lCore -lRint -lRIO -lNet -lHist \
-				-lGraf -lGraf3d -lGpad -lTree -lPostscript -lMatrix \
-				-lPhysics -lMathCore -lThread -lGui -lSpectrum
+CXXFLAGS      = -O2 -g -pipe -Wall $(DEFINES) \
+                -fstack-protector-strong --param=ssp-buffer-size=4 \
+                -grecord-gcc-switches -mtune=generic -fPIC
+INCPATH       = -I../conf/include -I../cana/include
+LIBS          = -lpthread -lgfortran -L.. -lprconf -lcana
+
+# root-config
+CXXFLAGS     += $(shell root-config --cflags)
+INCPATH      += -I$(shell root-config --incdir)
+LIBS         += $(shell root-config --libs)
 
 ####### Targets, add new objects here
 

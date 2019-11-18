@@ -73,14 +73,14 @@ public:
     const EpicsData &GetEPICSEvent() const {return epics_event;}
 
 private:
-    void readRunInfo() throw(PRadException);
-    void readEvent(EventData &data) throw(PRadException);
-    void readEPICS(EpicsData &data) throw(PRadException);
-    void readEPICSMap() throw(PRadException);
-    void readHyCalInfo() throw(PRadException);
-    void readGEMInfo() throw(PRadException);
+    void readRunInfo();
+    void readEvent(EventData &data);
+    void readEPICS(EpicsData &data);
+    void readEPICSMap();
+    void readHyCalInfo();
+    void readGEMInfo();
     void readBuffer(char *ptr, uint32_t size);
-    Type getBuffer(std::ifstream &ifs) throw (PRadException);
+    Type getBuffer(std::ifstream &ifs);
 
 private:
     std::ifstream dst_in;
@@ -204,7 +204,6 @@ void DSTReaderV1::CloseInput()
 }
 
 void DSTReaderV1::readEvent(EventData &data)
-throw(PRadException)
 {
     data.clear();
 
@@ -257,7 +256,6 @@ throw(PRadException)
 }
 
 void DSTReaderV1::readEPICS(EpicsData &data)
-throw(PRadException)
 {
     data.clear();
 
@@ -275,7 +273,6 @@ throw(PRadException)
 }
 
 void DSTReaderV1::readRunInfo()
-throw(PRadException)
 {
     RunInfo runInfo;
 
@@ -283,7 +280,6 @@ throw(PRadException)
 }
 
 void DSTReaderV1::readEPICSMap()
-throw(PRadException)
 {
     uint32_t ch_size, str_size, id;
     std::string str;
@@ -306,7 +302,6 @@ throw(PRadException)
 }
 
 void DSTReaderV1::readHyCalInfo()
-throw(PRadException)
 {
     uint32_t ch_size;
     readBuffer((char*) &ch_size, sizeof(ch_size));
@@ -332,7 +327,6 @@ throw(PRadException)
 }
 
 void DSTReaderV1::readGEMInfo()
-throw(PRadException)
 {
     uint32_t apv_size, ped_size;
     readBuffer((char*) &apv_size, sizeof(apv_size));
@@ -434,7 +428,6 @@ inline void DSTReaderV1::readBuffer(char *ptr, uint32_t size)
 }
 
 inline DSTReaderV1::Type DSTReaderV1::getBuffer(std::ifstream &ifs)
-throw (PRadException)
 {
     if(!ifs.is_open())
         throw PRadException("READ DST", "input file is not opened!");

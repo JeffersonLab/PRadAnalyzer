@@ -30,7 +30,7 @@ public:
 
 private:
     // private member functions
-    int parseEvioBlock(std::ifstream &s, uint32_t *buf, int max_evt) throw(PRadException);
+    int parseEvioBlock(std::ifstream &s, uint32_t *buf, int max_evt);
     int parseEvent(const PRadEventHeader *evt_header);
     void parseROCBank(const PRadEventHeader *roc_header);
     void parseDataBank(const PRadEventHeader *data_header);

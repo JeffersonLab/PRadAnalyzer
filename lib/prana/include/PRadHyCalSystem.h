@@ -110,7 +110,7 @@ public:
                                 const std::string &fit_function,
                                 const double &range_min,
                                 const double &range_max,
-                                const bool &verbose) const throw(PRadException);
+                                const bool &verbose) const;
     void FitPedestal();
     void CorrectGainFactor(int ref);
 

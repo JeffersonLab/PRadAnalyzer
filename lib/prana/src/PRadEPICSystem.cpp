@@ -234,7 +234,6 @@ const
 
 const EpicsData &PRadEPICSystem::GetEvent(const unsigned int &index)
 const
-throw(PRadException)
 {
     if(epics_data.empty())
         throw PRadException("PRad EPICS Error", "empty data bank!");

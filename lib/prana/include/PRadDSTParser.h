@@ -126,10 +126,10 @@ public:
     void ResizeBuffer(uint32_t size);
 
     // write information
-    void WriteEvent() throw(PRadException);
-    void WriteEPICS() throw(PRadException);
-    void Write(const EventData &data) throw(PRadException);
-    void Write(const EpicsData &data) throw(PRadException);
+    void WriteEvent();
+    void WriteEPICS();
+    void Write(const EventData &data);
+    void Write(const EpicsData &data);
 
     // get information from current buffer
     bool Read(int64_t pos = -1);
@@ -143,9 +143,9 @@ public:
 
 
 private:
-    void writeMap() throw(PRadException);
-    void saveBuffer(std::ofstream &ofs, Header evh) throw(PRadException);
-    Header getBuffer(std::ifstream &ifs) throw (PRadException);
+    void writeMap();
+    void saveBuffer(std::ofstream &ofs, Header evh);
+    Header getBuffer(std::ifstream &ifs);
 
 private:
     Map in_map, out_map;

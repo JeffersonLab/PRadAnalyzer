@@ -973,7 +973,6 @@ std::vector<double> PRadHyCalSystem::FitHist(const std::string &channel,
                                              const double &range_max,
                                              const bool &verbose)
 const
-throw(PRadException)
 {
     PRadADCChannel *ch = GetADCChannel(channel);
     if(!ch) {

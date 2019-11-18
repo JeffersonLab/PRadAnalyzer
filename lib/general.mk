@@ -9,7 +9,8 @@ CC            = gcc
 CXX           = g++
 FORTRAN       = gfortran
 FFLAGS        = -fPIC
-CXXFLAGS      = -shared -std=c++11 -O2 -g -pipe -Wall -m64 -fPIC
+CXXFLAGS      = -shared -O2 -g -pipe -Wall -fPIC
+CXXFLAGS     += $(shell root-config --cflags)
 INCPATH       = -I. -Iinclude
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d

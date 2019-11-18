@@ -237,7 +237,7 @@ void PRadGEMSystem::Clear()
 }
 
 // Read the map file
-void PRadGEMSystem::ReadMapFile(const std::string &path) throw(PRadException)
+void PRadGEMSystem::ReadMapFile(const std::string &path)
 {
     if(path.empty())
         return;
@@ -303,7 +303,7 @@ void PRadGEMSystem::ReadMapFile(const std::string &path) throw(PRadException)
 }
 
 // Load pedestal file and update all APVs' pedestal
-void PRadGEMSystem::ReadPedestalFile(const std::string &path) throw(PRadException)
+void PRadGEMSystem::ReadPedestalFile(const std::string &path)
 {
     if(path.empty())
         return;
