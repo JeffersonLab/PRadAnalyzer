@@ -43,7 +43,7 @@ const double pi2 = cana::pi*cana::pi;
 const double alp2 = cana::alpha*cana::alpha;
 const double alp3 = alp2*cana::alpha;
 // convert MeV^-2 to nbarn
-const double unit = cana::hbarc2*1e7;
+// const double unit = cana::hbarc2*1e7;
 
 // random number generator
 static cana::rand_gen<> rng;
@@ -73,7 +73,7 @@ inline double tau_ext2(double v, double S, double Q2)
 
 // constructor
 PRadEpElasGen::PRadEpElasGen(double vmin, double vmax, int nbins, double q2_res, double v_res)
-: v_min(vmin), v_cut(vmax), min_bins(nbins), q2_prec(q2_res), v_prec(v_res)
+: v_min(vmin), v_cut(vmax), /* min_bins(nbins), q2_prec(q2_res), */ v_prec(v_res)
 {
     // place holder
 }

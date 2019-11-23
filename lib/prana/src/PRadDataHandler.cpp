@@ -134,7 +134,7 @@ void PRadDataHandler::ReadFromDST(const std::string &path)
                 if(hycal_sys) hycal_sys->Sparsify(event_data.back());
                 break;
             case PRadDSTParser::Type::epics:
-                if(epic_sys) epic_sys->AddEvent(std::move(dst_parser.GetEPICS()));
+                if(epic_sys) epic_sys->AddEvent(dst_parser.GetEPICS());
                 break;
             default:
                 break;

@@ -54,7 +54,7 @@ PRadGEMPlane::PRadGEMPlane(const PRadGEMPlane &that)
 // move constructor
 PRadGEMPlane::PRadGEMPlane(PRadGEMPlane &&that)
 : detector(nullptr), name(std::move(that.name)), type(that.type), size(that.size),
-  orient(that.orient), direction(that.direction), strip_hits(std::move(strip_hits)),
+  orient(that.orient), direction(that.direction), strip_hits(std::move(that.strip_hits)),
   strip_clusters(std::move(that.strip_clusters))
 {
     apv_list.resize(that.apv_list.size(), nullptr);

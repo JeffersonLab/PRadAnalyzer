@@ -27,10 +27,6 @@ public:
     void PostMatch(MatchHit &h) const;
 
 private:
-    float gemRes;
-    float leadGlassRes;
-    float crystalRes;
-    float transitionRes;
     float matchSigma;
     float overlapSigma;
     bool squareSel;

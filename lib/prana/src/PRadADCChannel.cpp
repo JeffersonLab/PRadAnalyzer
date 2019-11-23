@@ -118,8 +118,8 @@ PRadADCChannel &PRadADCChannel::operator =(PRadADCChannel &&rhs)
     occupancy = rhs.occupancy;
     sparsify = rhs.sparsify;
     adc_value = rhs.adc_value;
-    hist_map = std::move(hist_map);
-    trg_hist = std::move(trg_hist);
+    hist_map = std::move(rhs.hist_map);
+    trg_hist = std::move(rhs.trg_hist);
 
     return *this;
 }

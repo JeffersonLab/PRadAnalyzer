@@ -84,7 +84,6 @@ private:
     std::string name;
     Type type;
     float size;
-    int connector;
     int orient;
     int direction;
     std::vector<PRadGEMAPV*> apv_list;

@@ -57,7 +57,7 @@ PRadGEMDetector::PRadGEMDetector(const PRadGEMDetector &that)
 PRadGEMDetector::PRadGEMDetector(PRadGEMDetector &&that)
 : PRadDetector(that), gem_srs(nullptr), type(std::move(that.type)),
   readout_board(std::move(that.readout_board)), planes(std::move(that.planes)),
-  gem_hits(std::move(gem_hits)), res(that.res)
+  gem_hits(std::move(that.gem_hits)), res(that.res)
 {
     // reset the planes' detector
     ConnectPlanes();
@@ -98,7 +98,7 @@ PRadGEMDetector &PRadGEMDetector::operator =(PRadGEMDetector &&rhs)
     type = std::move(rhs.type);
     readout_board = std::move(rhs.readout_board);
     planes = std::move(rhs.planes);
-    gem_hits = std::move(gem_hits);
+    gem_hits = std::move(rhs.gem_hits);
     res = rhs.res;
 
     ConnectPlanes();

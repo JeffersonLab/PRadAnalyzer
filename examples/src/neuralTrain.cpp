@@ -251,7 +251,7 @@ void FillParams(PRadHyCalSystem &sys,
             if(param.group_size == 0)
                 continue;
 
-            params.emplace_back(move(param.GetParamList()));
+            params.emplace_back(param.GetParamList());
 
             if(params.size() >= cap)
                 break;

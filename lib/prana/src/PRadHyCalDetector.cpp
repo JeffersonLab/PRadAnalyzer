@@ -121,7 +121,7 @@ PRadHyCalDetector::PRadHyCalDetector(const PRadHyCalDetector &that)
 // move constructor
 PRadHyCalDetector::PRadHyCalDetector(PRadHyCalDetector &&that)
 : PRadDetector(that), system(nullptr), module_list(std::move(that.module_list)),
-  vmodule_list(std::move(vmodule_list)), id_map(std::move(that.id_map)),
+  vmodule_list(std::move(that.vmodule_list)), id_map(std::move(that.id_map)),
   name_map(std::move(that.name_map)), hycal_hits(std::move(that.hycal_hits)),
   sector_info(std::move(that.sector_info)), res_pars(std::move(that.res_pars))
 {

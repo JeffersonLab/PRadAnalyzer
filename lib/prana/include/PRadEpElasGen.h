@@ -31,9 +31,9 @@ private:
     // v_cut defines the integration range to the highest photon energy
     double v_min, v_cut;
     // minimum theta bins
-    unsigned int min_bins;
+    /* unsigned int min_bins; */
     // required theta interpolation precision
-    double q2_prec, v_prec;
+    double /*q2_prec,*/ v_prec;
 };
 
 #endif
