@@ -45,9 +45,6 @@ public:
         void SetPort(int val) { et_open_config_setport(conf.get(), val); }
         int GetPort() { int val; et_open_config_getport(conf.get(), &val); return val; }
 
-        void SetMultiPort(int val) { et_open_config_setmultiport(conf.get(), val); }
-        int GetMultiPort() { int val; et_open_config_getmultiport(conf.get(), &val); return val; }
-
         void SetServerPort(int val) { et_open_config_setserverport(conf.get(), val); }
         int GetServerPort() { int val; et_open_config_getserverport(conf.get(), &val); return val; }
 
@@ -105,6 +102,33 @@ private:
     uint32_t *buffer;
     size_t bufferSize;
     void copyEvent();
+
+public:
+    static std::string get_error_str(int error)
+    {
+        switch(error) {
+        case ET_ERROR: return "General error.";
+        case ET_ERROR_TOOMANY: return "Too many somethings (stations, attachments, temp events, ET system responses) exist.";
+        case ET_ERROR_EXISTS: return "ET system file or station already exists.";
+        case ET_ERROR_WAKEUP: return "Sleeping routine woken up by et_wakeup_attachment() or et_wakeup_all().";
+        case ET_ERROR_TIMEOUT: return "Timed out.";
+        case ET_ERROR_EMPTY: return "No events available in async mode.";
+        case ET_ERROR_BUSY: return "Resource is busy.";
+        case ET_ERROR_DEAD: return "ET system is dead.";
+        case ET_ERROR_READ: return "Network read error.";
+        case ET_ERROR_WRITE: return "Network write error,";
+        case ET_ERROR_REMOTE: return "Cannot allocate memory in remote client.";
+        case ET_ERROR_TOOBIG: return "Client is 32 bits & server is 64 (or vice versa) and event is too big for one.";
+        case ET_ERROR_NOMEM: return "Cannot allocate memory.";
+        case ET_ERROR_BADARG: return "Bad argument given to function.";
+        case ET_ERROR_SOCKET: return "Socket option could not be set.";
+        case ET_ERROR_NETWORK: return "Host name or address could not be resolved, or cannot connect.";
+        case ET_ERROR_CLOSED: return "ET system has been closed by client.";
+        case ET_ERROR_JAVASYS: return "C code trying to open Java-based ET system file locally.";
+        default: break;
+        }
+        return "Unknown error";
+    }
 };
 
 #endif
