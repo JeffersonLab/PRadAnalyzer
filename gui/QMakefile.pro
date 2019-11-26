@@ -98,7 +98,7 @@ contains(GUI_OPTION, ONLINE_MODE) {
     SOURCES += src/online_monitor/PRadETChannel.cpp \
                src/online_monitor/PRadETStation.cpp \
                src/online_monitor/ETSettingPanel.cpp
-    INCLUDEPATH += $$(ET_INC)
+    INCLUDEPATH += include/online_monitor $$(ET_INC)
     LIBS += -L$$(ET_LIB) -let -lexpat
     message("Online Monitor = Enabled")
 } else {
@@ -111,7 +111,7 @@ contains(GUI_OPTION, HV_CONTROL) {
                include/high_voltage/CAENHVSystem.h
     SOURCES += src/high_voltage/PRadHVSystem.cpp \
                src/high_voltage/CAENHVSystem.cpp
-    INCLUDEPATH += ../thirdparty/include
+    INCLUDEPATH += include/high_voltage ../thirdparty/include
     LIBS += -L$$(THIRD_LIB) -lcaenhvwrapper
     message("High Voltage Control = Enalbed")
 } else {

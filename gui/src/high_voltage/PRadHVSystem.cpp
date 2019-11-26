@@ -5,7 +5,7 @@
 // 02/17/2016                                                                 //
 //============================================================================//
 
-#include "high_voltage/PRadHVSystem.h"
+#include "PRadHVSystem.h"
 #include "PRadEventViewer.h"
 #include "ConfigParser.h"
 #include <cstdlib>

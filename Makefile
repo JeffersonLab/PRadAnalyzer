@@ -17,7 +17,7 @@ QT_MAKE = qmake
 # MULTI_THREAD    multi threading support on decoding raw data file
 LIB_OPTION = MULTI_THREAD
 
-# GUI Setting, enable optional components for GUI here
+# GUI Setting, enable optional components for GUI here, separated by spaces
 # HV_CONTROL      high voltage monitor and control
 # ONLINE_MODE     online events monitor
 # STANDARD_EVIO   using standard evio library instead of our specific code to read evio file

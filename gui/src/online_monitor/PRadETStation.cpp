@@ -5,8 +5,9 @@
 // 04/01/2016                                                                 //
 //============================================================================//
 
-#include "online_monitor/PRadETStation.h"
-#include "online_monitor/PRadETChannel.h"
+#include "PRadETStation.h"
+#include "PRadETChannel.h"
+
 
 PRadETStation::PRadETStation(PRadETChannel *p, std::string n, int mode)
 : et_system(p), name(n)
@@ -28,7 +29,7 @@ void PRadETStation::PreSetting(int mode)
     config.SetCUE(ET_CHUNK_SIZE);
 
     // TODO, change to meaningful settings
-    int selections[] = {17,15,-1,-1};
+    std::vector<int> selections{17,15,-1,-1};
     char fName[] = "et_my_function";
     char libName[] = "libet_user.so";
 
@@ -111,78 +112,5 @@ void PRadETStation::Remove()
     if(et_station_remove(et_system->GetID(), station_id) < ET_OK) {
         throw(PRadException(PRadException::ET_STATION_ATTACH_ERROR, "et_client: error in station remove!"));
     }
-}
-
-
-// et_station_config
-PRadETStation::Configuration::Configuration()
-{
-    Initialize();
-}
-
-PRadETStation::Configuration::~Configuration()
-{
-    et_station_config_destroy(config);
-}
-
-// wrapper functions
-void PRadETStation::Configuration::Initialize()
-{
-    et_station_config_init(&config);
-}
-
-void PRadETStation::Configuration::SetBlock(int val)
-{
-    et_station_config_setblock(config, val);
-}
-
-void PRadETStation::Configuration::SetFlow(int val)
-{
-    et_station_config_setflow(config, val);
-}
-
-void PRadETStation::Configuration::SetSelect(int val)
-{
-    et_station_config_setselect(config, val);
-}
-
-void PRadETStation::Configuration::SetUser(int val)
-{
-    et_station_config_setuser(config, val);
-}
-
-void PRadETStation::Configuration::SetRestore(int val)
-{
-    et_station_config_setrestore(config, val);
-}
-
-void PRadETStation::Configuration::SetCUE(int val)
-{
-    et_station_config_setcue(config, val);
-}
-
-void PRadETStation::Configuration::SetPrescale(int val)
-{
-    et_station_config_setprescale(config, val);
-}
-
-void PRadETStation::Configuration::SetSelectWords(int val[])
-{
-    et_station_config_setselectwords(config, val);
-}
-
-void PRadETStation::Configuration::SetFunction(const char *val)
-{
-    et_station_config_setfunction(config, val);
-}
-
-void PRadETStation::Configuration::SetLib(const char *val)
-{
-    et_station_config_setlib(config, val);
-}
-
-void PRadETStation::Configuration::SetClass(const char *val)
-{
-    et_station_config_setclass(config, val);
 }
 
