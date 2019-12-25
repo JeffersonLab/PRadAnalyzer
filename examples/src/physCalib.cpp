@@ -369,7 +369,7 @@ void InitHistogram()
 void InitProfileData()
 {
     ConfigParser parser;
-    if (!parser.OpenFile("./database/prof_pwo.dat")) {
+    if (!parser.ReadFile("./database/prof_pwo.dat")) {
         cout<<"cannot find profile data for PWO"<<endl;
         return;
     }
@@ -382,7 +382,6 @@ void InitProfileData()
         pwo_profile[j][i] = val;
         parser.TakeFirst().Float();
     }
-    parser.CloseFile();
 }
 //____________________________________________________________________________________________
 inline void EPAnalyzer(CombinedHit* h)

@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 
     for(int i = 1; i <= count; ++i)
     {
-        parser.OpenFile(argv[1]);
+        parser.ReadFile(argv[1]);
         while(parser.ParseLine()) {;}
 
         cout <<"------[ " << i << " ]---"

@@ -38,7 +38,7 @@ void PRadClusterProfile::Load(int type, const std::string &path)
     }
 
     ConfigParser parser;
-    if(!parser.OpenFile(path)) {
+    if(!parser.ReadFile(path)) {
         std::cerr << "PRad Cluster Profile Error: File"
                   << " \"" << path << "\" "
                   << "cannot be opened."

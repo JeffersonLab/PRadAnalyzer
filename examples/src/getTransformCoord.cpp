@@ -182,7 +182,7 @@ unordered_map<string, PosDiff> ReadPositionDiffs(const string &path)
     // read position difference data
     unordered_map<string, PosDiff> res;
     ConfigParser parser;
-    parser.OpenFile(path);
+    parser.ReadFile(path);
     string name;
     PosDiff pdiff;
     while(parser.ParseLine())

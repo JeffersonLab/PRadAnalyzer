@@ -8,7 +8,7 @@
     if (prad_root.empty()) {
         cout << "WARNING: Environment variable PRAD_LIB and PRAD_INC is not defined." << endl;
         prad_lib = ".";
-	prad_inc = ".";
+        prad_inc = ".";
     }
 
     gSystem->Load((prad_lib + "/libprana.so").c_str());

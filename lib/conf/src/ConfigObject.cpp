@@ -9,12 +9,12 @@
 // 10/31/2016                                                                 //
 //============================================================================//
 
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
 #include "ConfigObject.h"
-
 
 
 //============================================================================//
@@ -79,20 +79,22 @@ bool ConfigObject::ReadConfigFile(const std::string &path)
 }
 
 // read the configuration string directly
-void ConfigObject::ReadConfigString(const std::string &content)
+void ConfigObject::ReadConfigString(const std::string &content, const std::string &path)
 {
     ConfigParser c_parser;
     c_parser.SetSplitters(split_chars);
 
     c_parser.ReadBuffer(content.c_str());
 
-    parserProcess(c_parser, "buffer_string");
+    parserProcess(c_parser, path);
 }
 
 // continue parse the terms
 void ConfigObject::parserProcess(ConfigParser &c_parser, const std::string &source)
 {
-    std::string cur_dir = ConfigParser::decompose_path(source).dir;
+    char abs_path[2048];
+    realpath(source.c_str(), abs_path);
+    std::string cur_dir = ConfigParser::decompose_path(abs_path).dir;
 
     while (c_parser.ParseLine()) {
         // possible control words

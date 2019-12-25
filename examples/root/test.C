@@ -149,7 +149,7 @@ void moller_gen_test(int Nevents, const char *path = "moller_test.dat")
 void show_moller_gen(const char *path)
 {
     ConfigParser c_parser;
-    c_parser.OpenFile(path);
+    c_parser.ReadFile(path);
 
     double p1, p2, p, th1, th2, th, ph1, ph2, ph;
     TH1F *hist_th = new TH1F("theta dist", "theta dist", 200, 0, 3);

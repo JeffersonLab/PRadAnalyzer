@@ -29,7 +29,7 @@ public:
     bool HasKey(const std::string &name) const;
 
     bool ReadConfigFile(const std::string &path);
-    void ReadConfigString(const std::string &content);
+    void ReadConfigString(const std::string &content, const std::string &path = ".");
     void SetConfigValue(const std::string &var_name, const ConfigValue &c_value);
     void SetIgnoreChars(const std::string &ignore) {ignore_chars = ignore;}
     void SetSplitChars(const std::string &splitter) {split_chars = splitter;}
@@ -59,6 +59,7 @@ public:
     const std::string &GetSpaceChars() const {return ignore_chars;}
     const std::pair<std::string, std::string> &GetReplacePair() const {return replace_pair;}
     std::vector<std::string> GetKeyList() const;
+    const std::unordered_map<std::string, std::string> &GetMap() const {return config_map;}
 
 
     // functions that to be overloaded
