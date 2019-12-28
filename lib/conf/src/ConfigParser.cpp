@@ -12,9 +12,10 @@
 
 using namespace std;
 
+#define TOKEN_DIGITS 5
 
 // TODO radmonize token that has no conflic with the format marks
-static const string config_token = "Gc2xConfig79zR";
+static const string config_token = "Gc2xConfig6R";
 
 
 //============================================================================//
@@ -64,8 +65,7 @@ void ConfigParser::ReadBuffer(const char *buf_in)
 // clear stored lines
 void ConfigParser::Clear()
 {
-    queue<string> empty;
-    swap(tokens, empty);
+    tokens.clear();
     lines.clear();
     elements.clear();
 
@@ -154,6 +154,14 @@ bool ConfigParser::CheckElements(int num, int optional)
 }
 
 
+// get current line
+string ConfigParser::CurrentLine() const
+{
+    string res = curr_line;
+    untokenize(res, config_token, tokens, fmt.quote);
+    return res;
+}
+
 // take the first element
 ConfigValue ConfigParser::TakeFirst()
 {
@@ -184,7 +192,7 @@ void ConfigParser::getLines(string buf)
     }
 
     // tokenize first
-    tokens = tokenize_between(buf, fmt.quote, fmt.quote, config_token);
+    tokens = tokenize(buf, fmt.quote, config_token);
 
     // comment out blocks
     comment_between(buf, fmt.cmtopen, fmt.cmtclose);
@@ -196,7 +204,7 @@ void ConfigParser::getLines(string buf)
     auto ls = split(buf, fmt.delim);
 
     // trim every line
-    std::string line;
+    string line;
     for (auto &l : ls) {
         line += trim(l, fmt.white);
         if (line.size() && fmt.glue.size() && (line.size() >= fmt.glue.size()) &&
@@ -233,16 +241,7 @@ void ConfigParser::parseBuffer()
             if (ele.empty()) {
                 continue;
             }
-            if (tokens.size()) {
-                auto pos = ele.find(config_token);
-                if (pos != string::npos) {
-                    ele.replace(pos, config_token.size(), tokens.front());
-                    auto pos2 = curr_line.find(config_token);
-                    curr_line.replace(pos2, config_token.size(), tokens.front());
-                    tokens.pop();
-                }
-            }
-
+            untokenize(ele, config_token, tokens);
             elements.emplace_back(move(ele));
             count++;
         }
@@ -286,29 +285,58 @@ void ConfigParser::comment_line(string &str, const string &c, const string &b)
     }
 }
 
+// comment out a string, consider quotes
+void ConfigParser::comment_line(string &str, const string &c, const string &b, const string &qmark)
+{
+    auto quotes = tokenize(str, qmark, config_token);
+    comment_line(str, c, b);
+    untokenize(str, config_token, quotes, qmark);
+}
 
 // tokenize the content between quote marks, no nested structure supported
-queue<string> ConfigParser::tokenize_between(string &str, const string &open, const string &close, const string &token)
+vector<string> ConfigParser::tokenize(string &str, const string &qmark, const string &token)
 {
-    queue<string> res;
+    vector<string> res;
 
-    if (str.empty() || open.empty() || close.empty())
+    if (str.empty() || qmark.empty())
         return res;
 
+    string padzero(TOKEN_DIGITS, '0');
     while (true) {
-        size_t pos1 = str.find(open);
+        size_t pos1 = str.find(qmark);
         if (pos1 != string::npos) {
-            size_t pos2 = str.find(close, pos1 + open.size());
+            size_t pos2 = str.find(qmark, pos1 + qmark.size());
             // found pair
             if (pos2 != string::npos) {
-                res.emplace(str.substr(pos1 + open.size(), pos2 - pos1 - open.size()));
-                str.replace(pos1, pos2 + close.size() - pos1, token);
+                string digits = (padzero + to_string(res.size()));
+                res.emplace_back(str.substr(pos1 + qmark.size(), pos2 - pos1 - qmark.size()));
+                str.replace(pos1, pos2 + qmark.size() - pos1, token + digits.substr(digits.size() - TOKEN_DIGITS));
             } else {
                 return res;
             }
         } else {
             return res;
         }
+    }
+}
+
+// reversal of tokenize
+void ConfigParser::untokenize(string &str, const string &token, const vector<string> &contents, const string &qmark)
+{
+    if (contents.empty() || str.empty() || token.empty()) {
+        return;
+    }
+
+    auto pos = str.find(token);
+    auto size = token.size() + TOKEN_DIGITS;
+    while ((pos != string::npos) && ((pos + size) <= str.size())) {
+        size_t id = stoul(str.substr(pos + token.size(), TOKEN_DIGITS));
+        if (qmark.empty()) {
+            str.replace(pos, size, contents[id]);
+        } else {
+            str.replace(pos, size, qmark + contents[id] + qmark);
+        }
+        pos = str.find(token);
     }
 }
 
@@ -338,6 +366,14 @@ void ConfigParser::comment_between(string &str, const string &open, const string
             return;
         }
     }
+}
+
+// comment out a string, consider quotes
+void ConfigParser::comment_between(string &str, const string &open, const string &close, const string &qmark)
+{
+    auto quotes = tokenize(str, qmark, config_token);
+    comment_between(str, open, close);
+    untokenize(str, config_token, quotes, qmark);
 }
 
 // trim all the characters defined as white space at both ends

@@ -125,7 +125,7 @@ void PRadHyCalReconstructor::Configure(const std::string &path)
         // determine key name
         std::string type = PRadHyCalModule::Type2str(i);
         std::string key = "Min Module Energy [" + type + "]";
-        auto value = GetConfigValue(key);
+        auto value = Value(key);
         if(!value.IsEmpty())
             config.min_module_energy[i] = value.Float();
     }

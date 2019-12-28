@@ -22,11 +22,12 @@
 //============================================================================//
 
 // constructor
-ConfigObject::ConfigObject(const std::string &splitter, const std::string &ignore, bool case_ins)
-: split_chars(splitter), ignore_chars(ignore), case_insensitive(case_ins), __empty_value("")
+ConfigObject::ConfigObject(const std::string &splitter, const std::string &ignore, const std::string &var_open,
+        const std::string &var_close, bool case_ins)
+: split_chars(splitter), ignore_chars(ignore), variable_pair({var_open, var_close}), case_insensitive(case_ins),
+  __empty_value("")
 {
-    // set default replace bracket
-    replace_pair = std::make_pair("{", "}");
+    // place holder
 }
 
 // destructor
@@ -96,21 +97,22 @@ void ConfigObject::parserProcess(ConfigParser &c_parser, const std::string &sour
     realpath(source.c_str(), abs_path);
     std::string cur_dir = ConfigParser::decompose_path(abs_path).dir;
 
+    // THIS_DIR needs special treatment as many files in different dirs may be loaded into one instance
+    std::string dir_key = variable_pair.first + "THIS_DIR" + variable_pair.second;
+
     while (c_parser.ParseLine()) {
         // possible control words
         if (c_parser.NbofElements() == 1) {
             std::string control = c_parser.TakeFirst();
-            size_t pos = control.find("{THIS_DIR}");
-            if(pos != std::string::npos)
-                control.replace(pos, 10, cur_dir);
+            size_t pos = control.find(dir_key);
+            if(pos != std::string::npos) { control.replace(pos, dir_key.size(), cur_dir); }
             parseControl(control);
         // var_name and var_value
         } else if (c_parser.NbofElements() == 2) {
             std::string var_name, key, var_value;
             c_parser >> var_name >> var_value;
-            size_t pos = var_value.find("{THIS_DIR}");
-            if(pos != std::string::npos)
-                var_value.replace(pos, 10, cur_dir);
+            size_t pos = var_value.find(dir_key);
+            if(pos != std::string::npos) { var_value.replace(pos, dir_key.size(), cur_dir); }
             parseTerm(std::move(var_name), std::move(var_value));
         // unsupported format
         } else {
@@ -176,7 +178,7 @@ const
 }
 
 // get configuration value by its name/key
-ConfigValue ConfigObject::GetConfigValue(const std::string &var_name)
+ConfigValue ConfigObject::Value(const std::string &var_name)
 const
 {
     // convert to lower case and remove uninterested characters
@@ -187,7 +189,7 @@ const
         return __empty_value;
     } else {
         ConfigValue result(it->second);
-        reform(result._value, replace_pair.first, replace_pair.second);
+        reform(result._value, variable_pair.first, variable_pair.second);
         return result;
     }
 }
@@ -204,7 +206,7 @@ void ConfigObject::SetConfigValue(const std::string &var_name, const ConfigValue
 
 // get configuration value from the map
 // if no such config value exists, it will fill the default value in
-ConfigValue ConfigObject::GetConfigValue(const std::string &var_name, const ConfigValue &def_value, bool verbose)
+ConfigValue ConfigObject::Value(const std::string &var_name, const ConfigValue &def_value, bool verbose)
 {
     auto key = formKey(var_name);
 
@@ -224,7 +226,7 @@ ConfigValue ConfigObject::GetConfigValue(const std::string &var_name, const Conf
     }
 
     ConfigValue result(it->second);
-    reform(result._value, replace_pair.first, replace_pair.second);
+    reform(result._value, variable_pair.first, variable_pair.second);
     return result;
 }
 
@@ -245,7 +247,7 @@ const
     return key;
 }
 
-// replace the contents inside replace_pair with the configuration value
+// replace the contents inside variable_pair with the configuration value
 void ConfigObject::reform(std::string &input, const std::string &op, const std::string &cl)
 const
 {
@@ -260,17 +262,7 @@ const
             reform(var, op, cl);
 
             // replace content
-            std::string val;
-
-            // environment variable
-            if (rpair.first > 0 && input.at(rpair.first - 1) == '$') {
-                val = std::getenv(var.c_str());
-                // replace $ mark also
-                rpair.first--;
-            // ConfigObject variable
-            } else {
-                val = GetConfigValue(var)._value;
-            }
+            std::string val = HasKey(var) ? Value(var)._value : std::getenv(var.c_str());
 
             // replace variable with configuration value
             input.replace(rpair.first, rpair.second - rpair.first + cl.size(), val);
@@ -306,7 +298,7 @@ void ConfigObject::parseControl(const std::string &word)
         int length = p.second - begin;
 
         std::string new_path = word.substr(begin, length);
-        reform(new_path, replace_pair.first, replace_pair.second);
+        reform(new_path, variable_pair.first, variable_pair.second);
 
         ReadConfigFile(new_path);
     }

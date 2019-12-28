@@ -80,7 +80,7 @@ public:
     bool CheckElements(int num, int optional = 0);
     int NbofElements() const { return elements.size(); }
     int LineNumber() const { return line_number; }
-    std::string CurrentLine() const { return curr_line; }
+    std::string CurrentLine() const;
 
     // take the elements
     ConfigValue TakeFirst();
@@ -149,16 +149,21 @@ private:
     Format fmt;
     int line_number;
     std::string curr_line;
-    std::queue<std::string> tokens;
+    std::vector<std::string> tokens;
     std::deque<std::string> lines, elements;
 
 
 public:
     // static functions
     static void comment_line(std::string &str, const std::string &cmt, const std::string &brk);
+    static void comment_line(std::string &str, const std::string &cmt, const std::string &brk,
+                             const std::string &qmark);
     static void comment_between(std::string &str, const std::string &open, const std::string &close);
-    static std::queue<std::string> tokenize_between(std::string &str, const std::string &open,
-                                                    const std::string &close, const std::string &token);
+    static void comment_between(std::string &str, const std::string &open, const std::string &close,
+                                const std::string &qmark);
+    static std::vector<std::string> tokenize(std::string &str, const std::string &qmark, const std::string &token);
+    static void untokenize(std::string &str, const std::string &token, const std::vector<std::string> &contents,
+                           const std::string &qmark = "");
     static std::string trim(const std::string &str, const std::string &w);
     static std::deque<std::string> split(const std::string &str, const std::string &s);
     static std::deque<std::string> split(const char* str, const size_t &len, const std::string &s);

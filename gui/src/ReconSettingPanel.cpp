@@ -274,9 +274,9 @@ void ReconSettingPanel::ConnectGEMSystem(PRadGEMSystem *g)
     // set the config values from GEM clustering method
     PRadGEMCluster *gem_method = gem->GetClusterMethod();
 
-    gemMinHits->setValue(gem_method->GetConfigValue<int>(gemMinLabel->text().toStdString()));
-    gemMaxHits->setValue(gem_method->GetConfigValue<int>(gemMaxLabel->text().toStdString()));
-    gemSplitThres->setValue(gem_method->GetConfigValue<double>(gemSplitLabel->text().toStdString()));
+    gemMinHits->setValue(gem_method->Value<int>(gemMinLabel->text().toStdString()));
+    gemMaxHits->setValue(gem_method->Value<int>(gemMaxLabel->text().toStdString()));
+    gemSplitThres->setValue(gem_method->Value<double>(gemSplitLabel->text().toStdString()));
 }
 
 void ReconSettingPanel::ConnectCoordSystem(PRadCoordSystem *c)
@@ -312,7 +312,7 @@ void ReconSettingPanel::ConnectMatchSystem(PRadDetMatch *m)
     {
         float value = 0.;
         if(detMatch != nullptr)
-            value = detMatch->GetConfigValue<float>(matchConfLabel[i]->text().toStdString());
+            value = detMatch->Value<float>(matchConfLabel[i]->text().toStdString());
 
         matchConfBox[i]->setValue(value);
     }

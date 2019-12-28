@@ -230,12 +230,12 @@ bool PRadClusterDensity::processPosPars(ConfigParser &c_parser, ParamsSet &pset)
     }
 
     // configurate pset
-    pset.beam_energy = conf_obj.GetConfigValue<float>("Beam Energy");
-    auto rangestr = conf_obj.GetConfigValue<std::string>("Energy Range");
+    pset.beam_energy = conf_obj.Value<float>("Beam Energy");
+    auto rangestr = conf_obj.Value<std::string>("Energy Range");
     pset.energy_range = ConfigParser::stofs(rangestr, ",", " \t");
-    int n_pars = conf_obj.GetConfigValue<int>("Number Of Params");
-    int n_geo = conf_obj.GetConfigValue<int>("Geometry Groups");
-    int n_ene = conf_obj.GetConfigValue<int>("Energy Groups");
+    int n_pars = conf_obj.Value<int>("Number Of Params");
+    int n_geo = conf_obj.Value<int>("Geometry Groups");
+    int n_ene = conf_obj.Value<int>("Energy Groups");
 
     // sanity check, (range size - 1) + ep + Moller
     if(n_ene != static_cast<int>(pset.energy_range.size()) + 1) {

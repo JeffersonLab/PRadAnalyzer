@@ -187,12 +187,12 @@ void PRadGEMSystem::Configure(const std::string &path)
     CONF_CONN(def_zth, "Default Zero Suppression Threshold", 5, verbose);
     CONF_CONN(def_ctth, "Default Cross Talk Threshold", 8, verbose);
 
-    gem_recon.Configure(GetConfigValue<std::string>("GEM Cluster Configuration"));
+    gem_recon.Configure(Value<std::string>("GEM Cluster Configuration"));
 
     // read gem map, build DAQ system and detectors
     try{
-        ReadMapFile(GetConfigValue<std::string>("GEM Map"));
-        ReadPedestalFile(GetConfigValue<std::string>("GEM Pedestal"));
+        ReadMapFile(Value<std::string>("GEM Map"));
+        ReadPedestalFile(Value<std::string>("GEM Pedestal"));
     } catch(PRadException &e) {
         std::cerr << e.FailureType() << ": "
                   << e.FailureDesc() << std::endl;
@@ -204,7 +204,7 @@ void PRadGEMSystem::Configure(const std::string &path)
     {
         if(det == nullptr) continue;
         std::string key = "Position Resolution [" + det->GetName() + "]";
-        auto val = GetConfigValue(key);
+        auto val = Value(key);
         if(!val.IsEmpty())
             det->SetResolution(val.Double());
         else

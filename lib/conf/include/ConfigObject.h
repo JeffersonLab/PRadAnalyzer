@@ -8,17 +8,18 @@
 #include "ConfigParser.h"
 
 
-#define CONF_CONN(val, str, def, warn) val=GetConfigValue<decltype(val)>(str, def, warn)
-#define CONF_CONN2(val, def, warn) val=GetConfiValue<decltype(val)>(str, def, warn)
-#define GET_CONF(obj, val, str, def, warn) val=obj.GetConfiValue<decltype(val)>(str, def, warn)
-#define GET_CONF2(obj, val, def, warn) val=GetConfiValue<decltype(val)>(#val, def, warn)
+#define CONF_CONN(val, str, def, warn) val=Value<decltype(val)>(str, def, warn)
+#define CONF_CONN2(val, def, warn) val=Value<decltype(val)>(str, def, warn)
+#define GET_CONF(obj, val, str, def, warn) val=obj.Value<decltype(val)>(str, def, warn)
+#define GET_CONF2(obj, val, def, warn) val=Value<decltype(val)>(#val, def, warn)
 
 
 class ConfigObject
 {
 public:
     // constructor, desctructor
-    ConfigObject(const std::string &spliiter = ":=", const std::string &ignore = " _\t", bool case_ins = true);
+    ConfigObject(const std::string &spliiter = ":=", const std::string &ignore = " _\t",
+            const std::string &var_open = "${", const std::string &var_close = "}", bool case_ins = true);
 
     virtual ~ConfigObject();
 
@@ -33,31 +34,31 @@ public:
     void SetConfigValue(const std::string &var_name, const ConfigValue &c_value);
     void SetIgnoreChars(const std::string &ignore) {ignore_chars = ignore;}
     void SetSplitChars(const std::string &splitter) {split_chars = splitter;}
-    void SetReplacePair(const std::string &open, const std::string &close)
+    void SetVariablePair(const std::string &open, const std::string &close)
     {
-        replace_pair = std::make_pair(open, close);
+        variable_pair = std::make_pair(open, close);
     }
 
     // get members
-    ConfigValue GetConfigValue(const std::string &var_name) const;
+    ConfigValue Value(const std::string &var_name) const;
     template<typename T>
-    T GetConfigValue(const std::string &var_name)
+    T Value(const std::string &var_name)
     const
     {
-        return GetConfigValue(var_name).Convert<T>();
+        return Value(var_name).Convert<T>();
     }
 
-    ConfigValue GetConfigValue(const std::string &var_name, const ConfigValue &def_value, bool verbose = true);
+    ConfigValue Value(const std::string &var_name, const ConfigValue &def_value, bool verbose = true);
     template<typename T>
-    T GetConfigValue(const std::string &var_name, const T &val, bool verbose = true)
+    T Value(const std::string &var_name, const T &val, bool verbose = true)
     {
-        return GetConfigValue(var_name, ConfigValue(val), verbose).Convert<T>();
+        return Value(var_name, ConfigValue(val), verbose).Convert<T>();
     }
 
     const std::string &GetConfigPath() const {return config_path;}
     const std::string &GetSplitChars() const {return split_chars;}
     const std::string &GetSpaceChars() const {return ignore_chars;}
-    const std::pair<std::string, std::string> &GetReplacePair() const {return replace_pair;}
+    const std::pair<std::string, std::string> &GetVariablePair() const {return variable_pair;}
     std::vector<std::string> GetKeyList() const;
     const std::unordered_map<std::string, std::string> &GetMap() const {return config_map;}
 
@@ -78,8 +79,8 @@ private:
 protected:
     std::string split_chars;
     std::string ignore_chars;
+    std::pair<std::string, std::string> variable_pair;
     bool case_insensitive;
-    std::pair<std::string, std::string> replace_pair;
     std::string config_path;
     std::unordered_map<std::string, std::string> config_map;
 
