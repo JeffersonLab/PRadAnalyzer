@@ -141,15 +141,16 @@ public:
 
 private:
     // private functions
-    void getLines(std::string buf);
+    void toLines(std::string buf);
     void parseBuffer();
+    void retrieveLine();
 
 private:
     // private members
     Format fmt;
     int line_number;
     std::string curr_line;
-    std::vector<std::string> tokens;
+    std::vector<std::string> quotes;
     std::deque<std::string> lines, elements;
 
 
@@ -161,8 +162,9 @@ public:
     static void comment_between(std::string &str, const std::string &open, const std::string &close);
     static void comment_between(std::string &str, const std::string &open, const std::string &close,
                                 const std::string &qmark);
-    static std::vector<std::string> tokenize(std::string &str, const std::string &qmark, const std::string &token);
-    static void untokenize(std::string &str, const std::string &token, const std::vector<std::string> &contents,
+    static void tokenize(std::string &str, std::vector<std::string> &contents, const std::string &token,
+                         const std::string &qmark);
+    static void untokenize(std::string &str, const std::vector<std::string> &contents, const std::string &token,
                            const std::string &qmark = "");
     static std::string trim(const std::string &str, const std::string &w);
     static std::deque<std::string> split(const std::string &str, const std::string &s);

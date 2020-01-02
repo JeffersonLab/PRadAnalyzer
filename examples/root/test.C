@@ -6,6 +6,43 @@
 
 using namespace std;
 
+// helper function
+inline bool compare_str(const char *buf1, const char *buf2, size_t n)
+{
+    for (size_t i = 0; i < n; ++i) {
+        if (buf1[i] != buf2[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// helper function
+inline std::string break_line(const std::string &buf, const std::string &delim, size_t &i, const std::string &glue)
+{
+    size_t beg = i;
+    if (delim.empty()) {
+        i = buf.size();
+        return buf.substr(beg);
+    }
+
+    for (; i <= buf.size() - delim.size(); ++i) {
+        if (compare_str(&buf[i], delim.c_str(), delim.size())) {
+            std::string res = buf.substr(beg, i - beg);
+            i += delim.size();
+            if (glue.size() && (res.size() > glue.size())) {
+                size_t pos = res.size() - glue.size();
+                if (compare_str(&res[pos], glue.c_str(), glue.size())) {
+                    return res.substr(0, pos) + break_line(buf, delim, i, glue);
+                }
+            }
+            return res;
+        }
+    }
+    i = buf.size();
+    return buf.substr(beg);
+}
+
 void test_find_pair()
 {
     string tstr = "{|}asvs{asdasdss}asdasd}";
@@ -231,7 +268,7 @@ void moller_vmin_test(double energy = 2142, double v_max = 1000)
 void show_ep_gen(const char *path)
 {
     ConfigParser c_parser;
-    c_parser.OpenFile(path);
+    c_parser.ReadFile(path);
 
     double p1, p2, p, th1, th2, th, ph1, ph2, ph;
     TH1F *hist_th = new TH1F("theta dist", "theta dist", 200, 5, 13);
@@ -256,7 +293,7 @@ void show_ep_gen(const char *path)
 void interpolate_F1F2(const char *path, const char *outf, double step = 1.0)
 {
     ConfigParser c_parser;
-    c_parser.OpenFile(path);
+    c_parser.ReadFile(path);
 
     double nu, F1, F2;
     std::vector<double> vnu, vF1, vF2;
