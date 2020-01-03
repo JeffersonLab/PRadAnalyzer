@@ -82,6 +82,8 @@ public:
     const std::string &String() const {return _value;}
     bool IsEmpty() const {return _value.empty();}
 
+    ConfigValue &Trim(const std::string &white);
+
     operator std::string()
     const
     {

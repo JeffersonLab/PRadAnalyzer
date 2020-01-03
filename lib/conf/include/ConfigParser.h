@@ -34,18 +34,18 @@ class ConfigParser
 public:
     struct Format
     {
+        struct StrPair { std::string open, close; };
         std::string split;              // element splitters (chars)
         std::string white;              // white spaces (chars)
         std::string delim;              // line delimiter (string)
         std::string glue;               // line glue (string)
-        std::string cmtmark;            // comment marks (string), until the line breaker '\n'
-        std::string cmtopen;            // comment-block opening mark (string)
-        std::string cmtclose;           // comment-block closing mark (string)
-        std::string quote;              // supported quote
+        std::string linecmt;            // comment marks (string), until the line breaker '\n'
+        StrPair blockcmt;               // block commenting marks (open string, close string)
+        StrPair quote;                  // quote marks (open string, close string)
 
-        static Format Basic() {return {" \t,", " \t", "\n", "", "", "", "", "\""};}
-        static Format BashLike() {return {" \t,", " \t", "\n", "\\", "#", "\'", "\'", "\""};}
-        static Format CLike() {return {" \t,\n", " \t\n", ";", "", "//", "/*", "*/", "\""};}
+        static Format Basic() { return {" \t,", " \t", "\n", "", "", {"", ""}, {"\"", "\""}}; }
+        static Format BashLike() { return {" \t,", " \t", "\n", "\\", "#", {"\'", "\'"}, {"\"", "\""}}; }
+        static Format CLike() { return {" \t,\n", " \t\n", ";", "", "//", {"/*", "*/"}, {"\"", "\""}}; }
     };
 
 public:
@@ -56,11 +56,11 @@ public:
     inline void SetFormat(const Format &f) { fmt = f; }
     inline void SetSplitters(std::string s) { fmt.split = s; }
     inline void SetWhiteSpaces(std::string w) { fmt.white = w; }
-    inline void SetCommentMark(std::string c) { fmt.cmtmark = c; }
-    inline void SetCommentPair(std::string o, std::string c) { fmt.cmtopen = o; fmt.cmtclose = c; }
+    inline void SetCommentMark(std::string c) { fmt.linecmt = c; }
+    inline void SetCommentPair(std::string o, std::string c) { fmt.blockcmt = {o, c}; }
     inline void SetLineGlues(std::string g) { fmt.glue = g; }
     inline void SetLineBreaks(std::string b) { fmt.delim = b; }
-    inline void SetQuoteMark(std::string b) { fmt.quote = b; }
+    inline void SetQuotePair(std::string o, std::string c) { fmt.quote = {o, c}; }
 
     const Format &GetFormat() const {return fmt;}
 
@@ -163,9 +163,13 @@ public:
     static void comment_between(std::string &str, const std::string &open, const std::string &close,
                                 const std::string &qmark);
     static void tokenize(std::string &str, std::vector<std::string> &contents, const std::string &token,
-                         const std::string &qmark);
+                         const std::string &open, const std::string &close);
+    static inline void tokenize(std::string &str, std::vector<std::string> &contents, const std::string &token,
+                         const std::string &qmark) { tokenize(str, contents, token, qmark, qmark); }
     static void untokenize(std::string &str, const std::vector<std::string> &contents, const std::string &token,
-                           const std::string &qmark = "");
+                           const std::string &open, const std::string &close);
+    static inline void untokenize(std::string &str, const std::vector<std::string> &contents, const std::string &token,
+                                  const std::string &qmark = "") { untokenize(str, contents, token, qmark, qmark); }
     static std::string trim(const std::string &str, const std::string &w);
     static std::deque<std::string> split(const std::string &str, const std::string &s);
     static std::deque<std::string> split(const char* str, const size_t &len, const std::string &s);

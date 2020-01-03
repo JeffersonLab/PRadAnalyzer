@@ -305,6 +305,19 @@ const
     return _value.c_str();
 }
 
+ConfigValue &ConfigValue::Trim(const std::string &white)
+{
+    const auto strBegin = _value.find_first_not_of(white);
+    if (strBegin == string::npos) {
+        _value = "";
+    } else {
+        const auto strEnd = _value.find_last_not_of(white);
+        const auto strRange = strEnd - strBegin + 1;
+        _value = _value.substr(strBegin, strRange);
+    }
+
+    return *this;
+}
 
 
 //============================================================================//

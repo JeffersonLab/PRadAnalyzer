@@ -157,7 +157,7 @@ bool ConfigParser::CheckElements(int num, int optional)
 string ConfigParser::CurrentLine() const
 {
     string res = curr_line;
-    untokenize(res, quotes, config_token, fmt.quote);
+    untokenize(res, quotes, config_token, fmt.quote.open, fmt.quote.close);
     return res;
 }
 
@@ -238,12 +238,12 @@ void ConfigParser::retrieveLine()
 {
     curr_line += move(lines.front());
     lines.pop_front();
-    tokenize(curr_line, quotes, config_token, fmt.quote);
-    comment_between(curr_line, fmt.cmtopen, fmt.cmtclose);
-    comment_line(curr_line, fmt.cmtmark, fmt.delim);
+    tokenize(curr_line, quotes, config_token, fmt.quote.open, fmt.quote.close);
+    comment_between(curr_line, fmt.blockcmt.open, fmt.blockcmt.close);
+    comment_line(curr_line, fmt.linecmt, fmt.delim);
 
     if (lines.empty()) { return; }
-    if (curr_line.empty() || (curr_line.find(fmt.cmtopen) != string::npos)) {
+    if (curr_line.empty() || (curr_line.find(fmt.blockcmt.open) != string::npos)) {
         retrieveLine();
     }
 }
@@ -316,27 +316,28 @@ void ConfigParser::comment_line(string &str, const string &c, const string &b)
 void ConfigParser::comment_line(string &str, const string &c, const string &b, const string &qmark)
 {
     vector<string> quotes;
-    tokenize(str, quotes, config_token, qmark);
+    tokenize(str, quotes, config_token, qmark, qmark);
     comment_line(str, c, b);
-    untokenize(str, quotes, config_token, qmark);
+    untokenize(str, quotes, config_token, qmark, qmark);
 }
 
 // tokenize the content between quote marks, no nested structure supported
-void ConfigParser::tokenize(string &str, vector<string> &contents, const string &token, const string &qmark)
+void ConfigParser::tokenize(string &str, vector<string> &contents, const string &token,
+                            const string &open, const string &close)
 {
-    if (str.empty() || qmark.empty())
+    if (str.empty() || open.empty() || close.empty())
         return;
 
     string padzero(TOKEN_DIGITS, '0');
     while (true) {
-        size_t pos1 = str.find(qmark);
+        size_t pos1 = str.find(open);
         if (pos1 != string::npos) {
-            size_t pos2 = str.find(qmark, pos1 + qmark.size());
+            size_t pos2 = str.find(close, pos1 + open.size());
             // found pair
             if (pos2 != string::npos) {
                 string digits = (padzero + to_string(contents.size()));
-                contents.emplace_back(str.substr(pos1 + qmark.size(), pos2 - pos1 - qmark.size()));
-                str.replace(pos1, pos2 + qmark.size() - pos1, token + digits.substr(digits.size() - TOKEN_DIGITS));
+                contents.emplace_back(str.substr(pos1 + open.size(), pos2 - pos1 - open.size()));
+                str.replace(pos1, pos2 + close.size() - pos1, token + digits.substr(digits.size() - TOKEN_DIGITS));
             } else {
                 return;
             }
@@ -347,7 +348,8 @@ void ConfigParser::tokenize(string &str, vector<string> &contents, const string 
 }
 
 // reversal of tokenize
-void ConfigParser::untokenize(string &str, const vector<string> &contents, const string &token, const string &qmark)
+void ConfigParser::untokenize(string &str, const vector<string> &contents, const string &token,
+                              const string &open, const string &close)
 {
     if (contents.empty() || str.empty() || token.empty()) {
         return;
@@ -357,10 +359,10 @@ void ConfigParser::untokenize(string &str, const vector<string> &contents, const
     auto size = token.size() + TOKEN_DIGITS;
     while ((pos != string::npos) && ((pos + size) <= str.size())) {
         size_t id = stoul(str.substr(pos + token.size(), TOKEN_DIGITS));
-        if (qmark.empty()) {
+        if (open.empty() || close.empty()) {
             str.replace(pos, size, contents[id]);
         } else {
-            str.replace(pos, size, qmark + contents[id] + qmark);
+            str.replace(pos, size, open + contents[id] + close);
         }
         pos = str.find(token);
     }
@@ -398,9 +400,9 @@ void ConfigParser::comment_between(string &str, const string &open, const string
 void ConfigParser::comment_between(string &str, const string &open, const string &close, const string &qmark)
 {
     vector<string> quotes;
-    tokenize(str, quotes, config_token, qmark);
+    tokenize(str, quotes, config_token, qmark, qmark);
     comment_between(str, open, close);
-    untokenize(str, quotes, config_token, qmark);
+    untokenize(str, quotes, config_token, qmark, qmark);
 }
 
 // trim all the characters defined as white space at both ends
