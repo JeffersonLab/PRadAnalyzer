@@ -97,7 +97,7 @@ public:
     static double SigmaIR(double s, double t, double v_max);
     static double SigmaFs(double s, double t, double v_min, double res = 1e-3);
     static double SigmaRad(double s, double t, double v_min, double v_max, double res = 1e-4);
-    static void MomentumRec(double *k2, double *p2, double *k,
+    static bool MomentumRec(double *k2, double *p2, double *k,
                             double s, double t, double t1, double v, double z,
                             double rnd1 = 0., double rnd2 = 0.);
 

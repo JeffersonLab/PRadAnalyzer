@@ -255,7 +255,8 @@ const
 
     // event sampling
     PRadBenchMark timer;
-    for(int i = 0; i < nevents; ++i)
+    int iev = 0;
+    while(iev < nevents)
     {
         double rnd = rng()*t_dist.back().cdf;
         auto interval = cana::binary_search_interval(t_dist.begin(), t_dist.end(), rnd);
@@ -264,7 +265,6 @@ const
         // should not happen
         if(fp == t_dist.end() || sp == t_dist.end()) {
             std::cerr << "Could not find CDF value at " << rnd << std::endl;
-            i--;
             continue;
         }
 
@@ -309,7 +309,10 @@ const
             }
         }
 
-        MomentumRec(k2_CM, p2_CM, k_CM, s, t, t1, v, z, rng(), rng());
+        if(!MomentumRec(k2_CM, p2_CM, k_CM, s, t, t1, v, z, rng(), rng())) {
+            continue;
+        }
+        iev ++;
         four_momentum_boost_z(k2, k2_CM, -beta_CM);
         four_momentum_boost_z(p2, p2_CM, -beta_CM);
         four_momentum_boost_z(k, k_CM, -beta_CM);
@@ -323,8 +326,8 @@ const
         }
 
         // show progress
-        if(verbose && (i%PROGRESS_EVENT_COUNT == 0))
-            show_progress(timer, i, nevents, "ev");
+        if(verbose && (iev % PROGRESS_EVENT_COUNT == 0))
+            show_progress(timer, iev, nevents, "ev");
 
 #ifdef MOLLER_TEST_KIN
         std::cout << i << ", " << angle << ", "
@@ -894,7 +897,7 @@ double PRadMollerGen::SigmaRad(double s, double t, double v_min, double v_max, d
 // k1[0] = p1[0] = sqrt(s)/2, k1p = p1p = sqrt(lambda_s/s)/2
 // rnd1 is a random number (0, 1) to sample azimuthal angle phi
 // rnd2 is a random number (0, 1) to switch sign
-void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
+bool PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
                                 double s, double t, double t1, double v, double z,
                                 double rnd1, double rnd2)
 {
@@ -934,11 +937,17 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     double lambda_36 = lambda_3*lambda_6;
     double lambda_1_s3 = lambda_1*sqrt(lambda_s*lambda_3);
 
+    double slambda_s18 = sqrt(lambda_s*lambda_1*lambda_8);
+    // TODO, sometimes lambda_8 < 0 (given a large lambda_7) and results in undefined slambda_s18
+    // Need to investigate the reason
+    if (std::isnan(slambda_s18)) {
+        return false;
+    }
+
     // NOTICE, this sign change is from MERADGEN's code but it is not mentioned
     // in ref. [2]
     // it probably is related to t/u channel photon emission
-    double slambda_s18 = sqrt(lambda_s*lambda_1*lambda_8);
-    if(rnd2 > 0.5)
+    if (rnd2 > 0.5)
         slambda_s18 *= -1.;
 /*
     // outgoing electron 1
@@ -984,6 +993,7 @@ void PRadMollerGen::MomentumRec(double *k2, double *p2, double *k,
     p2[2] = vp[2];
     p2[3] = vp[3] - sqrt(lambda_s/s)/2.;
 
+    return true;
 }
 
 

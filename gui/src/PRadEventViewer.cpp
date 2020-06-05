@@ -1326,7 +1326,7 @@ void PRadEventViewer::fitHistogram()
 
             UpdateHistCanvas();
 
-        } catch (PRadException e) {
+        } catch (PRadException &e) {
             QMessageBox::critical(this,
                                   QString::fromStdString(e.FailureType()),
                                   QString::fromStdString(e.FailureDesc()));
@@ -1504,7 +1504,7 @@ bool PRadEventViewer::connectETClient()
                         etSetting->GetETFilePath().toStdString().c_str());
         etChannel->NewStation(etSetting->GetStationName().toStdString());
         etChannel->AttachStation();
-    } catch(PRadException e) {
+    } catch(PRadException &e) {
         etChannel->ForceClose();
         std::cerr << e.FailureType() << ": "
                   << e.FailureDesc() << std::endl;
@@ -1600,7 +1600,7 @@ void PRadEventViewer::onlineUpdate(const size_t &max_events)
             Refresh();
         }
 
-    } catch(PRadException e) {
+    } catch(PRadException &e) {
         std::cerr << e.FailureType() << ": "
                   << e.FailureDesc() << std::endl;
         return;
