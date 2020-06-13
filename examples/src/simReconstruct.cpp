@@ -141,6 +141,7 @@ void simReconstruct(TChain *tch, const char *outf)
         Nhits = hyhits.size();
         for (int j = 0; j < Nhits; ++j) {
             auto &hit = hyhits[j];
+            CID[j] = hit.cid;
             hE[j] = hit.E;
             Point hpos(hit.x, hit.y, hit.z + hycal_pwo_surf);
             match[j] = 0;
