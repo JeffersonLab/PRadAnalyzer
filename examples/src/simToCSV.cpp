@@ -110,7 +110,7 @@ void toCSV(TChain *tch, const char *outf)
 
         for (int j = 0; j < Nhits; ++j) {
             output << iev << sep << hx[j] << sep << hy[j] << sep << hz[j] << sep << hE[j] << sep
-                   << match[j] << sep << scint << sep << cid << std::endl;
+                   << match[j] << sep << scint << sep << cid[j] << std::endl;
         }
 
         for (int j = 0; j < Ngun; ++j) {
