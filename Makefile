@@ -29,7 +29,7 @@ first: all
 
 .PHONY: lib gui exe
 
-all: lib exe gui
+all: lib exe
 
 lib:
 	$(MAKE) -C $(LIB_DIR) -f $(MAKE_FILE) "LIB_OPTION = $(LIB_OPTION)"
