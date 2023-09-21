@@ -119,6 +119,28 @@ inline void get_moller_stu(double Es, double angle, double &s, double &t, double
     u = 4.*m2 - s - t;
 }
 
+void hard_photon_contribution(double ene = 1097, double vmin = 200, double vmax = 300)
+{
+    PRadMollerGen moller(vmin, vmax);
+    PRadEpElasGen ep(vmin, vmax);
+
+    double s = 2.*cana::ele_mass*(ene + cana::ele_mass);
+
+    for(double logq2 = -6; logq2 < -2; logq2 += 0.01)
+    {
+        double q2 = std::pow(10., logq2);
+        double t = -q2*1e6;
+        double born = 0., non_rad = 0., rad = 0.;
+        if(4.*cana::ele_mass*cana::ele_mass - s - t < -120.) {
+            moller.GetXSdQsq(s, t, born, non_rad, rad);
+            double mr = rad/(non_rad + rad);
+            // ep.GetXSdQsq(s, t, born, non_rad, rad);
+            double er = rad/(non_rad + rad);
+            std::cout << q2 << ": Moller "  << mr*100. << "%, " << "EP " << er*100. << "%" << endl;
+        }
+    }
+}
+
 void moller_test(double v_max = 1000)
 {
     TGraph *g1a = new TGraph();
@@ -177,10 +199,35 @@ void moller_test(double v_max = 1000)
     g3b->Draw("C");
 }
 
+void moller_test2(double v_max = 1000)
+{
+    TGraph *g1a = new TGraph();
+    PRadMollerGen moller(1, v_max);
+    double s = 2.*cana::ele_mass*(2143. + cana::ele_mass);
+    double angle = 1.2510790680082586;
+    for (double Ep = 100; Ep < 2143; Ep += 10) {
+        double t = -4.*Ep*2143*std::pow(std::sin(angle/180.*M_PI/2.), 2);
+        double q2 = -t;
+        double born = 0., non_rad = 0., rad = 0.;
+        if(4.*cana::ele_mass*cana::ele_mass - s - t < -120.) {
+            moller.GetXSdQsq(s, t, born, non_rad, rad);
+            g1a->SetPoint(g1a->GetN(), Ep, rad);
+        }
+        cout << Ep << endl;
+    }
+
+    g1a->SetLineColor(2);
+    TCanvas *c1 = new TCanvas("Moller XS", "MollerXS", 200, 10, 700, 500);
+    c1->SetGrid();
+    // c1->DrawFrame(1e-6, -35, 1e-2, 5);
+    // c1->SetLogx();
+    g1a->Draw("AL");
+}
+
 void moller_gen_test(int Nevents, double energy = 2142., const char *path = "moller_test.dat")
 {
-    PRadMollerGen moller(1, 3000, 100, 1e-4, 1e-4);
-    moller.Generate(energy, 0.3, 15.0, Nevents, path);
+    PRadMollerGen moller(1, 300000, 100, 1e-4, 1e-4);
+    moller.Generate(energy, 0.5, 5.0, Nevents, path);
 }
 
 void show_moller_gen(const char *path)
