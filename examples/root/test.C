@@ -560,3 +560,19 @@ void ep_xs(const char *outf = "ep_xs.dat")
     output.close();
 }
 
+void ep_ff(const char *outf = "ep_ff.dat", double min_q2 = 1e-6, double max_q2 = 1.0, int nsteps = 1000)
+{
+    ofstream output(outf);
+    PRadEpElasGen ep_gen(100., 2000.);
+    double log_min = log(min_q2);
+    double log_max = log(max_q2);
+    double log_step = (log_max - log_min)/double(nsteps);
+
+    double GE, GM;
+    for (double log_q2 = log_min; log_q2 < log_max; log_q2 += log_step) {
+        double q2 = exp(log_q2);
+        ep_gen.GetEMFF(q2*1e6, GE, GM);
+        output << q2 << ", " << GE << ", " << GM << std::endl;
+    }
+    output.close();
+}
