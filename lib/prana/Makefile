@@ -17,7 +17,7 @@ LIBS          = -lpthread -lgfortran -L.. -lprconf -lcana
 # root-config
 CXXFLAGS     += $(shell root-config --cflags)
 INCPATH      += -I$(shell root-config --incdir)
-LIBS         += $(shell root-config --libs)
+LIBS         += $(shell root-config --libs) -lMathMore -lFoam
 
 ####### Targets, add new objects here
 
