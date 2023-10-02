@@ -11,6 +11,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include "QRootCanvas.h"
+#include "TVirtualX.h"
 
 
 QRootCanvas::QRootCanvas(QWidget *parent)

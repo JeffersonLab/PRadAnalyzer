@@ -103,6 +103,69 @@ void test_block_read(const string &path = "block_test.conf")
     }
 }
 
+#define Abs   TMath::Abs
+#define Exp   TMath::Exp
+#define Log   TMath::Log
+#define DiLog TMath::DiLog
+#define Sqrt  TMath::Sqrt
+#define Sin   TMath::Sin
+#define Cos   TMath::Cos
+#define Tan   TMath::Tan
+#define ASin  TMath::ASin
+#define ACos  TMath::ACos
+#define ATan  TMath::ATan
+#define ATan2 TMath::ATan2
+const double pi = 3.14159265358979323846;
+const double pi2 = pi * pi;
+const double deg = pi / 180.0;
+const double m = 0.5109989461; // MeV
+const double m2 = m * m;
+const double m4 = m2 * m2;
+const double M = 938.272046; // MeV
+const double M2 = M * M;
+const double M4 = M2 * M2;
+const double mmu = 105.6583745; // MeV
+const double mtau = 1776.82; // MeV
+const double alpha = 0.72973525664e-2;
+const double alpha_pi = alpha / pi;
+const double alpha2 = alpha * alpha;
+const double alpha3 = alpha2 * alpha;
+const double mu = 2.792782;
+const double e = Sqrt(4.0 * pi *alpha);
+
+inline double Pow2(double arg) // arg^2
+{
+    return TMath::Power(arg, 2);
+}
+
+// get the symmetric Moller pair angle in Lab frame
+inline double get_sym_angle(double Es)
+{
+    return acos(sqrt((Es + m)/(Es + 3.*m)))*cana::rad2deg;
+}
+
+double ElasticEnergy(double Ei_e, double theta)
+{
+    return ((Ei_e + M) * (M * Ei_e + m2) +
+            Sqrt(M2 - Pow2(m * Sin(theta))) * (Pow2(Ei_e) - m2) * Cos(theta)) / (Pow2(Ei_e + M) - (Pow2(Ei_e) - m2)
+            * Pow2(Cos(theta)));
+}
+
+void calc_sq2(double E0, double theta, double &s, double &q2, double mtar = M)
+{
+    TLorentzVector vi_e, vi_p;
+    TLorentzVector vf_e, vf_p;
+    vi_e.SetPxPyPzE(0.0, 0.0, Sqrt(Pow2(E0) - m2), E0);
+    vi_p.SetPxPyPzE(0.0, 0.0, 0.0, M);
+    double Ef_e = ElasticEnergy(E0, theta);
+
+    vf_e.SetPxPyPzE(Sqrt(Pow2(Ef_e) - m2) * Sin(theta), 0.0, Sqrt(Pow2(Ef_e) - m2) * Cos(theta), Ef_e);
+    vf_p = vi_e + vi_p - vf_e;
+
+    s = 2.0 * vi_e * vi_p;
+    q2 = -(vi_e - vf_e) * (vi_e - vf_e);
+}
+
 // Mandelstam variables for Moller process
 inline void get_moller_stu(double Es, double angle, double &s, double &t, double &u)
 {
@@ -119,7 +182,29 @@ inline void get_moller_stu(double Es, double angle, double &s, double &t, double
     u = 4.*m2 - s - t;
 }
 
-void moller_test(double v_max = 1000)
+void hard_photon_contribution(double ene = 1097, double vmin = 200, double vmax = 300)
+{
+    PRadMollerGen moller(vmin, vmax);
+    PRadEpElasGen ep(vmin, vmax);
+
+    double s = 2.*cana::ele_mass*(ene + cana::ele_mass);
+
+    for(double logq2 = -6; logq2 < -2; logq2 += 0.01)
+    {
+        double q2 = std::pow(10., logq2);
+        double t = -q2*1e6;
+        double born = 0., non_rad = 0., rad = 0.;
+        if(4.*cana::ele_mass*cana::ele_mass - s - t < -120.) {
+            moller.GetXSdQsq(s, t, born, non_rad, rad);
+            double mr = rad/(non_rad + rad);
+            // ep.GetXSdQsq(s, t, born, non_rad, rad);
+            double er = rad/(non_rad + rad);
+            std::cout << q2 << ": Moller "  << mr*100. << "%, " << "EP " << er*100. << "%" << endl;
+        }
+    }
+}
+
+void moller_delta_graph(double v_max = 1000)
 {
     TGraph *g1a = new TGraph();
     TGraph *g2a = new TGraph();
@@ -177,10 +262,34 @@ void moller_test(double v_max = 1000)
     g3b->Draw("C");
 }
 
+void moller_xs_Ep(double E0 = 2143, double vmin = 1, double vmax = 2000, double E1 = 100., double Estep = 10.)
+{
+    TGraph *g1a = new TGraph();
+    PRadMollerGen moller(vmin, vmax);
+    double s = 2.*cana::ele_mass*(E0 + cana::ele_mass);
+    for (double Ep = E1; Ep < E0; Ep += Estep) {
+        double t = -4.*Ep*E0*std::pow(std::sin(get_sym_angle(E0)*cana::deg2rad/2.), 2);
+        double born = 0., non_rad = 0., rad = 0.;
+        if(4.*cana::ele_mass*cana::ele_mass - s - t < -120.) {
+            moller.GetXSdQsq(s, t, born, non_rad, rad);
+            g1a->SetPoint(g1a->GetN(), Ep, rad);
+        }
+        cout << '\r' << Ep << "/" << E0 << std::flush;
+    }
+    cout << endl;
+
+    g1a->SetLineColor(2);
+    TCanvas *c1 = new TCanvas("Moller XS", "MollerXS", 200, 10, 700, 500);
+    c1->SetGrid();
+    // c1->DrawFrame(1e-6, -35, 1e-2, 5);
+    // c1->SetLogx();
+    g1a->Draw("AL");
+}
+
 void moller_gen_test(int Nevents, double energy = 2142., const char *path = "moller_test.dat")
 {
-    PRadMollerGen moller(1, 3000, 100, 1e-4, 1e-4);
-    moller.Generate(energy, 0.3, 15.0, Nevents, path);
+    PRadMollerGen moller(1, 300000, 100, 1e-4, 1e-4);
+    moller.Generate(energy, 0.5, 5.0, Nevents, path);
 }
 
 void show_moller_gen(const char *path)
@@ -428,79 +537,21 @@ void ep_vmin_test(double energy = 2142, double v_max = 1000)
     g5->Draw("C");
     g4->Draw("C");
 }
-
-#define Abs   TMath::Abs
-#define Exp   TMath::Exp
-#define Log   TMath::Log
-#define DiLog TMath::DiLog
-#define Sqrt  TMath::Sqrt
-#define Sin   TMath::Sin
-#define Cos   TMath::Cos
-#define Tan   TMath::Tan
-#define ASin  TMath::ASin
-#define ACos  TMath::ACos
-#define ATan  TMath::ATan
-#define ATan2 TMath::ATan2
-const double pi = 3.14159265358979323846;
-const double pi2 = pi * pi;
-const double deg = pi / 180.0;
-const double m = 0.5109989461; // MeV
-const double m2 = m * m;
-const double m4 = m2 * m2;
-const double M = 938.272046; // MeV
-const double M2 = M * M;
-const double M4 = M2 * M2;
-const double mmu = 105.6583745; // MeV
-const double mtau = 1776.82; // MeV
-const double alpha = 0.72973525664e-2;
-const double alpha_pi = alpha / pi;
-const double alpha2 = alpha * alpha;
-const double alpha3 = alpha2 * alpha;
-const double mu = 2.792782;
-const double e = Sqrt(4.0 * pi *alpha);
-
-inline double Pow2(double arg) // arg^2
+void ep_xs(const char *outf = "ep_xs.dat", double vmin = 100., double vmax = 2000.)
 {
-    return TMath::Power(arg, 2);
-}
-
-double ElasticEnergy(double Ei_e, double theta)
-{
-    return ((Ei_e + M) * (M * Ei_e + m2) +
-            Sqrt(M2 - Pow2(m * Sin(theta))) * (Pow2(Ei_e) - m2) * Cos(theta)) / (Pow2(Ei_e + M) - (Pow2(Ei_e) - m2)
-            * Pow2(Cos(theta)));
-}
-
-void CalSQ2(double E0, double theta, double &s, double &q2)
-{
-    TLorentzVector vi_e, vi_p;
-    TLorentzVector vf_e, vf_p;
-    vi_e.SetPxPyPzE(0.0, 0.0, Sqrt(Pow2(E0) - m2), E0);
-    vi_p.SetPxPyPzE(0.0, 0.0, 0.0, M);
-    double Ef_e = ElasticEnergy(E0, theta);
-
-    vf_e.SetPxPyPzE(Sqrt(Pow2(Ef_e) - m2) * Sin(theta), 0.0, Sqrt(Pow2(Ef_e) - m2) * Cos(theta), Ef_e);
-    vf_p = vi_e + vi_p - vf_e;
-
-    s = 2.0 * vi_e * vi_p;
-    q2 = -(vi_e - vf_e) * (vi_e - vf_e);
-}
-
-void ep_xs(const char *outf = "ep_xs.dat")
-{
+    PRadEpElasGen ep_gen(vmin, vmax);
     ofstream output(outf);
     output << "# elastic ep cross section" << std::endl;
     output << "# energy (MeV), angle (deg), non_rad, rad, born (nb/sr)" << std::endl;
     const double unit = cana::hbarc2*1e7;
-    PRadEpElasGen ep_gen(100., 2000);
 
-    double energies[] = {700., 1400., 2100.};
+    double energies[] = {700., 1400., 2100., 2800., 3500., 4200.};
 
     for (auto energy : energies) {
         for (double angle = 0.4; angle < 7.5; angle += 0.01) {
             double s, q2, born, non_rad, rad;
             double theta = angle/180.*pi;
-            CalSQ2(energy, theta, s, q2);
+            calc_sq2(energy, theta, s, q2, m);
             double jacob = 2.0 * Pow2(energy) / Pow2(1.0 + energy / M * (1.0 - Cos(theta)))/2./pi;
             // double jacob = (s - 2.*m2)*4.*m*(energy - m)/Pow2(energy + m -(energy - m)*Pow2(cos(theta)))/2./cana::pi;
             ep_gen.GetXSdQsq(s, q2, born, non_rad, rad);
@@ -512,4 +563,26 @@ void ep_xs(const char *outf = "ep_xs.dat")
     }
     output.close();
 }
+
+void ee_xs(const char *outf = "ee_xs.dat", double vmin = 100., double vmax = 2000.)
+{
+    PRadMollerGen ee_gen(vmin, vmax);
+    ofstream output(outf);
+    output << "# elastic ee cross section" << std::endl;
+    output << "# energy (MeV), angle (deg), non_rad, rad, born (nb/sr)" << std::endl;
+
+    double energies[] = {700., 1400., 2100., 2800., 3500., 4200.};
+
+    for (auto energy : energies) {
+        for (double angle = -89.9; angle < 90.; angle += 1.0) {
+            double born, non_rad, rad;
+            ee_gen.GetXS(energy, angle, born, non_rad, rad);
+            std::cout << energy << ", " << angle << ", " << non_rad << std::endl;
+            output << energy << ", " << angle << ", "
+                   << non_rad << ", " << non_rad + rad << ", " << born << std::endl;
+        }
+    }
+    output.close();
+}
+
 
