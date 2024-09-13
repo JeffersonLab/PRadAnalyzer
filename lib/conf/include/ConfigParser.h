@@ -3,11 +3,9 @@
 
 #include <string>
 #include <vector>
-#include <queue>
 #include <deque>
 #include <fstream>
 #include "ConfigValue.h"
-
 
 // a macro to auto generate enum2str and str2enum
 // name mapping begins at bias and continuously increase, split by '|'
@@ -34,39 +32,79 @@ class ConfigParser
 public:
     struct Format
     {
-        struct StrPair { std::string open, close; };
         std::string split;              // element splitters (chars)
         std::string white;              // white spaces (chars)
         std::string delim;              // line delimiter (string)
         std::string glue;               // line glue (string)
-        std::string linecmt;            // comment marks (string), until the line breaker '\n'
-        StrPair blockcmt;               // block commenting marks (open string, close string)
-        StrPair quote;                  // quote marks (open string, close string)
+        std::string cmtmark;            // comment marks (string), until the line breaker '\n'
+        std::string cmtopen;            // comment-block opening mark (string)
+        std::string cmtclose;           // comment-block closing mark (string)
 
-        static Format Basic() { return {" \t,", " \t", "\n", "", "", {"", ""}, {"\"", "\""}}; }
-        static Format BashLike() { return {" \t,", " \t", "\n", "\\", "#", {"\'", "\'"}, {"\"", "\""}}; }
-        static Format CLike() { return {" \t,\n", " \t\n", ";", "", "//", {"/*", "*/"}, {"\"", "\""}}; }
+        static Format Basic() {return {" \t,", " \t", "\n", "", "", "", ""};}
+        static Format BashLike() {return {" \t,", " \t", "\n", "\\", "#", "\'", "\'"};}
+        static Format CLike() {return {" \t,\n", " \t\n", ";", "", "//", "/*", "*/"};}
+    };
+
+    struct CharBuffer
+    {
+        std::vector<char> data;
+        size_t begin, end;
+
+        CharBuffer(size_t cap = 256) : begin(0), end(0)
+        {
+            data.resize(cap);
+        }
+
+        void Reset() {begin = 0; end = 0; data.clear();}
+        void Add(char ch)
+        {
+            if(data.size() <= end)
+                data.resize(2*data.size());
+
+            data[end++] = ch;
+        }
+
+        std::string String()
+        const
+        {
+            std::string str;
+            if(end > begin)
+                str.assign(&data[begin], end - begin);
+            return str;
+        }
+
+        inline const char &operator [] (size_t idx) const {return data[idx];}
+        inline char &operator [] (size_t idx) {return data[idx];}
     };
 
 public:
     ConfigParser(Format f = Format::BashLike());
 
-    // format related
-    inline void SetFormat(Format &&f) { fmt = f; }
-    inline void SetFormat(const Format &f) { fmt = f; }
-    inline void SetSplitters(std::string s) { fmt.split = s; }
-    inline void SetWhiteSpaces(std::string w) { fmt.white = w; }
-    inline void SetCommentMark(std::string c) { fmt.linecmt = c; }
-    inline void SetCommentPair(std::string o, std::string c) { fmt.blockcmt = {o, c}; }
-    inline void SetLineGlues(std::string g) { fmt.glue = g; }
-    inline void SetLineBreaks(std::string b) { fmt.delim = b; }
-    inline void SetQuotePair(std::string o, std::string c) { fmt.quote = {o, c}; }
+    ConfigParser(ConfigParser &&that);
+    ConfigParser(const ConfigParser &that);
 
-    const Format &GetFormat() const {return fmt;}
+    virtual ~ConfigParser();
+
+    ConfigParser &operator = (ConfigParser &&rhs);
+    ConfigParser &operator = (const ConfigParser &rhs);
+
+    // format related
+    inline void SetFormat(Format &&f) {form = f;}
+    inline void SetFormat(const Format &f) {form = f;}
+    inline void SetSplitters(std::string s) {form.split = s;}
+    inline void SetWhiteSpaces(std::string w) {form.white = w;}
+    inline void SetCommentMark(std::string c) {form.cmtmark = c;}
+    inline void SetCommentPair(std::string o, std::string c) {form.cmtopen = o; form.cmtclose = c;}
+    inline void SetLineGlues(std::string g) {form.glue = g;}
+    inline void SetLineBreaks(std::string b) {form.delim = b;}
+
+    const Format &GetFormat() const {return form;}
 
     // dealing with file/buffer
+    bool OpenFile(const std::string &path, size_t cap = 64*1024);
     bool ReadFile(const std::string &path);
     void ReadBuffer(const char*);
+    void CloseFile();
     void Clear();
 
     // parse line, return false if no more line to parse
@@ -78,9 +116,9 @@ public:
 
     // get current parsing status
     bool CheckElements(int num, int optional = 0);
-    int NbofElements() const { return elements.size(); }
-    int LineNumber() const { return line_number; }
-    std::string CurrentLine() const;
+    int NbofElements() const {return elements.size();}
+    int LineNumber() const {return line_number;}
+    std::string CurrentLine() const {return cur_line.String();}
 
     // take the elements
     ConfigValue TakeFirst();
@@ -141,35 +179,22 @@ public:
 
 private:
     // private functions
-    void toLines(std::string buf);
-    void parseBuffer();
-    void retrieveLine();
+    bool getBuffer();
+    bool getLine(CharBuffer &line_buf, bool recursive = false);
+    int parseBuffer(const CharBuffer &line);
 
 private:
     // private members
-    Format fmt;
+    Format form;
+    std::ifstream infile;
+    CharBuffer buf, cur_line;
     int line_number;
-    std::string curr_line;
-    std::vector<std::string> quotes;
-    std::deque<std::string> lines, elements;
-
+    std::deque<std::string> elements;
 
 public:
     // static functions
     static void comment_line(std::string &str, const std::string &cmt, const std::string &brk);
-    static void comment_line(std::string &str, const std::string &cmt, const std::string &brk,
-                             const std::string &qmark);
     static void comment_between(std::string &str, const std::string &open, const std::string &close);
-    static void comment_between(std::string &str, const std::string &open, const std::string &close,
-                                const std::string &qmark);
-    static void tokenize(std::string &str, std::vector<std::string> &contents, const std::string &token,
-                         const std::string &open, const std::string &close);
-    static inline void tokenize(std::string &str, std::vector<std::string> &contents, const std::string &token,
-                         const std::string &qmark) { tokenize(str, contents, token, qmark, qmark); }
-    static void untokenize(std::string &str, const std::vector<std::string> &contents, const std::string &token,
-                           const std::string &open, const std::string &close);
-    static inline void untokenize(std::string &str, const std::vector<std::string> &contents, const std::string &token,
-                                  const std::string &qmark = "") { untokenize(str, contents, token, qmark, qmark); }
     static std::string trim(const std::string &str, const std::string &w);
     static std::deque<std::string> split(const std::string &str, const std::string &s);
     static std::deque<std::string> split(const char* str, const size_t &len, const std::string &s);
