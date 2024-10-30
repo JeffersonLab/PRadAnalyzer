@@ -9,6 +9,7 @@
 // 10/31/2016                                                                 //
 //============================================================================//
 
+#include <limits.h>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -93,8 +94,11 @@ void ConfigObject::ReadConfigString(const std::string &content, const std::strin
 // continue parse the terms
 void ConfigObject::parserProcess(ConfigParser &c_parser, const std::string &source)
 {
-    char abs_path[2048];
-    realpath(source.c_str(), abs_path);
+    char abs_path[PATH_MAX + 1];
+    char *res = realpath(source.c_str(), abs_path);
+    if (res == nullptr) {
+        throw std::runtime_error("Failed to resolve the absolute path for " + source);
+    }
     std::string cur_dir = ConfigParser::decompose_path(abs_path).dir;
 
     // THIS_DIR needs special treatment as many files in different dirs may be loaded into one instance

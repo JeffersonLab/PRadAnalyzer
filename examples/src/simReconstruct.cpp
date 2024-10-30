@@ -79,7 +79,7 @@ void simReconstruct(TChain *tch, const char *outf)
     std::vector<std::string> selections = {
         "GUN.N", "GUN.PID", "GUN.X", "GUN.Y", "GUN.Z", "GUN.E", "GUN.Theta", "GUN.Phi",
 //        "GEM.N", "GEM.X", "GEM.Y", "GEM.Z", "GEM.DID",
-        "ST.N", "ST.X", "ST.Y", "ST.Z",
+//        "ST.N", "ST.X", "ST.Y", "ST.Z",
     };
 
     tch->SetBranchStatus("*", 0);
@@ -173,6 +173,7 @@ void simReconstruct(TChain *tch, const char *outf)
               << "---[ " << timer.GetElapsedTime()/(double)tch->GetEntries() << " ms/ev ]------"
               << std::endl;
     t->Write();
+    f->Close();
 }
 
 void setModuleEnergy(PRadHyCalModule &m, double edep)
