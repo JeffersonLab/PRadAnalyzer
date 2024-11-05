@@ -12,10 +12,6 @@
 
 using namespace std;
 
-#define TOKEN_DIGITS 5
-
-// TODO radmonize token that has no conflic with the format marks
-static const string config_token = "Gc2xConfig6R";
 
 
 //============================================================================//
@@ -24,53 +20,114 @@ static const string config_token = "Gc2xConfig6R";
 
 // constructor, with format input
 ConfigParser::ConfigParser(Format f)
-: fmt(f), line_number(0)
+: form(f), line_number(0)
 {
     // place holder
+}
+
+// copy constructor, only copy format
+ConfigParser::ConfigParser(const ConfigParser &that)
+: form(that.form), line_number(0)
+{
+    // place holder
+}
+
+// move constructor, only move format
+ConfigParser::ConfigParser(ConfigParser &&that)
+: form(that.form), line_number(0)
+{
+    // place holder
+}
+
+// desctructor
+ConfigParser::~ConfigParser()
+{
+    CloseFile();
+}
+
+// copy assignment operator
+ConfigParser &ConfigParser::operator = (const ConfigParser &rhs)
+{
+    form = rhs.form;
+    return *this;
+}
+
+// move assignment operator
+ConfigParser &ConfigParser::operator = (ConfigParser &&rhs)
+{
+    form = rhs.form;
+    return *this;
 }
 
 //============================================================================//
 // Public Member Function                                                     //
 //============================================================================//
 
+// open a file for future parsing
+bool ConfigParser::OpenFile(const string &path, size_t cap)
+{
+    Clear();
+
+    infile.open(path);
+
+    if(!infile.is_open())
+        return false;
+
+    buf.data.resize(cap);
+
+    // success!
+    return true;
+}
+
 // read the whole file into a buffer and break it into lines
 bool ConfigParser::ReadFile(const string &path)
 {
-    ifstream inf(path);
+    Clear();
 
-    if(!inf.is_open())
+    infile.open(path);
+
+    if(!infile.is_open())
         return false;
 
-    // read the whole file in
-    string str;
+    infile.seekg(0, ios::end);
+    buf.end = infile.tellg();
+    buf.data.resize(buf.end);
+    infile.seekg(0, ios::beg);
 
-    inf.seekg(0, ios::end);
-    str.reserve(inf.tellg());
-    inf.seekg(0, ios::beg);
-
-    str.assign((istreambuf_iterator<char>(inf)), istreambuf_iterator<char>());
-    inf.close();
-
-    toLines(str);
+    infile.read(&buf.data[0], buf.end);
+    infile.close();
 
     return true;
 }
 
-// read a buffer in
-void ConfigParser::ReadBuffer(const char *buf_in)
+// close file
+void ConfigParser::CloseFile()
 {
-    toLines(buf_in);
+    return infile.close();
 }
 
 // clear stored lines
 void ConfigParser::Clear()
 {
-    lines.clear();
-    elements.clear();
+    buf.Reset();
 
     // reset line
     line_number = 0;
-    curr_line.clear();
+    cur_line.Reset();
+
+    // close file
+    CloseFile();
+}
+
+// read a buffer in
+void ConfigParser::ReadBuffer(const char *buf_in)
+{
+    Clear();
+
+    buf.end = strlen(buf_in);
+    buf.data.resize(buf.end + 2);
+
+    strncpy(&buf.data[0], buf_in, buf.end);
 }
 
 // parse a line from the file or buffer
@@ -78,16 +135,21 @@ void ConfigParser::Clear()
 // return false if reached the end
 bool ConfigParser::ParseLine()
 {
-    if (lines.empty()) {
-        return false;
+    elements.clear();
+
+    while(elements.empty())
+    {
+        if(!getLine(cur_line))
+            return false;
+
+        // count the line number
+        ++line_number;
+
+        parseBuffer(cur_line);
     }
 
-    elements.clear();
-    parseBuffer();
-
-    return static_cast<bool>(elements.size());
+    return true;
 }
-
 
 // parse the whole file or buffer
 // return false if nothing was found
@@ -95,21 +157,35 @@ bool ConfigParser::ParseAll()
 {
     elements.clear();
 
-    while (lines.size()) {
-        parseBuffer();
-    }
+    while(true)
+    {
+        if(!getLine(cur_line))
+            return !elements.empty();
 
-    return static_cast<bool>(elements.size());
+        // count the line number
+        ++line_number;
+
+        parseBuffer(cur_line);
+    }
 }
 
 // parse an input string, split the string into elements
 // the trail white spaces in the elements will be trimmed
 int ConfigParser::ParseString(const string &line)
 {
-    toLines(line);
-    ParseAll();
+    deque<string> eles = split(line.c_str(), line.size(), form.split);
 
-    return elements.size();
+    int count = 0;
+    for(auto &ele : eles)
+    {
+        string trim_ele = trim(ele, form.white);
+        if(!trim_ele.empty()) {
+            elements.emplace_back(move(trim_ele));
+            count++;
+        }
+    }
+
+    return count;
 }
 
 // check if the current elemtns number is in the range [num, num + optional]
@@ -147,19 +223,11 @@ bool ConfigParser::CheckElements(int num, int optional)
          << line_number
          << ", expecting " << num_str << " elements. "
          << endl
-         << "\"" << CurrentLine() << "\""
+         << "\"" << cur_line.String() << "\""
          << endl;
     return false;
 }
 
-
-// get current line
-string ConfigParser::CurrentLine() const
-{
-    string res = curr_line;
-    untokenize(res, quotes, config_token, fmt.quote.open, fmt.quote.close);
-    return res;
-}
 
 // take the first element
 ConfigValue ConfigParser::TakeFirst()
@@ -181,102 +249,165 @@ ConfigValue ConfigParser::TakeFirst()
 //============================================================================//
 // Private Member Function                                                    //
 //============================================================================//
-// helper function
-inline bool compare_str(const char *buf1, const char *buf2, size_t n)
+
+// get buffer from the file or the input buffer
+// return false if reached input end
+bool ConfigParser::getBuffer()
 {
-    for (size_t i = 0; i < n; ++i) {
-        if (buf1[i] != buf2[i]) {
-            return false;
-        }
-    }
+    if(buf.begin < buf.end)
+        return true;
+
+    if(!infile.is_open() || infile.bad() || infile.eof())
+        return false;
+
+    infile.read(&buf.data[0], buf.data.size());
+
+    buf.begin = 0;
+    buf.end = infile.gcount();
+
     return true;
 }
 
-// helper function
-inline string break_line(const string &buf, const std::string &delim, size_t &i, const std::string &glue)
+// trim white spaces
+inline void trimbuf(const vector<char> &buf, size_t &begin, size_t &end, const string &w)
 {
-    size_t beg = i;
-    if (delim.empty()) {
-        i = buf.size();
-        return buf.substr(beg);
-    }
-
-    for (; i <= buf.size() - delim.size(); ++i) {
-        if (compare_str(&buf[i], delim.c_str(), delim.size())) {
-            string res = buf.substr(beg, i - beg);
-            i += delim.size();
-            if (glue.size() && (res.size() > glue.size())) {
-                size_t pos = res.size() - glue.size();
-                if (compare_str(&res[pos], glue.c_str(), glue.size())) {
-                    return res.substr(0, pos) + break_line(buf, delim, i, glue);
-                }
-            }
-            return res;
-        }
-    }
-    i = buf.size();
-    return buf.substr(beg);
-}
-
-// parse the buffer string, remove comments, tokenize quotes, and split it in lines
-void ConfigParser::toLines(string buf)
-{
-    Clear();
-
-    if (buf.empty()) {
-        return;
-    }
-
-    // break into lines
-    size_t ibuf = 0;
-    while (ibuf < buf.size()) {
-        lines.emplace_back(break_line(buf, fmt.delim, ibuf, fmt.glue));
-    }
-}
-
-void ConfigParser::retrieveLine()
-{
-    curr_line += move(lines.front());
-    lines.pop_front();
-    tokenize(curr_line, quotes, config_token, fmt.quote.open, fmt.quote.close);
-    comment_between(curr_line, fmt.blockcmt.open, fmt.blockcmt.close);
-    comment_line(curr_line, fmt.linecmt, fmt.delim);
-
-    if (lines.empty()) { return; }
-    if (curr_line.empty() || (curr_line.find(fmt.blockcmt.open) != string::npos)) {
-        retrieveLine();
-    }
-}
-
-// parse buffered lines
-void ConfigParser::parseBuffer()
-{
-    size_t count = 0;
-    curr_line.clear();
-    quotes.clear();
-
-    while (!count && lines.size())
+    while(begin < end)
     {
-        retrieveLine();
+        if(w.find(buf[begin]) == string::npos)
+            break;
 
-        trim(curr_line, fmt.white);
-        auto eles = split(curr_line, fmt.split);
+        begin++;
+    }
 
-        // trim every element and replace token with info
-        for (auto &ele : eles) {
-            ele = trim(ele, fmt.white);
-            if (ele.empty()) {
-                continue;
-            }
-            untokenize(ele, quotes, config_token);
-            elements.emplace_back(move(ele));
-            count++;
-        }
-        line_number++;
+    while(end > begin)
+    {
+        if(w.find(buf[end - 1]) == string::npos)
+            break;
+
+        end--;
     }
 }
 
+inline bool compare(const char ch, const string &str, size_t &c1)
+{
+    if(str.empty())
+        return false;
 
+    c1 = (ch == str[c1]) ? (c1 + 1) : 0;
+
+    return (c1 >= str.size());
+}
+
+inline bool rcompare(const ConfigParser::CharBuffer &buf, const string &str)
+{
+    if(str.empty() || buf.end <= buf.begin || buf.end - buf.begin < str.size())
+        return false;
+
+    for(size_t i = 1; i <= str.size(); ++i)
+    {
+        if(str[str.size() - i] != buf[buf.end - i])
+            return false;
+    }
+
+    return true;
+}
+
+// a helper structure to check context status
+struct TextStatus
+{
+    int val;
+    size_t cmt1, cmt2, delim;
+
+    TextStatus() : val(0), cmt1(0), cmt2(0), delim(0) {}
+    inline void Set(int i) {val = i; cmt1 = 0; cmt2 = 0;}
+};
+
+// get a line from the file or buffer
+// it deals with comments, white spaces
+// return false if reached the end
+bool ConfigParser::getLine(CharBuffer &line_buf, bool recursive)
+{
+    if(!recursive)
+        line_buf.Reset();
+    bool success = false;
+    TextStatus stat;
+
+    while(getBuffer())
+    {
+        success = true;
+
+        while(buf.begin < buf.end)
+        {
+            auto &ch = buf[buf.begin++];
+            switch(stat.val)
+            {
+            default:
+            case 0:
+                line_buf.Add(ch);
+                // check if it is the end
+                if(compare(ch, form.delim, stat.delim)) {
+                    line_buf.end -= form.delim.size();
+                    trimbuf(line_buf.data, line_buf.begin, line_buf.end, form.white);
+                    // glue lines
+                    if(rcompare(line_buf, form.glue)) {
+                        line_buf.end -= form.glue.size();
+                        return getLine(line_buf, true);
+                    } else {
+                        return success;
+                    }
+                } else if(compare(ch, form.cmtopen, stat.cmt1)) {
+                    stat.Set(1);
+                    line_buf.end -= form.cmtopen.size();
+                } else if(compare(ch, form.cmtmark, stat.cmt2)) {
+                    stat.Set(2);
+                    line_buf.end -= form.cmtmark.size();
+                }
+                break;
+            case 1:
+                if(compare(ch, form.cmtclose, stat.cmt1)) {
+                    stat.Set(0);
+                }
+                break;
+            case 2:
+                if(ch == '\n') {
+                    stat.Set(0);
+                    buf.begin -= 1;
+                }
+                break;
+            }
+        }
+    }
+
+    trimbuf(line_buf.data, line_buf.begin, line_buf.end, form.white);
+    return success;
+}
+
+// parse an input char buffer, split the string into elements
+// the trail white spaces in the elements will be trimmed
+int ConfigParser::parseBuffer(const CharBuffer &line)
+{
+    if(line.begin >= line.end)
+        return 0;
+
+    size_t ele_begin = line.begin;
+    int count = 0;
+
+    // intended to visit i == line.end, so the rest of the string get parsed
+    for(size_t i = 0; i <= line.end; ++i)
+    {
+        if(i == line.end || form.split.find(line[i]) != string::npos) {
+            size_t ele_end = i;
+            trimbuf(line.data, ele_begin, ele_end, form.white);
+            if(ele_begin < ele_end) {
+                elements.emplace_back(&line[ele_begin], ele_end - ele_begin);
+                count++;
+            }
+            ele_begin = i + 1;
+        }
+    }
+
+    return count;
+}
 
 //============================================================================//
 // Public Static Function                                                     //
@@ -312,77 +443,22 @@ void ConfigParser::comment_line(string &str, const string &c, const string &b)
     }
 }
 
-// comment out a string, consider quotes
-void ConfigParser::comment_line(string &str, const string &c, const string &b, const string &qmark)
-{
-    vector<string> quotes;
-    tokenize(str, quotes, config_token, qmark, qmark);
-    comment_line(str, c, b);
-    untokenize(str, quotes, config_token, qmark, qmark);
-}
-
-// tokenize the content between quote marks, no nested structure supported
-void ConfigParser::tokenize(string &str, vector<string> &contents, const string &token,
-                            const string &open, const string &close)
-{
-    if (str.empty() || open.empty() || close.empty())
-        return;
-
-    string padzero(TOKEN_DIGITS, '0');
-    while (true) {
-        size_t pos1 = str.find(open);
-        if (pos1 != string::npos) {
-            size_t pos2 = str.find(close, pos1 + open.size());
-            // found pair
-            if (pos2 != string::npos) {
-                string digits = (padzero + to_string(contents.size()));
-                contents.emplace_back(str.substr(pos1 + open.size(), pos2 - pos1 - open.size()));
-                str.replace(pos1, pos2 + close.size() - pos1, token + digits.substr(digits.size() - TOKEN_DIGITS));
-            } else {
-                return;
-            }
-        } else {
-            return;
-        }
-    }
-}
-
-// reversal of tokenize
-void ConfigParser::untokenize(string &str, const vector<string> &contents, const string &token,
-                              const string &open, const string &close)
-{
-    if (contents.empty() || str.empty() || token.empty()) {
-        return;
-    }
-
-    auto pos = str.find(token);
-    auto size = token.size() + TOKEN_DIGITS;
-    while ((pos != string::npos) && ((pos + size) <= str.size())) {
-        size_t id = stoul(str.substr(pos + token.size(), TOKEN_DIGITS));
-        if (open.empty() || close.empty()) {
-            str.replace(pos, size, contents[id]);
-        } else {
-            str.replace(pos, size, open + contents[id] + close);
-        }
-        pos = str.find(token);
-    }
-}
-
 // comment out between a pair of comment marks
 // NOTICE: does not support nested structure of comment marks
 void ConfigParser::comment_between(string &str, const string &open, const string &close)
 {
     // no need to continue
-    if (str.empty() || open.empty() || close.empty())
+    if(str.empty() || open.empty() || close.empty())
         return;
 
-    while (true) {
+    while(true)
+    {
         // find the openning comment mark
         size_t pos1 = str.find(open);
-        if (pos1 != string::npos) {
+        if(pos1 != string::npos) {
             size_t pos2 = str.find(close, pos1 + open.size());
             // found pair
-            if (pos2 != string::npos) {
+            if(pos2 != string::npos) {
                 // remove everything between, including this pair
                 str.erase(pos1, pos2 + close.size() - pos1);
             // comment pair not found
@@ -394,15 +470,6 @@ void ConfigParser::comment_between(string &str, const string &open, const string
             return;
         }
     }
-}
-
-// comment out a string, consider quotes
-void ConfigParser::comment_between(string &str, const string &open, const string &close, const string &qmark)
-{
-    vector<string> quotes;
-    tokenize(str, quotes, config_token, qmark, qmark);
-    comment_between(str, open, close);
-    untokenize(str, quotes, config_token, qmark, qmark);
 }
 
 // trim all the characters defined as white space at both ends
