@@ -70,9 +70,11 @@ void toCSV(TChain *tch, const char *outf)
     tch->SetBranchAddress("Hits.E", hE);
     tch->SetBranchAddress("Hits.CID", cid);
     tch->SetBranchAddress("Hits.match", match);
+/*
     tch->SetBranchAddress("ST.N", &Nsc);
     tch->SetBranchAddress("ST.X", sx);
     tch->SetBranchAddress("ST.Y", sy);
+*/
 
     int Ngun, gpid[100];
     double gx[100], gy[100], gz[100], gE[100], gth[100], gph[100];
@@ -100,6 +102,7 @@ void toCSV(TChain *tch, const char *outf)
 
         // get scintillator status
         int scint = 0;
+/*
         for (int j = 0; j < Nsc; ++j) {
             if (sx[j] <= 20 && sx[j] >= -20) {
                 SET_BIT(scint, (sy[j] > 0 ? 1 : 3));
@@ -107,7 +110,7 @@ void toCSV(TChain *tch, const char *outf)
                 SET_BIT(scint, (sy[j] > 0 ? 2 : 4));
             }
         }
-
+*/
         for (int j = 0; j < Nhits; ++j) {
             output << iev << sep << hx[j] << sep << hy[j] << sep << hz[j] << sep << hE[j] << sep
                    << match[j] << sep << scint << sep << cid[j] << std::endl;

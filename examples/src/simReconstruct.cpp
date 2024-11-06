@@ -31,8 +31,9 @@
 static TRandom2 *RandGen = new TRandom2();
 static double fResoPar[3000][3];
 
-static const double target_center = -3000. + 88.9;
-static const double hycal_pwo_surf = 2950.;
+// we would get the exact position from GUN.Z, but to include the target profile effects, here it is a fixed position
+static const double target_center = -3000. + 89.0;
+static const double hycal_pwo_surf = 2735.15;
 static const double hycal_lg_diff = - 97.3;
 
 void simReconstruct(TChain *t, const char *outf);
