@@ -93,13 +93,13 @@ void simReconstruct(TChain *tch, const char *outf)
     int Nhits, CID[100], match[100];
     double hE[100], hX[100], hY[100], hZ[100];
     // retrieve part of the cluster information
-    t->Branch("Hits.N", &Nhits, "Hits.N/I");
-    t->Branch("Hits.X", hX, "Hits.X[Hits.N]/D");
-    t->Branch("Hits.Y", hY, "Hits.Y[Hits.N]/D");
-    t->Branch("Hits.Z", hZ, "Hits.Z[Hits.N]/D");
-    t->Branch("Hits.E", hE, "Hits.E[Hits.N]/D");
-    t->Branch("Hits.CID", CID, "Hits.CID[Hits.N]/I");
-    t->Branch("Hits.match", match, "Hits.match[Hits.N]/I");
+    t->Branch("Hit.N", &Nhits, "Hit.N/I");
+    t->Branch("Hit.X", hX, "Hit.X[Hit.N]/D");
+    t->Branch("Hit.Y", hY, "Hit.Y[Hit.N]/D");
+    t->Branch("Hit.Z", hZ, "Hit.Z[Hit.N]/D");
+    t->Branch("Hit.E", hE, "Hit.E[Hit.N]/D");
+    t->Branch("Hit.CID", CID, "Hit.CID[Hit.N]/I");
+    t->Branch("Hit.match", match, "Hit.match[Hit.N]/I");
 
     // setup hycal
     PRadHyCalSystem hycal("config/hycal.conf");
